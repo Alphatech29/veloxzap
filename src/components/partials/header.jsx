@@ -5,7 +5,9 @@ import {
   Zap, ChevronDown, Gift, Receipt, CreditCard, Smartphone,
   Menu, X, ArrowRight, Sparkles, Bitcoin, Globe2,
   Building2, BriefcaseBusiness, Newspaper, Mail,
+  LayoutDashboard,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const C = {
   gold:      'var(--color-brand-accent)',
@@ -49,6 +51,7 @@ export default function Header() {
   const dropdownRef        = useRef(null)
   const companyDropdownRef = useRef(null)
   const location           = useLocation()
+  const { isAuthenticated } = useAuth()
 
   
   useEffect(() => {
@@ -520,50 +523,78 @@ export default function Header() {
 
             
             <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Link
-                to="/auth/login"
-                style={{
-                  padding: '9px 20px', borderRadius: 11,
-                  textDecoration: 'none',
-                  color: C.text, fontSize: 14, fontWeight: 600,
-                  border: `1px solid ${tint(C.gold, 22)}`,
-                  background: tint(C.gold, 5),
-                  transition: 'all 0.18s',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = tint(C.gold, 12)
-                  e.currentTarget.style.borderColor = tint(C.gold, 38)
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = tint(C.gold, 5)
-                  e.currentTarget.style.borderColor = tint(C.gold, 22)
-                }}
-              >
-                Sign In
-              </Link>
-              <Link
-                to="/auth/register"
-                style={{
-                  padding: '10px 22px', borderRadius: 11,
-                  textDecoration: 'none',
-                  color: C.navy, fontSize: 14, fontWeight: 800,
-                  background: goldGrad,
-                  boxShadow: `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  letterSpacing: '-0.1px',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                  e.currentTarget.style.boxShadow = `0 12px 32px ${tint(C.gold, 55)}, inset 0 1px 0 ${tint('white', 35)}`
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = ''
-                  e.currentTarget.style.boxShadow = `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`
-                }}
-              >
-                Get Started <ArrowRight size={14} />
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  to="/user/dashboard"
+                  style={{
+                    padding: '10px 22px', borderRadius: 11,
+                    textDecoration: 'none',
+                    color: C.navy, fontSize: 14, fontWeight: 800,
+                    background: goldGrad,
+                    boxShadow: `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    letterSpacing: '-0.1px',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = `0 12px 32px ${tint(C.gold, 55)}, inset 0 1px 0 ${tint('white', 35)}`
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = ''
+                    e.currentTarget.style.boxShadow = `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`
+                  }}
+                >
+                  <LayoutDashboard size={14} /> Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/auth/login"
+                    style={{
+                      padding: '9px 20px', borderRadius: 11,
+                      textDecoration: 'none',
+                      color: C.text, fontSize: 14, fontWeight: 600,
+                      border: `1px solid ${tint(C.gold, 22)}`,
+                      background: tint(C.gold, 5),
+                      transition: 'all 0.18s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = tint(C.gold, 12)
+                      e.currentTarget.style.borderColor = tint(C.gold, 38)
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = tint(C.gold, 5)
+                      e.currentTarget.style.borderColor = tint(C.gold, 22)
+                    }}
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/auth/register"
+                    style={{
+                      padding: '10px 22px', borderRadius: 11,
+                      textDecoration: 'none',
+                      color: C.navy, fontSize: 14, fontWeight: 800,
+                      background: goldGrad,
+                      boxShadow: `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
+                      display: 'inline-flex', alignItems: 'center', gap: 7,
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      letterSpacing: '-0.1px',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = `0 12px 32px ${tint(C.gold, 55)}, inset 0 1px 0 ${tint('white', 35)}`
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = ''
+                      e.currentTarget.style.boxShadow = `0 6px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`
+                    }}
+                  >
+                    Get Started <ArrowRight size={14} />
+                  </Link>
+                </>
+              )}
             </div>
 
             
@@ -879,34 +910,53 @@ export default function Header() {
                   display: 'flex', flexDirection: 'column', gap: 10,
                 }}
               >
-                <Link
-                  to="/auth/login"
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    display: 'block', padding: '13px',
-                    borderRadius: 12, textAlign: 'center',
-                    textDecoration: 'none',
-                    color: C.text, fontSize: 15, fontWeight: 700,
-                    border: `1px solid ${tint(C.gold, 22)}`,
-                    background: tint(C.gold, 6),
-                  }}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/auth/register"
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    padding: '13px', borderRadius: 12,
-                    textDecoration: 'none',
-                    color: C.navy, fontSize: 15, fontWeight: 800,
-                    background: goldGrad,
-                    boxShadow: `0 6px 20px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
-                  }}
-                >
-                  Get Started <ArrowRight size={15} />
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    to="/user/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      padding: '13px', borderRadius: 12,
+                      textDecoration: 'none',
+                      color: C.navy, fontSize: 15, fontWeight: 800,
+                      background: goldGrad,
+                      boxShadow: `0 6px 20px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
+                    }}
+                  >
+                    <LayoutDashboard size={15} /> Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/auth/login"
+                      onClick={() => setMobileOpen(false)}
+                      style={{
+                        display: 'block', padding: '13px',
+                        borderRadius: 12, textAlign: 'center',
+                        textDecoration: 'none',
+                        color: C.text, fontSize: 15, fontWeight: 700,
+                        border: `1px solid ${tint(C.gold, 22)}`,
+                        background: tint(C.gold, 6),
+                      }}
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/auth/register"
+                      onClick={() => setMobileOpen(false)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        padding: '13px', borderRadius: 12,
+                        textDecoration: 'none',
+                        color: C.navy, fontSize: 15, fontWeight: 800,
+                        background: goldGrad,
+                        boxShadow: `0 6px 20px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
+                      }}
+                    >
+                      Get Started <ArrowRight size={15} />
+                    </Link>
+                  </>
+                )}
               </div>
             </motion.div>
           </>

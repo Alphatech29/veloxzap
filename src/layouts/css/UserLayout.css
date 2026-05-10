@@ -1,0 +1,101 @@
+/* User-area theme variables — every value maps to a token in tailwind.config.js
+   (brand.*, primary.*, text, text-muted). Annotations on the right show the source. */
+
+.ul-shell {
+  --ul-side-w: 260px;
+  --ul-top-h: 68px;
+  background: var(--c-bg-fx-1), var(--c-bg-fx-2), var(--c-bg);
+  color: var(--c-text);
+}
+
+/* ───── Dark ───── */
+.ul-shell[data-theme="dark"] {
+  --c-bg:                       #0A1F44;                              /* brand.primary / primary.500 */
+  --c-bg-fx-1: radial-gradient(1200px 600px at 100% -10%, rgba(201, 162, 39, 0.08), transparent 60%);  /* brand.accent */
+  --c-bg-fx-2: radial-gradient(900px 500px at -10% 110%, rgba(46, 69, 116, 0.35), transparent 60%);    /* primary.400 */
+
+  --c-surface:                  rgba(20, 42, 92, 0.45);               /* brand.mid */
+  --c-surface-hover:            rgba(20, 42, 92, 0.7);                /* brand.mid */
+  --c-surface-soft:             rgba(245, 245, 240, 0.04);            /* text */
+  --c-surface-soft-2:           rgba(245, 245, 240, 0.06);            /* text */
+
+  --c-side-bg: linear-gradient(180deg, rgba(10, 31, 68, 0.92), rgba(6, 19, 48, 0.96));   /* primary.500 → primary.700 */
+  --c-side-border:              rgba(201, 162, 39, 0.14);             /* brand.accent */
+  --c-top-bg:                   rgba(10, 31, 68, 0.75);               /* primary.500 */
+  --c-menu-bg:                  rgba(10, 31, 68, 0.96);               /* primary.500 */
+
+  --c-text:                     #F5F5F0;                              /* text */
+  --c-text-muted:               rgba(245, 245, 240, 0.6);             /* text-muted */
+  --c-text-subtle:              rgba(245, 245, 240, 0.45);            /* text */
+  --c-text-faint:               rgba(245, 245, 240, 0.4);             /* text */
+
+  --c-border:                   rgba(245, 245, 240, 0.08);            /* text */
+  --c-border-soft:              rgba(245, 245, 240, 0.1);             /* text */
+  --c-border-strong:            rgba(245, 245, 240, 0.14);            /* text */
+
+  --c-accent:                   #C9A227;                              /* brand.accent */
+  --c-accent-bright:            #E8C547;                              /* brand.gold-soft */
+  --c-accent-soft:              rgba(201, 162, 39, 0.12);             /* brand.accent */
+  --c-accent-soft-2:            rgba(201, 162, 39, 0.18);             /* brand.accent */
+  --c-accent-border:            rgba(201, 162, 39, 0.32);             /* brand.accent */
+  --c-accent-border-strong:     rgba(201, 162, 39, 0.4);              /* brand.accent */
+
+  --c-success:                  #6EE7A7;
+  --c-success-bg:               rgba(110, 231, 167, 0.1);
+  --c-warn:                     #FFB38A;
+  --c-warn-bg:                  rgba(255, 179, 138, 0.1);
+  --c-danger:                   #FF9B9B;
+  --c-danger-soft:              rgba(255, 120, 120, 0.06);
+  --c-danger-border:            rgba(255, 120, 120, 0.4);
+
+  --c-shadow:                   0 16px 40px rgba(2, 7, 23, 0.4);      /* primary.900 */
+  --c-scrim:                    rgba(2, 7, 23, 0.5);                  /* primary.900 */
+
+  --c-on-accent:                #0A1F44;                              /* brand.primary */
+}
+
+/* ───── Light ───── */
+.ul-shell[data-theme="light"] {
+  --c-bg:                       #F5F5F0;                              /* text (used as page bg) */
+  --c-bg-fx-1: radial-gradient(1200px 600px at 100% -10%, rgba(201, 162, 39, 0.16), transparent 60%);  /* brand.accent */
+  --c-bg-fx-2: radial-gradient(900px 500px at -10% 110%, rgba(232, 235, 241, 0.7), transparent 60%);   /* primary.50 */
+
+  --c-surface:                  #FFFFFF;
+  --c-surface-hover:            #E8EBF1;                              /* primary.50 */
+  --c-surface-soft:             rgba(10, 31, 68, 0.04);               /* primary.500 */
+  --c-surface-soft-2:           rgba(10, 31, 68, 0.06);               /* primary.500 */
+
+  --c-side-bg:                  #FFFFFF;
+  --c-side-border:              rgba(10, 31, 68, 0.08);               /* primary.500 */
+  --c-top-bg:                   rgba(255, 255, 255, 0.85);
+  --c-menu-bg:                  #FFFFFF;
+
+  --c-text:                     #0A1F44;                              /* brand.primary / primary.500 */
+  --c-text-muted:               #5C6F95;                              /* primary.300 */
+  --c-text-subtle:              #8E9BB6;                              /* primary.200 */
+  --c-text-faint:               #C5CCDA;                              /* primary.100 */
+
+  --c-border:                   rgba(10, 31, 68, 0.08);               /* primary.500 */
+  --c-border-soft:              rgba(10, 31, 68, 0.1);                /* primary.500 */
+  --c-border-strong:            rgba(10, 31, 68, 0.14);               /* primary.500 */
+
+  --c-accent:                   #C9A227;                              /* brand.accent */
+  --c-accent-bright:            #E8C547;                              /* brand.gold-soft */
+  --c-accent-soft:              rgba(201, 162, 39, 0.1);              /* brand.accent */
+  --c-accent-soft-2:            rgba(201, 162, 39, 0.18);             /* brand.accent */
+  --c-accent-border:            rgba(201, 162, 39, 0.36);             /* brand.accent */
+  --c-accent-border-strong:     rgba(201, 162, 39, 0.5);              /* brand.accent */
+
+  --c-success:                  #2E8B57;
+  --c-success-bg:               rgba(46, 139, 87, 0.1);
+  --c-warn:                     #B97A3F;
+  --c-warn-bg:                  rgba(185, 122, 63, 0.1);
+  --c-danger:                   #C84545;
+  --c-danger-soft:              rgba(200, 69, 69, 0.08);
+  --c-danger-border:            rgba(200, 69, 69, 0.4);
+
+  --c-shadow:                   0 16px 40px rgba(10, 31, 68, 0.12);   /* primary.500 */
+  --c-scrim:                    rgba(10, 31, 68, 0.4);                /* primary.500 */
+
+  --c-on-accent:                #0A1F44;                              /* brand.primary */
+}

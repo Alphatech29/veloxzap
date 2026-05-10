@@ -7,9 +7,10 @@ import {
   Lock as LockIcon, Users, Sparkles, Unlock,
 } from 'lucide-react'
 import { FaGoogle } from "react-icons/fa";
+import { useAuth } from '../context/AuthContext'
 
 const CHIPS = [
-  { Icon: ShieldCheck, label: 'CBN Licensed',   pos: 'tl' },
+  { Icon: ShieldCheck, label: '247/7 Support',   pos: 'tl' },
   { Icon: LockIcon,    label: '256-bit Vault',  pos: 'tr' },
   { Icon: Sparkles,    label: 'Instant Payout', pos: 'bl' },
   { Icon: Users,       label: '500K+ Users',    pos: 'br' },
@@ -31,21 +32,31 @@ export default function Login() {
   const navigate = useNavigate()
   const lagos = useLagosClock()
 
-  const [email,    setEmail]    = useState('')
+  const REMEMBER_KEY = 'veloxzap.rememberEmail'
+
+  const [email,    setEmail]    = useState(() => localStorage.getItem(REMEMBER_KEY) || '')
   const [password, setPassword] = useState('')
   const [show,     setShow]     = useState(false)
   const [remember, setRemember] = useState(true)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const [formError, setFormError] = useState('')
+
+  const { login, loading, error, reset } = useAuth()
+  const displayError = formError || error?.message
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    if (!email || !password) { setError('Enter your email and password to unlock the vault.'); return }
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1100))
-    setLoading(false)
-    navigate('/dashboard')
+    setFormError('')
+    reset()
+    if (!email || !password) {
+      setFormError('Enter your email and password to unlock the vault.')
+      return
+    }
+    const result = await login({ email, password })
+    if (result.success) {
+      if (remember) localStorage.setItem(REMEMBER_KEY, email)
+      else localStorage.removeItem(REMEMBER_KEY)
+      navigate('/user/dashboard')
+    }
   }
 
   return (
@@ -153,7 +164,7 @@ export default function Login() {
                 </Link>
               </div>
 
-              {error && <div className="la-err" role="alert">{error}</div>}
+              {displayError && <div className="la-err" role="alert">{displayError}</div>}
 
               <button type="submit" className="la-cta" disabled={loading}>
                 <span className="la-cta-text">

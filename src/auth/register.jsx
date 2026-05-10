@@ -1,25 +1,13 @@
-import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap, User, Mail, Lock, Eye, EyeOff, Phone, Gift,
   ArrowRight, Loader2, HelpCircle, Apple,
   ShieldCheck, Sparkles, CreditCard, Wifi, Receipt,
-  TrendingUp, Star, CheckCircle2,
+  TrendingUp, Star, CheckCircle2, Globe, ChevronDown, Search, Check,
 } from 'lucide-react'
 import { FaGoogle } from 'react-icons/fa'
-
-function scorePassword(pw) {
-  if (!pw) return 0
-  let s = 0
-  if (pw.length >= 8)          s++
-  if (pw.length >= 12)         s++
-  if (/[A-Z]/.test(pw))        s++
-  if (/[0-9]/.test(pw))        s++
-  if (/[^A-Za-z0-9]/.test(pw)) s++
-  return Math.min(s, 4)
-}
-const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Good', 'Strong']
+import useRegister from '../hooks/useRegister'
 
 const FLOATERS = [
   { Icon: Gift,        title: 'Gift card sold',   meta: 'Amazon · ₦82,400 received',  cls: 'vrx-float-1' },
@@ -34,33 +22,27 @@ const STATS = [
 ]
 
 export default function Register() {
-  const navigate = useNavigate()
-  const [first,    setFirst]    = useState('')
-  const [last,     setLast]     = useState('')
-  const [email,    setEmail]    = useState('')
-  const [phone,    setPhone]    = useState('')
-  const [password, setPassword] = useState('')
-  const [referral, setReferral] = useState('')
-  const [show,     setShow]     = useState(false)
-  const [agree,    setAgree]    = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-
-  const score = useMemo(() => scorePassword(password), [password])
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!first || !last || !email || !phone || !password) {
-      setError('Please complete all required fields.'); return
-    }
-    if (score < 2) { setError('Choose a stronger password (8+ chars, mix of letters & numbers).'); return }
-    if (!agree)    { setError('Please accept the Terms and Privacy Policy to continue.'); return }
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    setLoading(false)
-    navigate('/dashboard')
-  }
+  const {
+    first, setFirst,
+    last,  setLast,
+    email, setEmail,
+    phone, onPhoneChange,
+    password, setPassword,
+    referral, onReferralChange,
+    show, toggleShow,
+    agree, setAgree,
+    score, strengthHint,
+    loading, error,
+    handleSubmit,
+    countryPicker: {
+      country, selectCountry,
+      filtered: filteredCountries,
+      pickerOpen, togglePicker,
+      query, setQuery,
+      pickerRef,
+      flagUrl, flagSrcSet,
+    },
+  } = useRegister()
 
   return (
     <div className="vrx-stage">
@@ -213,17 +195,119 @@ export default function Register() {
                 <label htmlFor="email" className="vrx-label">Email address</label>
               </div>
 
-              {/* Phone with +234 prefix */}
+              {/* Country picker */}
+              <div className="vrx-field" ref={pickerRef}>
+                <Globe size={16} className="vrx-icon" />
+                <button
+                  type="button"
+                  onClick={togglePicker}
+                  aria-haspopup="listbox"
+                  aria-expanded={pickerOpen}
+                  className="vrx-input flex items-center justify-between text-left"
+                  style={{ paddingTop: 22, paddingBottom: 6 }}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <img
+                      src={flagUrl(country.code, 40)}
+                      srcSet={flagSrcSet(country.code, 40)}
+                      alt=""
+                      width={20}
+                      height={15}
+                      className="shrink-0 rounded-[2px] object-cover"
+                      style={{ width: 20, height: 15 }}
+                    />
+                    <span className="truncate">{country.name}</span>
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-text-muted transition-transform shrink-0 ${pickerOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                <span className="vrx-label" style={{ top: 5, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-brand-gold-soft)', fontWeight: 600 }}>
+                  Country
+                </span>
+
+                <AnimatePresence>
+                  {pickerOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ duration: 0.15, ease: 'easeOut' }}
+                      role="listbox"
+                      className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 rounded-2xl border overflow-hidden"
+                      style={{
+                        background: 'color-mix(in srgb, var(--color-brand-primary) 92%, transparent)',
+                        borderColor: 'color-mix(in srgb, var(--color-text) 12%, transparent)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 20px 40px -12px rgba(0,0,0,0.45), 0 0 0 1px color-mix(in srgb, var(--color-brand-accent) 8%, transparent)',
+                      }}
+                    >
+                      <div className="relative p-2 border-b" style={{ borderColor: 'color-mix(in srgb, var(--color-text) 8%, transparent)' }}>
+                        <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={query}
+                          onChange={e => setQuery(e.target.value)}
+                          placeholder="Search country or dial code…"
+                          className="w-full rounded-lg pl-8 pr-3 py-2 text-sm outline-none border"
+                          style={{
+                            background: 'color-mix(in srgb, var(--color-brand-primary) 60%, transparent)',
+                            borderColor: 'color-mix(in srgb, var(--color-text) 8%, transparent)',
+                            color: 'var(--color-text)',
+                          }}
+                        />
+                      </div>
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {filteredCountries.length === 0 && (
+                          <div className="px-4 py-6 text-center text-xs text-text-muted">No countries match "{query}"</div>
+                        )}
+                        {filteredCountries.map(c => {
+                          const selected = c.code === country.code
+                          return (
+                            <button
+                              key={c.code}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              onClick={() => selectCountry(c)}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors hover:bg-white/5"
+                              style={selected ? { background: 'color-mix(in srgb, var(--color-brand-accent) 12%, transparent)' } : undefined}
+                            >
+                              <img
+                                src={flagUrl(c.code, 40)}
+                                srcSet={flagSrcSet(c.code, 40)}
+                                alt=""
+                                width={22}
+                                height={16}
+                                loading="lazy"
+                                className="shrink-0 rounded-[2px] object-cover"
+                                style={{ width: 22, height: 16 }}
+                              />
+                              <span className="flex-1 text-left truncate">{c.name}</span>
+                              <span className="text-xs text-text-muted shrink-0">{c.dial}</span>
+                              {selected && <Check size={14} className="text-brand-gold-soft shrink-0" />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Phone with dynamic dial-code prefix */}
               <div className={`vrx-field vrx-field-tel ${phone ? 'vrx-filled' : ''}`}>
                 <Phone size={16} className="vrx-icon" />
-                <span className="vrx-prefix">+234</span>
+                <span className="vrx-prefix">{country.dial}</span>
                 <input
                   id="phone"
                   type="tel"
                   autoComplete="tel-national"
                   placeholder=" "
                   value={phone}
-                  onChange={e => setPhone(e.target.value.replace(/[^\d ]/g, ''))}
+                  onChange={onPhoneChange}
                   className="vrx-input vrx-input-tel"
                 />
                 <label htmlFor="phone" className="vrx-label">Phone number</label>
@@ -245,7 +329,7 @@ export default function Register() {
                   <label htmlFor="password" className="vrx-label">Password</label>
                   <button
                     type="button"
-                    onClick={() => setShow(s => !s)}
+                    onClick={toggleShow}
                     className="vrx-eye"
                     aria-label={show ? 'Hide password' : 'Show password'}
                   >
@@ -265,7 +349,7 @@ export default function Register() {
                     ))}
                   </div>
                   <span className="vrx-strength-label" data-level={score}>
-                    {password ? STRENGTH_LABEL[score] : '8+ characters with letters & numbers'}
+                    {strengthHint}
                   </span>
                 </div>
               </div>
@@ -278,7 +362,7 @@ export default function Register() {
                   type="text"
                   placeholder=" "
                   value={referral}
-                  onChange={e => setReferral(e.target.value.toUpperCase())}
+                  onChange={onReferralChange}
                   className="vrx-input"
                   maxLength={12}
                 />
