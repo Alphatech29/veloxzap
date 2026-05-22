@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Zap, ChevronDown, Gift, Receipt, CreditCard, Smartphone,
+  ChevronDown, Gift, Receipt, CreditCard, Smartphone,
   Menu, X, ArrowRight, Sparkles, Bitcoin, Globe2,
   Building2, BriefcaseBusiness, Newspaper, Mail,
   LayoutDashboard,
@@ -183,41 +183,10 @@ export default function Header() {
             
             <Link
               to="/"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}
               aria-label="VeloxZap home"
             >
-              <motion.div
-                whileHover={{ rotate: -6, scale: 1.05 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 14 }}
-                style={{
-                  width: 36, height: 36, borderRadius: 11,
-                  background: goldGrad,
-                  display: 'grid', placeItems: 'center',
-                  boxShadow: `0 8px 22px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 35)}`,
-                  flexShrink: 0,
-                }}
-              >
-                <Zap size={18} color={C.navy} fill={C.navy} />
-              </motion.div>
-              <span
-                className="f-head"
-                style={{
-                  fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px',
-                  color: C.text,
-                }}
-              >
-                Velox
-                <span
-                  style={{
-                    background: goldGrad,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                  }}
-                >
-                  Zap
-                </span>
-              </span>
+              <img src="/logo-2.png" alt="VeloxZap" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
             </Link>
 
             
@@ -677,33 +646,8 @@ export default function Header() {
                   borderBottom: `1px solid ${tint('white', 6)}`,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <div
-                    style={{
-                      width: 30, height: 30, borderRadius: 9,
-                      background: goldGrad,
-                      display: 'grid', placeItems: 'center',
-                      boxShadow: `0 6px 14px ${tint(C.gold, 40)}, inset 0 1px 0 ${tint('white', 30)}`,
-                    }}
-                  >
-                    <Zap size={15} color={C.navy} fill={C.navy} />
-                  </div>
-                  <span
-                    className="f-head"
-                    style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: '-0.4px' }}
-                  >
-                    Velox
-                    <span
-                      style={{
-                        background: goldGrad,
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                      }}
-                    >
-                      Zap
-                    </span>
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <img src="/logo-2.png" alt="VeloxZap" style={{ height: 30, width: 'auto', objectFit: 'contain' }} />
                 </div>
                 <button
                   onClick={() => setMobileOpen(false)}

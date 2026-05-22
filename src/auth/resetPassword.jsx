@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Zap, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Loader2,
+  Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Loader2,
   ShieldCheck, Lock as LockIcon, Sparkles, Users,
   KeyRound, CheckCircle2, Activity,
 } from 'lucide-react'
@@ -72,10 +72,7 @@ export default function ResetPassword() {
 
       <header className="la-top">
         <Link to="/" className="la-brand">
-          <span className="la-brand-mark"><Zap size={14} /></span>
-          <span className="la-brand-word">
-            Velox<span className="la-brand-accent">Zap</span>
-          </span>
+          <img src="/logo-2.png" alt="VeloxZap" className="la-brand-logo" />
         </Link>
         <div className="la-clock" aria-label="Lagos local time">
           <span className="la-clock-dot" />

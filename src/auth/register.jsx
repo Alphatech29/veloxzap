@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Zap, User, Mail, Lock, Eye, EyeOff, Phone, Gift,
+  User, Mail, Lock, Eye, EyeOff, Phone, Gift,
   ArrowRight, Loader2, HelpCircle, Apple,
   ShieldCheck, Sparkles, CreditCard, Wifi, Receipt,
   TrendingUp, Star, CheckCircle2, Globe, ChevronDown, Search, Check,
@@ -56,10 +56,7 @@ export default function Register() {
       
       <header className="vrx-top">
         <Link to="/" className="vrx-brand">
-          <span className="vrx-brand-mark"><Zap size={16} /></span>
-          <span className="vrx-brand-word">
-            Velox<span className="vrx-brand-accent">Zap</span>
-          </span>
+          <img src="/logo-2.png" alt="VeloxZap" className="vrx-brand-logo" />
         </Link>
         <Link to="/help" className="vrx-help" aria-label="Help center">
           <HelpCircle size={14} /> <span>Help center</span>

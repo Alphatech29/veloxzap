@@ -3,11 +3,9 @@ import { motion } from 'framer-motion'
 import {
   ChevronLeft, Camera, BadgeCheck, Star, Copy, Pencil,
   User, Mail, Phone, Calendar, ShieldCheck, MapPin, Wallet, IdCard, Globe,
-  AlertTriangle,
+  AlertTriangle, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 const PROFILE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 
@@ -26,12 +24,6 @@ function getInitials(user) {
   return source.split(/\s+|@/)[0].slice(0, 2).toUpperCase()
 }
 
-function resolveAvatarUrl(value) {
-  if (!value) return null
-  if (/^https?:\/\//i.test(value)) return value
-  return `${API_BASE_URL}${value.startsWith('/') ? value : `/${value}`}`
-}
-
 function formatMemberSince(value) {
   if (!value) return null
   const d = new Date(value)
@@ -40,27 +32,33 @@ function formatMemberSince(value) {
 }
 
 export default function MobileProfile() {
-  const { user } = useUser()
+  const { user, updateAvatar, updating } = useUser()
   const navigate = useNavigate()
   const initials = getInitials(user)
-  const avatarUrl = resolveAvatarUrl(user?.avatar)
+  const avatarUrl = user?.avatar
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    await updateAvatar(file)
+  }
 
   const personalInfo = [
-    { icon: User,     label: 'Full name',     value: user?.full_name || 'Add name',          editable: true },
-    { icon: Mail,     label: 'Email',         value: user?.email || '—',                     meta: 'Verified', metaTone: 'success' },
-    { icon: Phone,    label: 'Phone',         value: user?.phone_number || 'Add phone number',      editable: true },
-    { icon: Globe,    label: 'Country',       value: user?.country || 'Add country',            editable: true },
-    { icon: Calendar, label: 'Date of birth', value: user?.dob || 'Add date of birth',       editable: true },
+    { icon: User,     label: 'Full name',     value: user?.full_name || 'Add name' },
+    { icon: Mail,     label: 'Email',         value: user?.email || '—',               meta: user?.is_email_verified === 1 ? 'Verified' : 'Unverified', metaTone: user?.is_email_verified === 1 ? 'success' : 'danger' },
+    { icon: Phone,    label: 'Phone',         value: user?.phone_number || 'Add phone number' },
+    { icon: Globe,    label: 'Country',       value: user?.country || 'Add country' },
+    { icon: Calendar, label: 'Date of birth', value: user?.dob || 'Add date of birth' },
   ]
 
   const verification = [
-    { icon: ShieldCheck, label: 'KYC tier', value: 'Tier 2 · ₦5M daily',  meta: 'Upgrade', metaTone: 'accent' },
-    { icon: IdCard,      label: 'BVN',      value: user?.bvn || '••• 4521',             meta: 'Verified', metaTone: 'success' },
+    { icon: ShieldCheck, label: 'KYC tier', value: 'Tier 2 · ₦5M daily',  meta: user?.is_kyc_verified === 1 ? 'Verified' : user?.is_kyc_verified === 2 ? 'Processing' : 'Unverified', metaTone: user?.is_kyc_verified === 1 ? 'success' : user?.is_kyc_verified === 2 ? 'accent' : 'danger' },
+    { icon: IdCard,      label: 'BVN',      value: user?.bvn || '-',             meta: user?.is_bvn_verified === 1 ? 'Verified' : user?.is_bvn_verified === 2 ? 'Processing' : 'Unverified', metaTone: user?.is_bvn_verified === 1 ? 'success' : user?.is_bvn_verified === 2 ? 'accent' : 'danger' },
     { icon: MapPin,      label: 'Address',  value: user?.address || 'Lagos, Nigeria',       editable: true },
   ]
 
   const accountInfo = [
-    { icon: Wallet,   label: 'Wallet ID',    value: user?.uid || 'VLX-8X9P-2047-MQTR', copyable: true },
+    { icon: Wallet,   label: 'Account ID',    value: user?.uid || 'VLX-8X9P-2047-MQTR', copyable: true },
     { icon: Calendar, label: 'Member since', value: formatMemberSince(user?.created_at) || '—' },
   ]
 
@@ -91,19 +89,31 @@ export default function MobileProfile() {
               src={avatarUrl}
               alt=""
               className="relative w-[84px] h-[84px] rounded-full object-cover border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                e.currentTarget.nextElementSibling?.style.removeProperty('display')
+              }}
             />
-          ) : (
-            <span className="relative inline-flex items-center justify-center w-[84px] h-[84px] rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary font-bold text-[26px] tracking-[0.5px] border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]">
-              {initials}
-            </span>
-          )}
-          <button
-            type="button"
-            aria-label="Change photo"
-            className="absolute -bottom-0.5 -right-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--c-menu-bg)] border-[2px] border-[rgba(201,162,39,0.6)] text-brand-accent active:scale-95 transition shadow-[0_2px_6px_rgba(0,0,0,0.3)]"
+          ) : null}
+          <span
+            className="relative inline-flex items-center justify-center w-[84px] h-[84px] rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary font-bold text-[26px] tracking-[0.5px] border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]"
+            style={avatarUrl ? { display: 'none' } : undefined}
           >
-            <Camera size={12} />
-          </button>
+            {initials}
+          </span>
+          <label
+            aria-label="Change photo"
+            className={`absolute -bottom-0.5 -right-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--c-menu-bg)] border-[2px] border-[rgba(201,162,39,0.6)] text-brand-accent active:scale-95 transition shadow-[0_2px_6px_rgba(0,0,0,0.3)] cursor-pointer${updating ? ' opacity-60 pointer-events-none' : ''}`}
+          >
+            {updating ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              disabled={updating}
+              onChange={handleAvatarChange}
+            />
+          </label>
         </div>
 
         <h1 className="relative text-[18px] font-bold tracking-[-0.3px] text-text m-0 mt-3 truncate max-w-full">
@@ -114,9 +124,6 @@ export default function MobileProfile() {
         </p>
 
         <div className="relative flex flex-wrap items-center justify-center gap-1.5 mt-3">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.1] border border-white/[0.16] text-[9.5px] font-bold uppercase tracking-[0.9px] text-white/85">
-            <BadgeCheck size={10} className="text-[var(--c-success)]" /> Verified
-          </span>
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-accent/15 border border-[rgba(201,162,39,0.4)] text-[9.5px] font-bold uppercase tracking-[0.9px] text-brand-accent">
             <Star size={9} strokeWidth={2.6} /> Tier 2
           </span>
@@ -180,6 +187,8 @@ function InfoRow({ icon: Icon, label, value, meta, metaTone, editable, copyable 
             'inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.8px] shrink-0',
             metaTone === 'success'
               ? 'bg-[var(--c-success-bg)] text-[var(--c-success)]'
+              : metaTone === 'danger'
+              ? 'bg-[var(--c-danger-soft)] text-[var(--c-danger)] border border-[var(--c-danger-border)]'
               : 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]',
           ].join(' ')}
         >

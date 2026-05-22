@@ -1,70 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, Sparkles, Phone, Check, ShieldCheck, Wifi, Info, X, Loader2,
-  Clock, Zap,
+  Clock, Zap, ChevronRight, Receipt,
 } from 'lucide-react'
 import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
 import t2Logo from '../../assets/t2.png'
+import useData, { TYPE_TABS } from '../../hooks/useData'
+import { useAlert } from '../../components/ui/Alert'
+import PinModal from '../../components/ui/PinModal'
 
 const NETWORKS = [
-  { id: 'mtn',     label: 'MTN',     logo: mtnLogo,    color: '#FFCC00' },
-  { id: 'airtel',  label: 'Airtel',  logo: airtelLogo, color: '#ED1C24' },
-  { id: 'glo',     label: 'Glo',     logo: gloLogo,    color: '#5BB242' },
-  { id: 't2mobile', label: 'T2mobile', logo: t2Logo,   color: '#fe7515' },
+  { id: 'mtn',      label: 'MTN',      logo: mtnLogo,    color: '#FFCC00' },
+  { id: 'airtel',   label: 'Airtel',   logo: airtelLogo, color: '#ED1C24' },
+  { id: 'glo',      label: 'Glo',      logo: gloLogo,    color: '#5BB242' },
+  { id: 't2mobile', label: 'T2mobile', logo: t2Logo,     color: '#fe7515' },
 ]
 
 const PREFIX_MAP = {
-  mtn:     ['0803','0806','0813','0816','0810','0814','0903','0906','0703','0706','0704','0913','0916'],
-  airtel:  ['0802','0808','0812','0708','0902','0901','0907','0904','0912'],
-  glo:     ['0805','0807','0815','0811','0905','0915'],
+  mtn:      ['0803','0806','0813','0816','0810','0814','0903','0906','0703','0706','0704','0913','0916'],
+  airtel:   ['0802','0808','0812','0708','0902','0901','0907','0904','0912'],
+  glo:      ['0805','0807','0815','0811','0905','0915'],
   t2mobile: ['0809','0817','0818','0908','0909'],
 }
-
-const PLANS = {
-  mtn: [
-    { id: 'mtn-d-100', type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 'mtn-d-300', type: 'daily',   volume: '350 MB', validity: '1 day',  price: 200,  tag: null },
-    { id: 'mtn-w-500', type: 'weekly',  volume: '500 MB', validity: '3 days', price: 300,  tag: null },
-    { id: 'mtn-w-1g',  type: 'weekly',  volume: '1.5 GB', validity: '7 days', price: 1000, tag: 'Popular' },
-    { id: 'mtn-m-3g',  type: 'monthly', volume: '3 GB',   validity: '30 days', price: 1500, tag: null },
-    { id: 'mtn-m-6g',  type: 'monthly', volume: '6 GB',   validity: '30 days', price: 2500, tag: null },
-    { id: 'mtn-m-15g', type: 'monthly', volume: '15 GB',  validity: '30 days', price: 5000, tag: 'Best value' },
-    { id: 'mtn-m-40g', type: 'monthly', volume: '40 GB',  validity: '30 days', price: 10000, tag: null },
-  ],
-  airtel: [
-    { id: 'air-d-100', type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 'air-w-1g',  type: 'weekly',  volume: '1 GB',   validity: '7 days', price: 500,  tag: 'Popular' },
-    { id: 'air-m-1.5g', type: 'monthly', volume: '1.5 GB', validity: '30 days', price: 1000, tag: null },
-    { id: 'air-m-4.5g', type: 'monthly', volume: '4.5 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 'air-m-10g',  type: 'monthly', volume: '10 GB',  validity: '30 days', price: 3000, tag: 'Best value' },
-    { id: 'air-m-25g',  type: 'monthly', volume: '25 GB',  validity: '30 days', price: 6000, tag: null },
-  ],
-  glo: [
-    { id: 'glo-d-200', type: 'daily',   volume: '200 MB', validity: '1 day',  price: 150,  tag: null },
-    { id: 'glo-w-1g',  type: 'weekly',  volume: '1 GB',   validity: '7 days', price: 500,  tag: null },
-    { id: 'glo-m-2.5g', type: 'monthly', volume: '2.5 GB', validity: '30 days', price: 1000, tag: 'Popular' },
-    { id: 'glo-m-5.8g', type: 'monthly', volume: '5.8 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 'glo-m-13g',  type: 'monthly', volume: '13.25 GB', validity: '30 days', price: 5000, tag: 'Best value' },
-  ],
-  t2mobile: [
-    { id: 't2-d-100', type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 't2-w-650', type: 'weekly',  volume: '650 MB', validity: '7 days', price: 500,  tag: null },
-    { id: 't2-m-1.5g', type: 'monthly', volume: '1.5 GB', validity: '30 days', price: 1000, tag: 'Popular' },
-    { id: 't2-m-4.5g', type: 'monthly', volume: '4.5 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 't2-m-11g',  type: 'monthly', volume: '11 GB',  validity: '30 days', price: 4000, tag: 'Best value' },
-  ],
-}
-
-const TYPE_TABS = [
-  { id: 'all',     label: 'All' },
-  { id: 'daily',   label: 'Daily' },
-  { id: 'weekly',  label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-]
 
 function detectNetwork(phone) {
   const p = phone.replace(/\D/g, '').replace(/^234/, '0')
@@ -88,26 +49,38 @@ function formatNGN(n) {
 }
 
 export default function MobileData() {
-  const navigate = useNavigate()
-  const [phone, setPhone] = useState('')
-  const [manualNet, setManualNet] = useState(null)
-  const [planId, setPlanId] = useState(null)
-  const [tab, setTab] = useState('all')
-  const [status, setStatus] = useState('idle')
+  const navigate   = useNavigate()
+  const { alert }  = useAlert()
+  const {
+    recentNumbers, recentLoading,
+    variations, variationsLoading,
+    buying, buy,
+    fetchVariations,
+    tab, setTab,
+  } = useData()
 
-  const detected = detectNetwork(phone)
-  const activeNet = manualNet || detected
+  const [phone,     setPhone]     = useState('')
+  const [manualNet, setManualNet] = useState('mtn')
+  const [planId,    setPlanId]    = useState(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [pinOpen,   setPinOpen]   = useState(false)
+
+  const detected    = detectNetwork(phone)
+  const activeNet   = manualNet || detected
   const networkInfo = NETWORKS.find(n => n.id === activeNet)
 
-  const networkPlans = activeNet ? PLANS[activeNet] || [] : []
-  const visiblePlans = tab === 'all'
-    ? networkPlans
+  useEffect(() => {
+    if (activeNet) fetchVariations(activeNet)
+  }, [activeNet, fetchVariations])
+
+  const networkPlans = activeNet ? (variations[activeNet] ?? []) : []
+  const visiblePlans = tab === 'hot'
+    ? networkPlans.filter(p => p.hot)
     : networkPlans.filter(p => p.type === tab)
 
   const selectedPlan = networkPlans.find(p => p.id === planId)
-
-  const validPhone = phone.length === 11 && phone.startsWith('0')
-  const ready = validPhone && activeNet && selectedPlan
+  const validPhone   = phone.length === 11 && phone.startsWith('0')
+  const ready        = validPhone && activeNet && selectedPlan
 
   function handlePhone(e) {
     const v = e.target.value.replace(/\D/g, '').slice(0, 11)
@@ -121,22 +94,41 @@ export default function MobileData() {
     setManualNet(id)
   }
 
+  function pickRecent(r) {
+    setPhone(r.phone)
+    setManualNet(r.net)
+    setPlanId(null)
+  }
+
   function handleBuy() {
-    if (!ready || status !== 'idle') return
-    setStatus('processing')
-    setTimeout(() => {
-      setStatus('done')
-      setTimeout(() => {
-        setStatus('idle')
-        setPhone('')
-        setPlanId(null)
-        setManualNet(null)
-      }, 1600)
-    }, 1000)
+    if (!ready || buying) return
+    setSheetOpen(true)
+  }
+
+  async function handlePinConfirm(pin) {
+    const result = await buy({
+      phone,
+      network: activeNet,
+      variationCode: selectedPlan.variationCode,
+      amount: selectedPlan.amount,
+      pin,
+    })
+    setPinOpen(false)
+    setSheetOpen(false)
+    if (result.success) {
+      await alert({ type: 'success', title: 'Data activated!', message: `${selectedPlan.volume} sent to ${phone}.` })
+      setPhone('')
+      setPlanId(null)
+      setManualNet('mtn')
+    } else {
+      alert({ type: 'error', title: 'Purchase failed', message: result.message })
+    }
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 pb-6">
+
+      {/* Header */}
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -157,6 +149,7 @@ export default function MobileData() {
         </p>
       </div>
 
+      {/* Phone input */}
       <section>
         <p className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-1.5 px-1">
           Phone number
@@ -165,10 +158,7 @@ export default function MobileData() {
           <span
             aria-hidden
             className="pointer-events-none absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl transition-opacity duration-300"
-            style={{
-              opacity: networkInfo ? 0.55 : 0,
-              background: networkInfo?.color || 'transparent',
-            }}
+            style={{ opacity: networkInfo ? 0.55 : 0, background: networkInfo?.color || 'transparent' }}
           />
           <div className="relative flex items-center gap-2.5 p-1">
             <AnimatePresence mode="wait" initial={false}>
@@ -196,7 +186,6 @@ export default function MobileData() {
                 </motion.span>
               )}
             </AnimatePresence>
-
             <div className="flex-1 min-w-0">
               <input
                 type="tel"
@@ -208,7 +197,6 @@ export default function MobileData() {
                 style={{ boxShadow: 'none', WebkitTapHighlightColor: 'transparent' }}
               />
             </div>
-
             <AnimatePresence initial={false}>
               {phone && (
                 <motion.button
@@ -218,9 +206,9 @@ export default function MobileData() {
                   exit={{ opacity: 0, scale: 0.6 }}
                   transition={{ duration: 0.15 }}
                   type="button"
-                  onClick={() => { setPhone(''); setManualNet(null); setPlanId(null) }}
+                  onClick={() => { setPhone(''); setManualNet('mtn'); setPlanId(null) }}
                   aria-label="Clear"
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] hover:text-[var(--c-text)] hover:border-[var(--c-border)] active:scale-90 transition shrink-0"
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] active:scale-90 transition shrink-0"
                 >
                   <X size={13} />
                 </motion.button>
@@ -230,6 +218,7 @@ export default function MobileData() {
         </div>
       </section>
 
+      {/* Network picker */}
       <section>
         <h3 className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-1.5 px-1">
           Network
@@ -246,18 +235,14 @@ export default function MobileData() {
                   'relative overflow-hidden flex flex-col items-center gap-1.5 p-2.5 rounded-2xl transition active:scale-[0.96]',
                   active
                     ? 'bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border-strong)]'
-                    : 'bg-[var(--c-surface)] border border-[var(--c-border)] hover:border-[var(--c-accent-border)]',
+                    : 'bg-[var(--c-surface)] border border-[var(--c-border)]',
                 ].join(' ')}
               >
-                {active && (
-                  <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-10 h-10 rounded-full bg-brand-accent/[0.18] blur-xl" />
-                )}
+                {active && <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-10 h-10 rounded-full bg-brand-accent/[0.18] blur-xl" />}
                 <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
                   <img src={n.logo} alt={n.label} className="w-full h-full rounded-full object-contain" />
                 </span>
-                <span className="relative text-[10.5px] font-bold text-[var(--c-text)]">
-                  {n.label}
-                </span>
+                <span className="relative text-[10.5px] font-bold text-[var(--c-text)]">{n.label}</span>
                 {active && (
                   <span className="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-brand-accent text-brand-primary">
                     <Check size={9} strokeWidth={3} />
@@ -269,6 +254,7 @@ export default function MobileData() {
         </div>
       </section>
 
+      {/* Plans */}
       <section>
         <div className="flex items-center justify-between mb-1.5 px-1">
           <h3 className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0">
@@ -281,46 +267,60 @@ export default function MobileData() {
           )}
         </div>
 
-        <div className="inline-flex p-1 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] mb-2">
-          {TYPE_TABS.map(t => {
-            const active = tab === t.id
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTab(t.id)}
-                className={[
-                  'px-3 py-1.5 rounded-xl text-[10.5px] font-bold tracking-[0.2px] transition',
-                  active
-                    ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-[0_3px_10px_rgba(201,162,39,0.28)]'
-                    : 'text-[var(--c-text-muted)] hover:text-[var(--c-text)]',
-                ].join(' ')}
-              >
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
+        {/* Type tabs — only show tabs that have plans */}
+        {networkPlans.length > 0 && (
+          <div className="flex overflow-x-auto gap-1.5 pb-1 mb-2 scrollbar-none">
+            {TYPE_TABS.filter(t =>
+              t.id === 'hot'
+                ? networkPlans.some(p => p.hot)
+                : networkPlans.some(p => p.type === t.id)
+            ).map(t => {
+              const active = tab === t.id
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={[
+                    'px-3 py-1.5 rounded-xl text-[10.5px] font-bold tracking-[0.2px] transition whitespace-nowrap shrink-0',
+                    active
+                      ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-[0_3px_10px_rgba(201,162,39,0.28)]'
+                      : 'bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)]',
+                  ].join(' ')}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {!activeNet && (
           <div className="rounded-2xl bg-[var(--c-surface)] border border-dashed border-[var(--c-border)] p-6 flex flex-col items-center text-center">
             <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent mb-2">
               <Wifi size={20} />
             </span>
-            <p className="text-[12.5px] font-semibold text-[var(--c-text)] m-0">
-              Pick a network to view plans
-            </p>
-            <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5 max-w-[240px]">
-              Enter a phone number or tap a carrier above.
-            </p>
+            <p className="text-[12.5px] font-semibold text-[var(--c-text)] m-0">Pick a network to view plans</p>
+            <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5 max-w-[240px]">Enter a phone number or tap a carrier above.</p>
           </div>
         )}
 
-        {activeNet && visiblePlans.length === 0 && (
+        {activeNet && variationsLoading && !variations[activeNet] && (
+          <div className="flex items-center justify-center gap-2 py-8 text-[var(--c-text-muted)]">
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+              className="inline-flex text-brand-accent"
+            >
+              <Loader2 size={20} />
+            </motion.span>
+            <span className="text-[12px]">Loading plans…</span>
+          </div>
+        )}
+
+        {activeNet && !variationsLoading && visiblePlans.length === 0 && networkPlans.length > 0 && (
           <div className="rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-5 text-center">
-            <p className="text-[12px] text-[var(--c-text-muted)] m-0">
-              No {tab} plans for {networkInfo?.label}.
-            </p>
+            <p className="text-[12px] text-[var(--c-text-muted)] m-0">No {tab} plans for {networkInfo?.label}.</p>
           </div>
         )}
 
@@ -337,31 +337,43 @@ export default function MobileData() {
                     'relative overflow-hidden flex flex-col items-center gap-1 p-2 rounded-xl text-center transition active:scale-[0.96]',
                     active
                       ? 'bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border-strong)]'
-                      : 'bg-[var(--c-surface)] border border-[var(--c-border)] hover:border-[var(--c-accent-border)]',
+                      : 'bg-[var(--c-surface)] border border-[var(--c-border)]',
                   ].join(' ')}
                 >
-                  {active && (
-                    <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-12 h-12 rounded-full bg-brand-accent/[0.22] blur-xl" />
-                  )}
-                  {plan.tag && (
-                    <span
-                      aria-label={plan.tag}
-                      title={plan.tag}
-                      className="absolute top-1 right-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-brand-accent text-brand-primary text-[8px] font-black shadow-[0_2px_6px_rgba(201,162,39,0.5)]"
-                    >
-                      ★
+                  {active && <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-12 h-12 rounded-full bg-brand-accent/[0.22] blur-xl" />}
+
+                  {plan.bonus && (
+                    <span className="absolute top-1 left-1 right-1 inline-flex items-center justify-center px-1 py-0.5 rounded-md bg-[var(--c-surface)] border border-[var(--c-border)] text-[7px] font-bold text-brand-accent tracking-[0.2px] leading-none truncate">
+                      {plan.bonus}
                     </span>
                   )}
-                  <span className="relative text-[12px] font-black text-[var(--c-text)] tracking-[-0.3px] leading-none mt-0.5">
-                    {plan.volume}
-                  </span>
-                  <span className="relative inline-flex items-center gap-0.5 text-[9px] text-[var(--c-text-muted)] font-medium leading-none">
-                    <Clock size={8} className="text-brand-accent" />
-                    {plan.validity}
-                  </span>
+
+                  {plan.tag && !plan.bonus && (
+                    <span className="absolute top-1 right-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-brand-accent text-brand-primary text-[8px] font-black shadow-[0_2px_6px_rgba(201,162,39,0.5)]">★</span>
+                  )}
+
+                  {plan.type === 'other' ? (
+                    <span className={`relative text-[8px] font-semibold text-[var(--c-text)] leading-snug text-center line-clamp-3 ${plan.bonus ? 'mt-4' : 'mt-0.5'}`}>
+                      {plan.name}
+                    </span>
+                  ) : (
+                    <>
+                      <span className={`relative text-[12px] font-black text-[var(--c-text)] tracking-[-0.3px] leading-none ${plan.bonus ? 'mt-4' : 'mt-0.5'}`}>
+                        {plan.volume}
+                      </span>
+                      {plan.validity !== '—' && (
+                        <span className="relative inline-flex items-center gap-0.5 text-[9px] text-[var(--c-text-muted)] font-medium leading-none">
+                          <Clock size={8} className="text-brand-accent" />
+                          {plan.validity}
+                        </span>
+                      )}
+                    </>
+                  )}
+
                   <span className="relative text-[11.5px] font-black text-brand-accent tabular-nums tracking-[-0.2px] leading-none mt-0.5">
                     {formatNGN(plan.price)}
                   </span>
+
                   {active && (
                     <span className="absolute bottom-1 left-1 inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-brand-accent text-brand-primary">
                       <Check size={8} strokeWidth={3.2} />
@@ -374,66 +386,75 @@ export default function MobileData() {
         )}
       </section>
 
+      {/* Recent numbers */}
+      {(recentLoading || recentNumbers.length > 0) && (
+        <section>
+          <h3 className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-1.5 px-1">
+            Recent numbers
+          </h3>
+          {recentLoading ? (
+            <div className="flex justify-center py-3">
+              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} className="inline-flex text-brand-accent">
+                <Loader2 size={16} />
+              </motion.span>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden divide-y divide-[var(--c-border)]">
+              {recentNumbers.map(r => {
+                const net = NETWORKS.find(n => n.id === r.net)
+                return (
+                  <button
+                    key={r.phone}
+                    type="button"
+                    onClick={() => pickRecent(r)}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--c-surface-soft)] transition"
+                  >
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.06)] shrink-0">
+                      {net?.logo
+                        ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
+                        : <span className="text-[9px] font-black text-[var(--c-text-muted)]">?</span>}
+                    </span>
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <p className="text-[12px] font-semibold text-[var(--c-text)] m-0">{net?.label ?? r.net}</p>
+                      <p className="text-[11px] font-mono text-[var(--c-text-muted)] m-0 mt-0.5 tabular-nums">{formatPhone(r.phone)}</p>
+                    </div>
+                    <ChevronRight size={13} className="text-[var(--c-text-faint)] shrink-0" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Buy button */}
       <button
         type="button"
-        disabled={!ready || status !== 'idle'}
+        disabled={!ready || buying}
         onClick={handleBuy}
         className={[
           'relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-12 rounded-2xl text-[13.5px] font-bold tracking-[0.2px] transition active:scale-[0.99]',
-          ready && status === 'idle'
+          ready && !buying
             ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_8px_22px_-6px_rgba(201,162,39,0.5)]'
-            : status === 'done'
-              ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-              : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
+            : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
         ].join(' ')}
       >
         <AnimatePresence mode="wait">
-          {status === 'idle' && (
-            <motion.span
-              key="idle"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="inline-flex items-center gap-2"
-            >
-              <Zap size={14} strokeWidth={2.6} />
-              {ready
-                ? `Buy ${selectedPlan.volume} · ${formatNGN(selectedPlan.price)}`
-                : !validPhone
-                  ? 'Enter phone number'
-                  : !activeNet
-                    ? 'Pick network'
-                    : 'Pick a data plan'}
-            </motion.span>
-          )}
-          {status === 'processing' && (
-            <motion.span
-              key="proc"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="inline-flex items-center gap-2"
-            >
-              <motion.span
-                animate={{ rotate: 360 }}
-                transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
-                className="inline-flex"
-              >
+          {buying ? (
+            <motion.span key="proc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-2">
+              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} className="inline-flex">
                 <Loader2 size={14} strokeWidth={2.6} />
               </motion.span>
               Activating data…
             </motion.span>
-          )}
-          {status === 'done' && (
-            <motion.span
-              key="done"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="inline-flex items-center gap-2"
-            >
-              <Check size={14} strokeWidth={3} />
-              Data activated
+          ) : (
+            <motion.span key="idle" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="inline-flex items-center gap-2">
+              <Zap size={14} strokeWidth={2.6} />
+              {ready
+                ? `Buy ${selectedPlan.volume} · ${formatNGN(selectedPlan.price)}`
+                : !validPhone ? 'Enter phone number'
+                : !activeNet  ? 'Pick network'
+                : 'Pick a data plan'}
             </motion.span>
           )}
         </AnimatePresence>
@@ -444,12 +465,8 @@ export default function MobileData() {
           <Info size={13} />
         </span>
         <div className="leading-snug">
-          <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0">
-            Plans activate instantly
-          </p>
-          <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">
-            Data carries forward when you renew the same plan before expiry.
-          </p>
+          <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0">Plans activate instantly</p>
+          <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">Data carries forward when you renew before expiry.</p>
         </div>
       </div>
 
@@ -457,6 +474,94 @@ export default function MobileData() {
         <ShieldCheck size={11} className="text-brand-accent" />
         Secured by VeloxZap · NCC licensed VAS
       </p>
+
+      {/* Confirmation bottom sheet */}
+      <AnimatePresence>
+        {sheetOpen && selectedPlan && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => !buying && setSheetOpen(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--c-surface)] rounded-t-[28px] px-5 pt-3 pb-8 shadow-[0_-8px_32px_rgba(0,0,0,0.18)]"
+            >
+              <div className="w-10 h-1 rounded-full bg-[var(--c-border)] mx-auto mb-5" />
+
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[15px] font-bold text-[var(--c-text)] m-0 inline-flex items-center gap-2">
+                  <Receipt size={15} className="text-brand-accent" /> Order summary
+                </h3>
+                {!buying && (
+                  <button type="button" onClick={() => setSheetOpen(false)} className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)]">
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              <div className="rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] p-3.5 mb-4 flex items-center gap-3">
+                {networkInfo && (
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                    <img src={networkInfo.logo} alt={networkInfo.label} className="w-full h-full object-contain rounded-full" />
+                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-[var(--c-text)] m-0">{formatPhone(phone)}</p>
+                  <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">{networkInfo?.label}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2.5 mb-5">
+                <SheetRow label="Plan"     value={`${selectedPlan.volume}${selectedPlan.validity !== '—' ? ` · ${selectedPlan.validity}` : ''}`} bold />
+                {selectedPlan.bonus && <SheetRow label="Bonus"   value={selectedPlan.bonus} accent />}
+                <SheetRow label="Amount"  value={formatNGN(selectedPlan.price)} />
+                <div className="border-t border-dashed border-[var(--c-border)]" />
+                <SheetRow label="Total"   value={formatNGN(selectedPlan.price)} bold accent />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPinOpen(true)}
+                disabled={buying}
+                className="w-full h-12 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[13.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] active:scale-[0.99] transition disabled:opacity-60"
+              >
+                Confirm &amp; Pay
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <PinModal
+        open={pinOpen}
+        title="Enter transaction PIN"
+        subtitle={selectedPlan ? `${selectedPlan.volume} · ${formatNGN(selectedPlan.price)} to ${phone}` : ''}
+        loading={buying}
+        onConfirm={handlePinConfirm}
+        onCancel={() => setPinOpen(false)}
+      />
+    </div>
+  )
+}
+
+function SheetRow({ label, value, bold, accent }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[12px] text-[var(--c-text-muted)]">{label}</span>
+      <span className={[
+        'text-[12.5px]',
+        bold   ? 'font-bold text-[var(--c-text)]' : 'font-semibold text-[var(--c-text)]',
+        accent ? 'text-brand-accent' : '',
+      ].join(' ')}>
+        {value}
+      </span>
     </div>
   )
 }

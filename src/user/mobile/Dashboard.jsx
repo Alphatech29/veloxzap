@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone, Wifi,
   Receipt, Gift, Bitcoin, Globe2, ShieldCheck, ChevronRight,
-  Sparkles, CreditCard, TrendingUp,
+  Sparkles, CreditCard, TrendingUp, Lock,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 
@@ -36,8 +36,10 @@ function formatShortNGN(n) {
 }
 
 export default function MobileDashboard() {
-  const { wallet, loading } = useUser()
-  const [hidden, setHidden] = useState(false)
+  const { user, wallet, loading } = useUser()
+  const [hidden, setHidden] = useState(
+    () => localStorage.getItem('vzap_hide_balance') === '1'
+  )
   const balance = Number(wallet?.available_balance ?? 0)
   const inflow = 642300
   const outflow = 298140
@@ -98,13 +100,13 @@ export default function MobileDashboard() {
             <ArrowDownLeft size={13} strokeWidth={2.6} />
             <span className="text-[12px] font-bold">Deposit</span>
           </Link>
-          <button
-            type="button"
+          <Link
+            to="/user/withdraw"
             className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.08] border border-white/[0.16] active:scale-[0.97] transition"
           >
             <ArrowUpRight size={13} strokeWidth={2.6} />
             <span className="text-[12px] font-bold">Withdraw</span>
-          </button>
+          </Link>
         </div>
 
         <div className="relative flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
@@ -118,6 +120,26 @@ export default function MobileDashboard() {
           </span>
         </div>
       </article>
+
+      {!loading && user && user.is_pin_created !== 1 && (
+        <Link
+          to="/user/transaction-pin"
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[var(--c-warn-bg)] border border-[var(--c-warn)] border-opacity-35 active:scale-[0.98] transition"
+        >
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--c-warn-bg)] border border-[var(--c-warn)] border-opacity-30 text-[var(--c-warn)] shrink-0">
+            <Lock size={15} />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[12.5px] font-bold text-[var(--c-warn)] m-0">
+              Set your transaction PIN
+            </p>
+            <p className="text-[11px] text-[var(--c-warn)] opacity-75 m-0 mt-0.5 leading-snug">
+              Required to send money and make payments.
+            </p>
+          </div>
+          <ChevronRight size={14} className="text-[var(--c-warn)] opacity-70 shrink-0" />
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <article className="relative overflow-hidden p-2.5 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">

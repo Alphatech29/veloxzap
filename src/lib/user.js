@@ -1,5 +1,13 @@
 import { apiFetch } from './api'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+function resolveAvatarUrl(path) {
+  if (!path) return null
+  if (/^https?:\/\//i.test(path)) return path
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 export async function getCurrentUser() {
   const result = await apiFetch('/api/v1/users/user', { method: 'GET' })
   if (!result.success) {
@@ -10,7 +18,9 @@ export async function getCurrentUser() {
       status: result.status,
     }
   }
-  return { success: true, user: result.data ?? null, message: result.message }
+  const raw = result.data ?? null
+  const user = raw ? { ...raw, avatar: resolveAvatarUrl(raw.avatar) } : null
+  return { success: true, user, message: result.message }
 }
 
 export async function getWallet() {
@@ -39,19 +49,36 @@ export async function getDedicatedAccount() {
   return { success: true, account: result.data ?? null, message: result.message }
 }
 
-export async function updateCountry(country) {
-  const result = await apiFetch('/api/v1/users/update/country', {
+export async function changePassword({ oldPassword, newPassword }) {
+  const result = await apiFetch('/api/v1/auth/change-password', {
     method: 'PUT',
-    body: { country },
+    body: { oldPassword, newPassword },
   })
   if (!result.success) {
     return {
       success: false,
-      message: result.message || 'Could not update country.',
+      message: result.message || 'Could not change password.',
       code: result.code,
-      status: result.status,
     }
   }
+  return { success: true, message: result.message }
+}
+
+export async function createPin({ pin }) {
+  const result = await apiFetch('/api/v1/users/create-pin', {
+    method: 'POST',
+    body: { pin },
+  })
+  if (!result.success) return { success: false, message: result.message || 'Could not create PIN.' }
+  return { success: true, message: result.message }
+}
+
+export async function changePin({ oldPin, newPin }) {
+  const result = await apiFetch('/api/v1/users/change-pin', {
+    method: 'POST',
+    body: { oldPin, newPin },
+  })
+  if (!result.success) return { success: false, message: result.message || 'Could not change PIN.' }
   return { success: true, message: result.message }
 }
 
@@ -65,7 +92,7 @@ export async function updateAvatar(file) {
   }
 
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('image', file)
 
   const result = await apiFetch('/api/v1/users/update/avatar', {
     method: 'PUT',
@@ -83,7 +110,7 @@ export async function updateAvatar(file) {
 
   return {
     success: true,
-    avatar: result.data?.avatar ?? null,
+    avatar: resolveAvatarUrl(result.data?.avatar) ?? null,
     message: result.message,
   }
 }

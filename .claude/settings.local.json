@@ -2,6 +2,9 @@
   "permissions": {
     "additionalDirectories": [
       "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user"
+    ],
+    "allow": [
+      "Read(//c/Users/HP/Desktop/**)"
     ]
   }
 }

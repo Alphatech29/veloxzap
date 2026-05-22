@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Zap, Mail, Lock, Eye, EyeOff, ArrowRight,
+  Mail, Lock, Eye, EyeOff, ArrowRight,
   Loader2, Globe, Apple, ShieldCheck, Activity,
   Lock as LockIcon, Users, Sparkles, Unlock,
 } from 'lucide-react'
@@ -67,10 +67,7 @@ export default function Login() {
 
       <header className="la-top">
         <Link to="/" className="la-brand">
-          <span className="la-brand-mark"><Zap size={14} /></span>
-          <span className="la-brand-word">
-            Velox<span className="la-brand-accent">Zap</span>
-          </span>
+          <img src="/logo-2.png" alt="VeloxZap" className="la-brand-logo" />
         </Link>
         <div className="la-clock" aria-label="Lagos local time">
           <span className="la-clock-dot" />

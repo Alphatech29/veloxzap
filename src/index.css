@@ -888,6 +888,12 @@ body {
   -webkit-text-fill-color: transparent;
 }
 
+.vrx-brand-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
 .vrx-help {
   display: inline-flex;
   align-items: center;
@@ -1756,6 +1762,12 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.la-brand-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }
 
 .la-clock {

@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
+  ChevronLeft, ChevronRight, Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
 } from 'lucide-react'
+import { purchaseAirtime, getRecentAirtimeNumbers } from '../../lib/airtime'
+import { CASHBACK_RATE } from '../../hooks/useAirtime'
+import { useAlert } from '../../components/ui/Alert'
+import PinModal from '../../components/ui/PinModal'
 import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
@@ -48,10 +52,12 @@ function formatNGN(n) {
 
 export default function MobileAirtime() {
   const navigate = useNavigate()
+  const { alert } = useAlert()
   const [phone, setPhone] = useState('')
   const [manualNet, setManualNet] = useState(null)
   const [amount, setAmount] = useState('')
   const [status, setStatus] = useState('idle')
+  const [pinOpen, setPinOpen] = useState(false)
 
   const detected = detectNetwork(phone)
   const activeNet = manualNet || detected
@@ -70,20 +76,41 @@ export default function MobileAirtime() {
 
   function handleBuy() {
     if (!ready || status !== 'idle') return
+    setSheetOpen(true)
+  }
+
+  async function handlePinConfirm(pin) {
     setStatus('processing')
-    setTimeout(() => {
+    const result = await purchaseAirtime({ phone, amount: num, network: activeNet, pin })
+    if (result.success) {
+      setPinOpen(false)
+      setSheetOpen(false)
       setStatus('done')
+      getRecentAirtimeNumbers().then(r => { if (r.success) setRecentNumbers(r.numbers) })
       setTimeout(() => {
         setStatus('idle')
         setPhone('')
         setAmount('')
         setManualNet(null)
       }, 1600)
-    }, 900)
+    } else {
+      setStatus('idle')
+      setPinOpen(false)
+      alert({ type: 'error', title: 'Purchase failed', message: result.message })
+    }
   }
 
+  const cashback = Math.round(num * CASHBACK_RATE)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [recentNumbers, setRecentNumbers] = useState([])
+
+  useEffect(() => {
+    getRecentAirtimeNumbers().then(r => { if (r.success) setRecentNumbers(r.numbers) })
+  }, [])
+
   return (
-    <div className="flex flex-col gap-5">
+    <>
+    <div className="flex flex-col gap-5 pb-6">
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -304,6 +331,47 @@ export default function MobileAirtime() {
         </div>
       </section>
 
+      {/* Recent numbers */}
+      {recentNumbers.length > 0 && (
+        <section>
+          <p className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-2 px-1">
+            Recent numbers
+          </p>
+          <div className="flex flex-col rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+            {recentNumbers.map((r, i) => {
+              const net = NETWORKS.find(n => n.id === r.net)
+              return (
+                <button
+                  key={r.phone}
+                  type="button"
+                  onClick={() => { setPhone(r.phone); setManualNet(r.net) }}
+                  className={[
+                    'flex items-center gap-3 px-4 py-3 text-left active:bg-[var(--c-surface-soft)] transition',
+                    i > 0 ? 'border-t border-[var(--c-border)]' : '',
+                  ].join(' ')}
+                >
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] shrink-0">
+                    {net?.logo
+                      ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
+                      : <span className="text-[9.5px] font-black text-[var(--c-text-muted)]">?</span>}
+                  </span>
+                  <div className="flex-1 min-w-0 leading-tight">
+                    <p className="text-[13px] font-bold font-mono tabular-nums text-[var(--c-text)] m-0">
+                      {formatPhone(r.phone)}
+                    </p>
+                    <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">
+                      {net?.label ?? r.net}
+                    </p>
+                  </div>
+                  <ChevronRight size={13} className="text-[var(--c-text-faint)] shrink-0" />
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Inline buy button */}
       <button
         type="button"
         disabled={!ready || status !== 'idle'}
@@ -312,83 +380,143 @@ export default function MobileAirtime() {
           'relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-12 rounded-2xl text-[13.5px] font-bold tracking-[0.2px] transition active:scale-[0.99]',
           ready && status === 'idle'
             ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_8px_22px_-6px_rgba(201,162,39,0.5)]'
-            : status === 'done'
-              ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-              : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
+            : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
         ].join(' ')}
       >
-        <AnimatePresence mode="wait">
-          {status === 'idle' && (
-            <motion.span
-              key="idle"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="inline-flex items-center gap-2"
-            >
-              <Zap size={14} strokeWidth={2.6} />
-              {ready
-                ? `Top up · ${formatNGN(num)}`
-                : !validPhone
-                  ? 'Enter phone number'
-                  : !activeNet
-                    ? 'Pick network'
-                    : !validAmount
-                      ? 'Enter amount (₦50 – ₦50,000)'
-                      : 'Top up'}
-            </motion.span>
-          )}
-          {status === 'processing' && (
-            <motion.span
-              key="proc"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="inline-flex items-center gap-2"
-            >
-              <motion.span
-                animate={{ rotate: 360 }}
-                transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
-                className="inline-flex"
-              >
-                <Loader2 size={14} strokeWidth={2.6} />
-              </motion.span>
-              Sending airtime…
-            </motion.span>
-          )}
-          {status === 'done' && (
-            <motion.span
-              key="done"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="inline-flex items-center gap-2"
-            >
-              <Check size={14} strokeWidth={3} />
-              Airtime delivered
-            </motion.span>
-          )}
-        </AnimatePresence>
+        <Zap size={14} strokeWidth={2.6} />
+        {ready ? `Continue · ${formatNGN(num)}`
+          : !validPhone   ? 'Enter phone number'
+          : !activeNet    ? 'Pick network'
+          : !validAmount  ? 'Enter amount (₦50 – ₦50,000)'
+          : 'Continue'}
       </button>
-
-      <div className="rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] p-3 flex items-start gap-2.5">
-        <span className="inline-flex items-center justify-center w-7 h-7 rounded-[9px] bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)] shrink-0">
-          <Info size={13} />
-        </span>
-        <div className="leading-snug">
-          <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0">
-            Instant delivery
-          </p>
-          <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">
-            Wrong number? Recharges are non-refundable — double-check before sending.
-          </p>
-        </div>
-      </div>
 
       <p className="inline-flex items-center justify-center gap-1.5 text-[10.5px] text-[var(--c-text-muted)] mt-1 mb-2">
         <ShieldCheck size={11} className="text-brand-accent" />
         Secured by VeloxZap · NCC licensed VAS
       </p>
+    </div>
+
+    {/* ── OPay-style confirmation bottom sheet ── */}
+    <AnimatePresence>
+      {sheetOpen && (
+        <>
+          {/* Scrim */}
+          <motion.div
+            key="scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="fixed inset-0 z-[40] bg-[var(--c-scrim)] backdrop-blur-[2px]"
+            onClick={() => !pinOpen && setSheetOpen(false)}
+          />
+
+          {/* Sheet */}
+          <motion.div
+            key="sheet"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            className="fixed inset-x-0 bottom-0 z-[50] rounded-t-[28px] bg-[var(--c-menu-bg)] border-t border-[var(--c-border)] shadow-[0_-24px_60px_-12px_rgba(2,7,23,0.5)] flex flex-col"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <span className="w-9 h-1 rounded-full bg-[var(--c-border-strong)]" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-2 pb-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[1.3px] font-bold text-brand-accent m-0">
+                  Order summary
+                </p>
+                <h2 className="text-[18px] font-bold tracking-[-0.3px] text-[var(--c-text)] m-0 mt-0.5">
+                  Buy Airtime
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSheetOpen(false)}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] active:scale-90 transition"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Network + phone card */}
+            <div className="mx-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4 flex items-center gap-3">
+              <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-[var(--c-border)] shrink-0 overflow-hidden p-1 shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+                <img src={networkInfo?.logo} alt={networkInfo?.label} className="w-full h-full object-contain rounded-full" />
+              </span>
+              <div className="min-w-0 leading-tight">
+                <p className="text-[15px] font-black tabular-nums tracking-[0.2px] text-[var(--c-text)] m-0">
+                  {formatPhone(phone)}
+                </p>
+                <p className="text-[11px] font-semibold text-[var(--c-text-muted)] m-0 mt-0.5">
+                  {networkInfo?.label} · Airtime recharge
+                </p>
+              </div>
+            </div>
+
+            {/* Breakdown */}
+            <div className="mx-4 mt-3 flex flex-col gap-0 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+              <SheetRow label="Airtime"  value={formatNGN(num)} />
+              <SheetRow label="Fee"      value="₦0.00" muted />
+              <SheetRow label="Cashback" value={`+${formatNGN(cashback)}`} accent />
+              <div className="h-px bg-[var(--c-border)]" />
+              <SheetRow label="Total" value={formatNGN(num)} bold />
+            </div>
+
+            {/* Info note */}
+            <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
+              <Info size={12} className="text-brand-accent shrink-0" />
+              <p className="text-[10.5px] text-[var(--c-text-muted)] m-0">
+                Double-check the number — recharges are <span className="font-semibold text-[var(--c-text)]">non-refundable</span>.
+              </p>
+            </div>
+
+            {/* Confirm button */}
+            <div className="px-4 mt-4">
+              <button
+                type="button"
+                onClick={() => setPinOpen(true)}
+                className="relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-[52px] rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[14px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_8px_28px_-8px_rgba(201,162,39,0.55)] active:scale-[0.99] transition"
+              >
+                <Zap size={16} strokeWidth={2.6} />
+                Confirm &amp; Pay {formatNGN(num)}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
+    <PinModal
+      open={pinOpen}
+      title="Enter PIN"
+      subtitle={`Confirm ₦${num.toLocaleString('en-NG')} airtime for ${formatPhone(phone)}`}
+      loading={status === 'processing'}
+      onConfirm={handlePinConfirm}
+      onCancel={() => setPinOpen(false)}
+    />
+    </>
+  )
+}
+
+function SheetRow({ label, value, bold, muted, accent }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-[12px] text-[var(--c-text-muted)] font-medium">{label}</span>
+      <span className={[
+        'text-[13px] font-bold tabular-nums',
+        bold   ? 'text-[var(--c-text)] text-[14px]' : '',
+        muted  ? 'text-[var(--c-text-muted)] font-medium' : '',
+        accent ? 'text-[var(--c-success)]' : '',
+        !bold && !muted && !accent ? 'text-[var(--c-text)]' : '',
+      ].join(' ')}>{value}</span>
     </div>
   )
 }

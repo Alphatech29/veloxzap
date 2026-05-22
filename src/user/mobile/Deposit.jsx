@@ -5,17 +5,12 @@ import {
   ChevronLeft, Sparkles, Building2, Bitcoin,
   Copy, Check, Info, Clock, QrCode, ShieldCheck,
 } from 'lucide-react'
+import useUser from '../../hooks/useUser'
 
 const METHODS = [
   { id: 'bank',   label: 'Virtual account', sub: 'Bank transfer · Instant · Free', icon: Building2 },
   { id: 'crypto', label: 'Crypto deposit',  sub: 'USDT · BTC',                     icon: Bitcoin },
 ]
-
-const VIRTUAL_ACCOUNT = {
-  bank: 'Wema Bank',
-  number: '8234567890',
-  name: 'VLX/JOHN DOE',
-}
 
 const CRYPTO_WALLETS = [
   {
@@ -39,6 +34,7 @@ const CRYPTO_WALLETS = [
 ]
 
 export default function MobileDeposit() {
+  const { dedicatedAccount } = useUser()
   const navigate = useNavigate()
   const [method, setMethod] = useState('bank')
   const [copied, setCopied] = useState(null)
@@ -133,7 +129,7 @@ export default function MobileDeposit() {
           transition={{ duration: 0.22 }}
         >
           {method === 'bank' && (
-            <BankPanel copied={copied} onCopy={handleCopy} />
+            <BankPanel account={dedicatedAccount} copied={copied} onCopy={handleCopy} />
           )}
           {method === 'crypto' && (
             <CryptoPanel copied={copied} onCopy={handleCopy} />
@@ -197,15 +193,23 @@ function CopyRow({ label, value, mono, copyKey, copied, onCopy }) {
   )
 }
 
-function BankPanel({ copied, onCopy }) {
+function BankPanel({ account, copied, onCopy }) {
+  if (!account) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] text-center">
+        <p className="text-[13px] font-semibold text-[var(--c-text)] m-0">No virtual account yet</p>
+        <p className="text-[11px] text-[var(--c-text-muted)] m-0">Your dedicated account will appear here once created.</p>
+      </div>
+    )
+  }
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-0.5 px-1">
         Send money to your virtual account
       </h3>
-      <CopyRow label="Bank" value={VIRTUAL_ACCOUNT.bank} copyKey="bank" copied={copied} onCopy={onCopy} />
-      <CopyRow label="Account number" value={VIRTUAL_ACCOUNT.number} mono copyKey="acct" copied={copied} onCopy={onCopy} />
-      <CopyRow label="Account name" value={VIRTUAL_ACCOUNT.name} copyKey="name" copied={copied} onCopy={onCopy} />
+      <CopyRow label="Bank" value={account.bank_name} copyKey="bank" copied={copied} onCopy={onCopy} />
+      <CopyRow label="Account number" value={account.account_number} mono copyKey="acct" copied={copied} onCopy={onCopy} />
+      <CopyRow label="Account name" value={account.account_name} copyKey="name" copied={copied} onCopy={onCopy} />
       <p className="inline-flex items-center gap-1.5 text-[10.5px] text-[var(--c-text-muted)] mt-1 px-1">
         <Clock size={11} className="text-brand-accent" />
         Money credits in under 30 seconds.

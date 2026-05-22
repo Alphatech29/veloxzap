@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Settings as SettingsIcon, Palette, Shield, Bell, Eye, Info,
@@ -16,13 +16,13 @@ const SECTIONS = [
   { id: 'appearance',    label: 'Appearance',    icon: Palette },
   { id: 'security',      label: 'Security',      icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'privacy',       label: 'Privacy',       icon: Eye },
   { id: 'about',         label: 'About',         icon: Info },
 ]
 
 export default function DesktopSettings() {
   const { user } = useUser()
   const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
   const [active, setActive] = useState('preferences')
 
   const sectionRefs = useRef({})
@@ -37,7 +37,9 @@ export default function DesktopSettings() {
   const [language, setLanguage]       = useState('English (US)')
   const [currency, setCurrency]       = useState('NGN')
   const [timezone, setTimezone]       = useState('Africa/Lagos · WAT')
-  const [hideOnLaunch, setHideOnLaunch] = useState(false)
+  const [hideOnLaunch, setHideOnLaunch] = useState(
+    () => localStorage.getItem('vzap_hide_balance') === '1'
+  )
   const [density, setDensity]         = useState('comfortable')
 
   const [emailLogin, setEmailLogin]       = useState(true)
@@ -118,7 +120,7 @@ export default function DesktopSettings() {
               icon={Eye}
               label="Hide balance on launch"
               sub="Mask your wallet balance until you tap to reveal."
-              control={<Toggle on={hideOnLaunch} onClick={() => setHideOnLaunch(v => !v)} />}
+              control={<Toggle on={hideOnLaunch} onClick={() => setHideOnLaunch(v => { const next = !v; localStorage.setItem('vzap_hide_balance', next ? '1' : '0'); return next })} />}
               isLast
             />
           </Section>
@@ -129,14 +131,7 @@ export default function DesktopSettings() {
               <ThemeOption icon={Moon}    label="Dark"    active={theme === 'dark'}   onClick={() => setTheme('dark')} />
               <ThemeOption icon={Monitor} label="System"  active={false} disabled />
             </div>
-            <Divider />
-            <SettingRow
-              icon={Palette}
-              label="Accent color"
-              sub="Gold is locked for premium members."
-              value="Gold"
-              swatch="linear-gradient(135deg, #C9A227, #E8C547)"
-            />
+
             <SettingRow
               icon={SettingsIcon}
               label="Density"
@@ -148,11 +143,10 @@ export default function DesktopSettings() {
           </Section>
 
           <Section id="security" title="Security" subtitle="Protect your account and money." setRef={setRef}>
-            <SettingRow icon={KeyRound}   label="Password"          sub="Last changed 23 days ago" cta="Change" />
-            <SettingRow icon={Lock}       label="Two-factor auth"   sub="Authenticator app · TOTP" meta="Active"   metaTone="success" cta="Manage" />
-            <SettingRow icon={Smartphone} label="Transaction PIN"   sub="4-digit PIN for sending money" cta="Update" />
-            <SettingRow icon={Fingerprint} label="Biometric login"  sub="Face ID / fingerprint on mobile" meta="Mobile only" metaTone="accent" />
-            <SettingRow icon={Activity}   label="Active sessions"   sub="3 devices currently signed in" cta="Review" isLast />
+            <SettingRow icon={KeyRound}   label="Password"          sub="-" cta="Change" onClick={() => navigate('/user/change-password')} />
+            <SettingRow icon={Lock}       label="Two-factor auth"   sub="Authenticator app" meta="Active"   metaTone="success" cta="Manage" />
+            <SettingRow icon={Smartphone} label="Transaction PIN"   sub={user?.is_pin_created === 1 ? '4-digit PIN active' : 'Not set — tap to create'} meta={user?.is_pin_created === 1 ? 'Active' : undefined} metaTone="success" cta={user?.is_pin_created === 1 ? 'Update' : 'Set PIN'} onClick={() => navigate('/user/transaction-pin')} />
+
           </Section>
 
           <Section id="notifications" title="Notifications" subtitle="Choose how we reach you." setRef={setRef}>
@@ -178,17 +172,6 @@ export default function DesktopSettings() {
             />
           </Section>
 
-          <Section id="privacy" title="Privacy & data" subtitle="Control what we keep about you." setRef={setRef}>
-            <SettingRow icon={Download} label="Export your data"  sub="Download a copy of your account data" cta="Request" />
-            <SettingRow icon={Eye}      label="Activity log"      sub="View login & device history"          cta="View" />
-            <Divider />
-            <DangerRow
-              icon={Trash2}
-              label="Delete account"
-              sub="Permanently remove your VeloxZap account. This cannot be undone."
-              cta="Delete"
-            />
-          </Section>
 
           <Section id="about" title="About" subtitle="Legal & support." setRef={setRef}>
             <SettingRow icon={FileText}    label="Terms of service" link="/terms" />
@@ -198,7 +181,7 @@ export default function DesktopSettings() {
             <SettingRow
               icon={Info}
               label="Version"
-              value="1.0.0"
+              value="1.2.0"
               sub="Build a8f3c · Encrypted end-to-end"
               isLast
             />

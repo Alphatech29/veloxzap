@@ -4,17 +4,12 @@ import {
   Sparkles, Building2, Bitcoin, Copy, Check, Info, Clock,
   QrCode, ShieldCheck, Receipt, ArrowDownLeft, AlertTriangle, ChevronRight,
 } from 'lucide-react'
+import useUser from '../../hooks/useUser'
 
 const METHODS = [
   { id: 'bank',   label: 'Virtual account', sub: 'Bank transfer · Instant · Free', icon: Building2 },
   { id: 'crypto', label: 'Crypto deposit',  sub: 'USDT · BTC',                     icon: Bitcoin },
 ]
-
-const VIRTUAL_ACCOUNT = {
-  bank: 'Wema Bank',
-  number: '8234567890',
-  name: 'VLX/JOHN DOE',
-}
 
 const CRYPTO_WALLETS = [
   {
@@ -54,6 +49,7 @@ function formatNGN(n) {
 }
 
 export default function DesktopDeposit() {
+  const { dedicatedAccount } = useUser()
   const [method, setMethod] = useState('bank')
   const [coin, setCoin] = useState('usdt')
   const [copied, setCopied] = useState(null)
@@ -148,7 +144,7 @@ export default function DesktopDeposit() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.22 }}
             >
-              {method === 'bank' && <BankPanel copied={copied} onCopy={handleCopy} />}
+              {method === 'bank' && <BankPanel account={dedicatedAccount} copied={copied} onCopy={handleCopy} />}
               {method === 'crypto' && (
                 <CryptoPanel
                   wallet={wallet}
@@ -177,7 +173,7 @@ export default function DesktopDeposit() {
               {method === 'bank' ? (
                 <>
                   <Step n="1" label="Open your bank app" desc="Use any Nigerian bank or transfer app." />
-                  <Step n="2" label="Send to your VLX account" desc={`${VIRTUAL_ACCOUNT.bank} · ${VIRTUAL_ACCOUNT.number}`} />
+                  <Step n="2" label="Send to your VLX account" desc={dedicatedAccount ? `${dedicatedAccount.bank_name} · ${dedicatedAccount.account_number}` : 'Your virtual account details'} />
                   <Step n="3" label="Funds reflect instantly" desc="Notification arrives in under 30 seconds." />
                 </>
               ) : (
@@ -305,7 +301,7 @@ function CopyRow({ label, value, mono, copyKey, copied, onCopy }) {
   )
 }
 
-function BankPanel({ copied, onCopy }) {
+function BankPanel({ account, copied, onCopy }) {
   return (
     <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4">
       <div className="flex items-center justify-between mb-3">
@@ -317,17 +313,24 @@ function BankPanel({ copied, onCopy }) {
         </span>
       </div>
 
+      {!account ? (
+        <div className="flex flex-col items-center gap-2 py-10 text-center">
+          <p className="text-[13px] font-semibold text-[var(--c-text)] m-0">No virtual account yet</p>
+          <p className="text-[11px] text-[var(--c-text-muted)] m-0">Your dedicated account will appear here once created.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 min-[640px]:grid-cols-[auto_1fr] gap-4 items-start">
         <div className="relative inline-flex items-center justify-center w-[120px] h-[120px] rounded-2xl bg-gradient-to-br from-brand-primary to-[#142a5c] text-text shadow-[0_8px_22px_-6px_rgba(2,7,23,0.5)] overflow-hidden">
           <span aria-hidden className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-brand-accent/[0.18] blur-2xl" />
           <Building2 size={42} strokeWidth={1.6} className="relative text-brand-accent" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <CopyRow label="Bank"           value={VIRTUAL_ACCOUNT.bank}   copyKey="bank" copied={copied} onCopy={onCopy} />
-          <CopyRow label="Account number" value={VIRTUAL_ACCOUNT.number} mono copyKey="acct" copied={copied} onCopy={onCopy} />
-          <CopyRow label="Account name"   value={VIRTUAL_ACCOUNT.name}   copyKey="name" copied={copied} onCopy={onCopy} />
+          <CopyRow label="Bank"           value={account.bank_name}       copyKey="bank" copied={copied} onCopy={onCopy} />
+          <CopyRow label="Account number" value={account.account_number}  mono copyKey="acct" copied={copied} onCopy={onCopy} />
+          <CopyRow label="Account name"   value={account.account_name}    copyKey="name" copied={copied} onCopy={onCopy} />
         </div>
       </div>
+      )}
 
       <div className="mt-4 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] p-3 flex items-start gap-2.5">
         <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white/80 text-brand-accent border border-[var(--c-accent-border)] shrink-0">

@@ -1,10 +1,11 @@
 import { Link, NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Smartphone, Wifi, Receipt, ArrowDownLeft, ArrowLeftRight,
-  CreditCard, Activity, Gift, User as UserIcon, LifeBuoy,
-  LogOut, X, Zap, ChevronRight, ShieldCheck, Crown,
+  LayoutDashboard, Smartphone, Wifi, Receipt, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
+  CreditCard, Activity, Gift, Tag, User as UserIcon, LifeBuoy,
+  LogOut, X, ChevronRight, ShieldCheck, Crown, Settings,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import { useTheme } from '../../context/ThemeContext'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -29,9 +30,11 @@ const NAV_GROUPS = [
     id: 'money',
     label: 'Money',
     items: [
-      { to: '/user/deposit', label: 'Deposit',      icon: ArrowDownLeft },
-      { to: '/user/convert', label: 'Convert',      icon: ArrowLeftRight },
-      { to: '/user/cards',   label: 'Virtual cards', icon: CreditCard },
+      { to: '/user/deposit',     label: 'Deposit',      icon: ArrowDownLeft },
+      { to: '/user/withdraw',    label: 'Withdraw',     icon: ArrowUpRight },
+      { to: '/user/convert',     label: 'Convert',      icon: ArrowLeftRight },
+      { to: '/user/cards',       label: 'Virtual cards', icon: CreditCard },
+      { to: '/user/trade-cards', label: 'Trade cards',  icon: Tag },
     ],
   },
   {
@@ -47,8 +50,9 @@ const NAV_GROUPS = [
     id: 'account',
     label: 'Account',
     items: [
-      { to: '/user/profile', label: 'Profile',  icon: UserIcon },
-      { to: '/user/contact', label: 'Support',  icon: LifeBuoy },
+      { to: '/user/profile',   label: 'Profile',   icon: UserIcon },
+      { to: '/user/settings',  label: 'Settings',  icon: Settings },
+      { to: '/user/contact',   label: 'Support',   icon: LifeBuoy },
     ],
   },
 ]
@@ -66,6 +70,8 @@ function resolveAvatarUrl(value) {
 
 export default function UserSidebar({ open, onClose, onLogout }) {
   const { user } = useUser()
+  const { theme } = useTheme()
+  const logo = theme === 'dark' ? '/logo-2.png' : '/logo-1.png'
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
   const rawFirst = (user?.full_name || '').trim().split(/\s+/)[0] || ''
@@ -85,13 +91,8 @@ export default function UserSidebar({ open, onClose, onLogout }) {
       ].join(' ')}
     >
       <div className="flex items-center justify-between px-2 pb-4">
-        <Link to="/user/dashboard" className="inline-flex items-center gap-2 font-bold text-[15px] tracking-[0.2px]">
-          <span className="relative inline-flex items-center justify-center w-7 h-7 rounded-[8px] bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-[0_4px_12px_rgba(201,162,39,0.32)]">
-            <Zap size={14} strokeWidth={2.6} />
-          </span>
-          <span>
-            Velox<span className="text-brand-accent">Zap</span>
-          </span>
+        <Link to="/user/dashboard" className="inline-flex items-center">
+          <img src={logo} alt="VeloxZap" className="h-10 w-auto object-contain" />
         </Link>
         <button
           type="button"
@@ -124,7 +125,7 @@ export default function UserSidebar({ open, onClose, onLogout }) {
         </span>
         <div className="relative flex-1 min-w-0 leading-tight">
           <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0 truncate">
-            {firstName}
+            {user?.full_name || "Hi, there!"}
           </p>
           <p className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-[1px] text-brand-accent font-bold m-0 mt-0.5">
             <Crown size={9} strokeWidth={2.6} /> Gold tier

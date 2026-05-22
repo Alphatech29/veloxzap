@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   getCurrentUser,
   getWallet,
-  updateCountry as updateCountryRequest,
+  getDedicatedAccount,
   updateAvatar as updateAvatarRequest,
 } from '../lib/user'
 import { useAuth } from '../context/AuthContext'
@@ -10,10 +10,11 @@ import { useAuth } from '../context/AuthContext'
 export default function useUser({ auto = true } = {}) {
   const { isAuthenticated } = useAuth()
 
-  const [user,    setUser]    = useState(null)
-  const [wallet,  setWallet]  = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState(null)
+  const [user,             setUser]             = useState(null)
+  const [wallet,           setWallet]           = useState(null)
+  const [dedicatedAccount, setDedicatedAccount] = useState(null)
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState(null)
 
   const [updating,    setUpdating]    = useState(false)
   const [updateError, setUpdateError] = useState(null)
@@ -21,17 +22,25 @@ export default function useUser({ auto = true } = {}) {
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const [userResult, walletResult] = await Promise.all([
+    const [userResult, walletResult, accountResult] = await Promise.all([
       getCurrentUser(),
       getWallet(),
+      getDedicatedAccount(),
     ])
     setLoading(false)
     if (userResult.success) setUser(userResult.user)
     else setError({ message: userResult.message, code: userResult.code, status: userResult.status })
 
     if (walletResult.success) setWallet(walletResult.wallet)
+    if (accountResult.success) setDedicatedAccount(accountResult.account)
 
-    return { user: userResult, wallet: walletResult }
+    return { user: userResult, wallet: walletResult, account: accountResult }
+  }, [])
+
+  const refreshWallet = useCallback(async () => {
+    const result = await getWallet()
+    if (result.success) setWallet(result.wallet)
+    return result
   }, [])
 
   useEffect(() => {
@@ -39,35 +48,42 @@ export default function useUser({ auto = true } = {}) {
     if (!isAuthenticated) {
       setUser(null)
       setWallet(null)
+      setDedicatedAccount(null)
       return
     }
     fetchAll()
-  }, [auto, isAuthenticated, fetchAll])
 
-  const updateCountry = useCallback(async (country) => {
-    setUpdating(true)
-    setUpdateError(null)
-    const result = await updateCountryRequest(country)
-    setUpdating(false)
-    if (result.success) {
-      setUser(prev => (prev ? { ...prev, country } : prev))
-    } else {
-      setUpdateError({ message: result.message, code: result.code })
+    const API_BASE = import.meta.env.VITE_API_BASE_URL
+    const es = new EventSource(`${API_BASE}/api/v1/users/wallet-stream`, { withCredentials: true })
+
+    es.addEventListener('wallet', e => {
+      try {
+        const data = JSON.parse(e.data)
+        setWallet(prev => prev ? { ...prev, ...data } : data)
+      } catch { /* malformed event */ }
+    })
+
+    es.onerror = () => {
+      // Browser auto-reconnects; nothing to do
     }
-    return result
-  }, [])
+
+    return () => es.close()
+  }, [auto, isAuthenticated, fetchAll])
 
   const updateAvatar = useCallback(async (file) => {
     setUpdating(true)
     setUpdateError(null)
-    const result = await updateAvatarRequest(file)
-    setUpdating(false)
-    if (result.success) {
-      setUser(prev => (prev ? { ...prev, avatar: result.avatar } : prev))
-    } else {
-      setUpdateError({ message: result.message, code: result.code })
+    try {
+      const result = await updateAvatarRequest(file)
+      if (result.success) {
+        setUser(prev => (prev ? { ...prev, avatar: result.avatar } : prev))
+      } else {
+        setUpdateError({ message: result.message, code: result.code })
+      }
+      return result
+    } finally {
+      setUpdating(false)
     }
-    return result
   }, [])
 
   const reset = useCallback(() => {
@@ -78,6 +94,7 @@ export default function useUser({ auto = true } = {}) {
   return {
     user,
     wallet,
+    dedicatedAccount,
     loading,
     error,
 
@@ -85,7 +102,7 @@ export default function useUser({ auto = true } = {}) {
     updateError,
 
     refresh: fetchAll,
-    updateCountry,
+    refreshWallet,
     updateAvatar,
     reset,
   }

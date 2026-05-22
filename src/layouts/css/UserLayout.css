@@ -1,5 +1,3 @@
-/* User-area theme variables — every value maps to a token in tailwind.config.js
-   (brand.*, primary.*, text, text-muted). Annotations on the right show the source. */
 
 .ul-shell {
   --ul-side-w: 260px;

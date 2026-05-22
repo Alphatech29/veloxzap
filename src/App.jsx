@@ -12,9 +12,14 @@ import Convert from './user/Convert'
 import Rewards from './user/Rewards'
 import Cards from './user/Cards'
 import Deposit from './user/Deposit'
+import Withdraw from './user/Withdraw'
 import Airtime from './user/Airtime'
 import Data from './user/Data'
 import Bills from './user/Bills'
+import TradeCards from './user/TradeCards'
+import Settings from './user/Settings'
+import ChangePassword from './user/ChangePassword'
+import TransactionPin from './user/TransactionPin'
 import UserNotFound from './user/NotFound'
 import Home from './pages/index'
 import AirtimeData from './pages/AirtimeData'
@@ -72,10 +77,15 @@ function App() {
             <Route path="convert" element={<Convert />} />
             <Route path="rewards" element={<Rewards />} />
             <Route path="cards" element={<Cards />} />
-            <Route path="deposit" element={<Deposit />} />
+            <Route path="deposit"  element={<Deposit />} />
+            <Route path="withdraw" element={<Withdraw />} />
             <Route path="airtime" element={<Airtime />} />
             <Route path="data" element={<Data />} />
             <Route path="bills" element={<Bills />} />
+            <Route path="trade-cards" element={<TradeCards />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="change-password" element={<ChangePassword />} />
+            <Route path="transaction-pin" element={<TransactionPin />} />
             <Route path="*" element={<UserNotFound />} />
           </Route>
 

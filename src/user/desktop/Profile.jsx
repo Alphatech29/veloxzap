@@ -3,7 +3,7 @@ import {
   Camera, BadgeCheck, Star, Copy, Pencil, Check, X,
   User, Mail, Phone, Calendar, ShieldCheck, MapPin, Wallet, IdCard,
   AlertTriangle, KeyRound, Smartphone, Globe, Activity, Sparkles,
-  ChevronRight, Crown, Lock, BellRing,
+  ChevronRight, Crown, Lock, BellRing, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 
@@ -15,12 +15,20 @@ function getInitials(user) {
 }
 
 export default function DesktopProfile() {
-  const { user } = useUser()
+  const { user, updateAvatar, updating } = useUser()
   const initials = getInitials(user)
   const [copied, setCopied] = useState(null)
   const [editing, setEditing] = useState(null)
+  const avatarUrl = user?.avatar
 
-  const walletId = 'VLX-8X9P-2047-MQTR'
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    await updateAvatar(file)
+  }
+
+  const accountId = user?.uid || 'VLX-8X9P-2047-MQTR'
 
   function copy(key, value) {
     if (navigator.clipboard) navigator.clipboard.writeText(value)
@@ -30,15 +38,15 @@ export default function DesktopProfile() {
 
   const personalInfo = [
     { id: 'name',  icon: User,     label: 'Full name',     value: user?.full_name || 'Add name' },
-    { id: 'email', icon: Mail,     label: 'Email',         value: user?.email || '—',                meta: 'Verified', metaTone: 'success' },
+    { id: 'email', icon: Mail,     label: 'Email',         value: user?.email || '—',                meta: user?.is_email_verified === 1 ? 'Verified' : 'Unverified', metaTone: user?.is_email_verified === 1 ? 'success' : 'danger' },
     { id: 'phone', icon: Phone,    label: 'Phone',         value: user?.phone_number || '+234 803 555 1234' },
     { id: 'country', icon: Globe,  label: 'Country',       value: user?.country || 'Nigeria' },
     { id: 'dob',   icon: Calendar, label: 'Date of birth', value: user?.dob || 'Apr 14, 1995' },
   ]
 
   const verification = [
-    { id: 'kyc',  icon: ShieldCheck, label: 'KYC tier', value: 'Tier 2 · ₦5M daily limit', cta: { label: 'Upgrade', tone: 'accent' } },
-    { id: 'bvn',  icon: IdCard,      label: 'BVN',      value: user?.bvn ||'••• 4521',                  meta: 'Verified', metaTone: 'success' },
+    { id: 'kyc',  icon: ShieldCheck, label: 'KYC tier', value: 'Tier 2 · ₦5M daily limit', meta: user?.is_kyc_verified === 1 ? 'Verified' : user?.is_kyc_verified === 2 ? 'Processing' : 'Unverified', metaTone: user?.is_kyc_verified === 1 ? 'success' : user?.is_kyc_verified === 2 ? 'accent' : 'danger' },
+    { id: 'bvn',  icon: IdCard,      label: 'BVN',      value: user?.bvn || '-',                meta: user?.is_bvn_verified === 1 ? 'Verified' : user?.is_bvn_verified === 2 ? 'Processing' : 'Unverified', metaTone: user?.is_bvn_verified === 1 ? 'success' : user?.is_bvn_verified === 2 ? 'accent' : 'danger' },
     { id: 'addr', icon: MapPin,      label: 'Address',  value: user?.address || '12 Admiralty Way, Lekki Phase 1, Lagos' },
   ]
 
@@ -94,16 +102,36 @@ export default function DesktopProfile() {
         <div className="relative grid grid-cols-1 min-[820px]:grid-cols-[auto_1fr_auto] items-center gap-6">
           <div className="relative inline-flex shrink-0 mx-auto min-[820px]:mx-0">
             <span aria-hidden className="absolute -inset-2 rounded-full bg-gradient-to-br from-brand-accent/45 to-brand-gold-soft/45 blur-md" />
-            <span className="relative inline-flex items-center justify-center w-[104px] h-[104px] rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary font-bold text-[32px] tracking-[0.5px] border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                className="relative w-[104px] h-[104px] rounded-full object-cover border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.nextElementSibling?.style.removeProperty('display')
+                }}
+              />
+            ) : null}
+            <span
+              className="relative inline-flex items-center justify-center w-[104px] h-[104px] rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary font-bold text-[32px] tracking-[0.5px] border-[3px] border-[rgba(232,197,71,0.6)] shadow-[0_10px_24px_rgba(201,162,39,0.4)]"
+              style={avatarUrl ? { display: 'none' } : undefined}
+            >
               {initials}
             </span>
-            <button
-              type="button"
+            <label
               aria-label="Change photo"
-              className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--c-menu-bg)] border-[2px] border-[rgba(201,162,39,0.6)] text-brand-accent hover:scale-105 transition shadow-[0_4px_10px_rgba(0,0,0,0.3)]"
+              className={`absolute -bottom-1 -right-1 inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--c-menu-bg)] border-[2px] border-[rgba(201,162,39,0.6)] text-brand-accent hover:scale-105 transition shadow-[0_4px_10px_rgba(0,0,0,0.3)] cursor-pointer${updating ? ' opacity-60 pointer-events-none' : ''}`}
             >
-              <Camera size={14} />
-            </button>
+              {updating ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={updating}
+                onChange={handleAvatarChange}
+              />
+            </label>
           </div>
 
           <div className="text-center min-[820px]:text-left">
@@ -114,9 +142,7 @@ export default function DesktopProfile() {
               {user?.email || 'member@veloxzap.com'}
             </p>
             <div className="inline-flex flex-wrap items-center justify-center min-[820px]:justify-start gap-1.5 mt-3">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/[0.1] border border-white/[0.16] text-[10px] font-bold uppercase tracking-[0.9px] text-white/85">
-                <BadgeCheck size={11} className="text-[var(--c-success)]" /> Verified
-              </span>
+              
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-accent/15 border border-[rgba(201,162,39,0.4)] text-[10px] font-bold uppercase tracking-[0.9px] text-brand-accent">
                 <Star size={10} strokeWidth={2.6} /> Tier 2
               </span>
@@ -127,7 +153,7 @@ export default function DesktopProfile() {
           </div>
 
           <div className="grid grid-cols-3 gap-2 min-w-[260px]">
-            <HeroStat label="Wallet ID" value="VLX-…MQTR" hint="Tap to copy" onClick={() => copy('walletHero', walletId)} copied={copied === 'walletHero'} />
+            <HeroStat label="Account ID" value={user?.uid || 'VLX-8X9P-2047-MQTR'} hint="Tap to copy" onClick={() => copy('walletHero', accountId)} copied={copied === 'walletHero'} />
             <HeroStat label="Member since" value="May 2026" />
             <HeroStat label="Daily limit" value="₦5M" />
           </div>
@@ -141,10 +167,11 @@ export default function DesktopProfile() {
           subtitle="Used on receipts, transfers and KYC."
           editing={editing}
           setEditing={setEditing}
+          hideEdit
         >
           <Grid2>
             {personalInfo.map(item => (
-              <InfoCell key={item.id} {...item} editing={editing === 'personal'} copied={copied} onCopy={copy} />
+              <InfoCell key={item.id} {...item} editing={false} copied={copied} onCopy={copy} />
             ))}
           </Grid2>
         </SectionCard>
@@ -207,10 +234,10 @@ export default function DesktopProfile() {
           <Stack>
             <InfoCell
               icon={Wallet}
-              label="Wallet ID"
-              value={walletId}
+              label="Account ID"
+              value={accountId}
               copyable
-              copyKey="walletId"
+              copyKey="accountId"
               copied={copied}
               onCopy={copy}
             />
@@ -335,7 +362,7 @@ function HeroStat({ label, value, hint, onClick, copied }) {
       <p className="text-[9.5px] uppercase tracking-[1px] text-white/55 font-bold m-0">
         {label}
       </p>
-      <p className="text-[13px] font-bold text-text m-0 mt-1 tabular-nums tracking-[-0.1px]">
+      <p className="text-[13px] font-bold text-text m-0 mt-1 tabular-nums tracking-[-0.1px] truncate w-[150px]">
         {value}
       </p>
       {hint && (
@@ -452,6 +479,8 @@ function InfoCell({ icon: Icon, label, value, meta, metaTone, editing, copyable,
             'inline-flex items-center px-1.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.8px] shrink-0',
             metaTone === 'success'
               ? 'bg-[var(--c-success-bg)] text-[var(--c-success)]'
+              : metaTone === 'danger'
+              ? 'bg-[var(--c-danger-soft)] text-[var(--c-danger)] border border-[var(--c-danger-border)]'
               : 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]',
           ].join(' ')}
         >

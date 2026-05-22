@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import {
-  Zap, ArrowRight, Mail, MapPin, Phone,
+  ArrowRight, Mail, MapPin, Phone,
   ShieldCheck, Lock, BadgeCheck,
 } from 'lucide-react'
 
@@ -117,47 +117,18 @@ function BrandMark3D() {
         textDecoration: 'none',
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 12,
         marginBottom: 18,
         perspective: 800,
       }}
     >
-      <motion.div
+      <motion.img
+        src="/logo-2.png"
+        alt="VeloxZap"
         style={{
           rotateX: rx, rotateY: ry,
-          transformStyle: 'preserve-3d',
-          width: 44, height: 44, borderRadius: 12,
-          background: `linear-gradient(135deg, ${C.gold}, ${C.champagne})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 10px 30px ${tint(C.gold, 35)}, inset 0 1px 0 ${tint('white', 35)}`,
-          position: 'relative',
+          height: 36, width: 'auto', objectFit: 'contain',
         }}
-      >
-        <Zap size={20} color={C.navy} fill={C.navy} style={{ transform: 'translateZ(8px)' }} />
-        
-        <span
-          style={{
-            position: 'absolute', inset: -4, borderRadius: 14,
-            border: `1px solid ${tint(C.gold, 30)}`,
-            transform: 'translateZ(-4px)',
-            pointerEvents: 'none',
-          }}
-        />
-      </motion.div>
-
-      <span style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: C.text }}>
-        Velox
-        <span
-          style={{
-            background: `linear-gradient(135deg, ${C.gold}, ${C.champagne})`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
-        >
-          Zap
-        </span>
-      </span>
+      />
     </Link>
   )
 }

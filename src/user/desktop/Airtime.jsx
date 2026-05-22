@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
   Wallet, Clock, Receipt, ChevronRight,
 } from 'lucide-react'
+import { purchaseAirtime, getRecentAirtimeNumbers } from '../../lib/airtime'
+import { CASHBACK_RATE } from '../../hooks/useAirtime'
+import { useAlert } from '../../components/ui/Alert'
+import PinModal from '../../components/ui/PinModal'
 import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
@@ -18,12 +22,6 @@ const NETWORKS = [
 
 const PRESETS = [50, 100, 200, 500, 1000, 1500, 2000, 5000]
 
-const RECENT = [
-  { id: 'r1', name: 'Mum',          phone: '08031234567', net: 'mtn' },
-  { id: 'r2', name: 'Sarah Okafor', phone: '09015550123', net: 'airtel' },
-  { id: 'r3', name: 'Office line',  phone: '08059980011', net: 'glo' },
-  { id: 'r4', name: 'Tunde',        phone: '08171122334', net: 't2mobile' },
-]
 
 const PREFIX_MAP = {
   mtn:     ['0803','0806','0813','0816','0810','0814','0903','0906','0703','0706','0704','0913','0916'],
@@ -32,7 +30,6 @@ const PREFIX_MAP = {
   t2mobile: ['0809','0817','0818','0908','0909'],
 }
 
-const CASHBACK_RATE = 0.02
 
 function detectNetwork(phone) {
   const p = phone.replace(/\D/g, '').replace(/^234/, '0')
@@ -56,10 +53,17 @@ function formatNGN(n) {
 }
 
 export default function DesktopAirtime() {
+  const { alert } = useAlert()
   const [phone, setPhone] = useState('')
   const [manualNet, setManualNet] = useState(null)
   const [amount, setAmount] = useState('')
   const [status, setStatus] = useState('idle')
+  const [pinOpen, setPinOpen] = useState(false)
+  const [recentNumbers, setRecentNumbers] = useState([])
+
+  useEffect(() => {
+    getRecentAirtimeNumbers().then(r => { if (r.success) setRecentNumbers(r.numbers) })
+  }, [])
 
   const detected = detectNetwork(phone)
   const activeNet = manualNet || detected
@@ -82,16 +86,29 @@ export default function DesktopAirtime() {
 
   function handleBuy() {
     if (!ready || status !== 'idle') return
+    setPinOpen(true)
+  }
+
+  async function handlePinConfirm(pin) {
     setStatus('processing')
-    setTimeout(() => {
-      setStatus('done')
-      setTimeout(() => {
-        setStatus('idle')
-        setPhone('')
-        setAmount('')
-        setManualNet(null)
-      }, 1800)
-    }, 900)
+    const result = await purchaseAirtime({ phone, amount: num, network: activeNet, pin })
+    setStatus('idle')
+    setPinOpen(false)
+    if (result.success) {
+      const savedPhone = phone
+      const savedNum = num
+      setPhone('')
+      setAmount('')
+      setManualNet(null)
+      getRecentAirtimeNumbers().then(r => { if (r.success) setRecentNumbers(r.numbers) })
+      alert({
+        type: 'success',
+        title: 'Airtime sent!',
+        message: `${formatNGN(savedNum)} airtime delivered to ${formatPhone(savedPhone)}.`,
+      })
+    } else {
+      alert({ type: 'error', title: 'Purchase failed', message: result.message })
+    }
   }
 
   return (
@@ -368,9 +385,7 @@ export default function DesktopAirtime() {
                   'relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-10 rounded-xl text-[12px] font-bold tracking-[0.2px] transition active:scale-[0.99] mt-1.5',
                   ready && status === 'idle'
                     ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] hover:-translate-y-px'
-                    : status === 'done'
-                      ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-                      : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
+                    : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
                 ].join(' ')}
               >
                 <AnimatePresence mode="wait">
@@ -412,18 +427,6 @@ export default function DesktopAirtime() {
                       Sending airtime…
                     </motion.span>
                   )}
-                  {status === 'done' && (
-                    <motion.span
-                      key="done"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <Check size={14} strokeWidth={3} />
-                      Airtime delivered
-                    </motion.span>
-                  )}
                 </AnimatePresence>
               </button>
 
@@ -443,35 +446,41 @@ export default function DesktopAirtime() {
                 Tap to use
               </span>
             </header>
-            <ul className="list-none m-0 p-0">
-              {RECENT.map((r, i) => {
-                const net = NETWORKS.find(n => n.id === r.net)
-                return (
-                  <li key={r.id} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
-                    <button
-                      type="button"
-                      onClick={() => pickRecent(r)}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[var(--c-surface-soft)] transition"
-                    >
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.05)] shrink-0">
-                        {net?.logo
-                          ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
-                          : <span className="text-[9.5px] font-black text-[var(--c-text-muted)]">?</span>}
-                      </span>
-                      <div className="flex-1 min-w-0 leading-tight">
-                        <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0 truncate">
-                          {r.name}
-                        </p>
-                        <p className="text-[11px] font-mono text-[var(--c-text-muted)] m-0 mt-0.5 tabular-nums">
-                          {formatPhone(r.phone)}
-                        </p>
-                      </div>
-                      <ChevronRight size={11} className="text-[var(--c-text-faint)] shrink-0" />
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            {recentNumbers.length === 0 ? (
+              <p className="px-4 py-3 text-[11px] text-[var(--c-text-faint)]">
+                No recent numbers yet.
+              </p>
+            ) : (
+              <ul className="list-none m-0 p-0">
+                {recentNumbers.map((r, i) => {
+                  const net = NETWORKS.find(n => n.id === r.net)
+                  return (
+                    <li key={r.phone} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+                      <button
+                        type="button"
+                        onClick={() => pickRecent(r)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[var(--c-surface-soft)] transition"
+                      >
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.05)] shrink-0">
+                          {net?.logo
+                            ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
+                            : <span className="text-[9.5px] font-black text-[var(--c-text-muted)]">?</span>}
+                        </span>
+                        <div className="flex-1 min-w-0 leading-tight">
+                          <p className="text-[11.5px] font-mono font-semibold text-[var(--c-text)] m-0 tabular-nums">
+                            {formatPhone(r.phone)}
+                          </p>
+                          <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">
+                            {net?.label ?? r.net}
+                          </p>
+                        </div>
+                        <ChevronRight size={11} className="text-[var(--c-text-faint)] shrink-0" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </article>
 
           <article className="rounded-xl border border-[var(--c-border-soft)] bg-[var(--c-surface-soft)] p-3 flex items-start gap-2">
@@ -489,6 +498,15 @@ export default function DesktopAirtime() {
           </article>
         </div>
       </section>
+
+      <PinModal
+        open={pinOpen}
+        title="Confirm purchase"
+        subtitle={`Enter your PIN to top up ${formatPhone(phone)} with ${formatNGN(num)}`}
+        loading={status === 'processing'}
+        onConfirm={handlePinConfirm}
+        onCancel={() => setPinOpen(false)}
+      />
     </div>
   )
 }

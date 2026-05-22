@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
@@ -8,6 +8,9 @@ import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
 import t2Logo from '../../assets/t2.png'
+import useData, { TYPE_TABS, CASHBACK_RATE } from '../../hooks/useData'
+import { useAlert } from '../../components/ui/Alert'
+import PinModal from '../../components/ui/PinModal'
 
 const NETWORKS = [
   { id: 'mtn',     label: 'MTN',     logo: mtnLogo,    color: '#FFCC00' },
@@ -23,55 +26,6 @@ const PREFIX_MAP = {
   t2mobile: ['0809','0817','0818','0908','0909'],
 }
 
-const PLANS = {
-  mtn: [
-    { id: 'mtn-d-100', type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 'mtn-d-300', type: 'daily',   volume: '350 MB', validity: '1 day',  price: 200,  tag: null },
-    { id: 'mtn-w-500', type: 'weekly',  volume: '500 MB', validity: '3 days', price: 300,  tag: null },
-    { id: 'mtn-w-1g',  type: 'weekly',  volume: '1.5 GB', validity: '7 days', price: 1000, tag: 'Popular' },
-    { id: 'mtn-m-3g',  type: 'monthly', volume: '3 GB',   validity: '30 days', price: 1500, tag: null },
-    { id: 'mtn-m-6g',  type: 'monthly', volume: '6 GB',   validity: '30 days', price: 2500, tag: null },
-    { id: 'mtn-m-15g', type: 'monthly', volume: '15 GB',  validity: '30 days', price: 5000, tag: 'Best value' },
-    { id: 'mtn-m-40g', type: 'monthly', volume: '40 GB',  validity: '30 days', price: 10000, tag: null },
-  ],
-  airtel: [
-    { id: 'air-d-100',  type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 'air-w-1g',   type: 'weekly',  volume: '1 GB',   validity: '7 days', price: 500,  tag: 'Popular' },
-    { id: 'air-m-1.5g', type: 'monthly', volume: '1.5 GB', validity: '30 days', price: 1000, tag: null },
-    { id: 'air-m-4.5g', type: 'monthly', volume: '4.5 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 'air-m-10g',  type: 'monthly', volume: '10 GB',  validity: '30 days', price: 3000, tag: 'Best value' },
-    { id: 'air-m-25g',  type: 'monthly', volume: '25 GB',  validity: '30 days', price: 6000, tag: null },
-  ],
-  glo: [
-    { id: 'glo-d-200',  type: 'daily',   volume: '200 MB', validity: '1 day',  price: 150,  tag: null },
-    { id: 'glo-w-1g',   type: 'weekly',  volume: '1 GB',   validity: '7 days', price: 500,  tag: null },
-    { id: 'glo-m-2.5g', type: 'monthly', volume: '2.5 GB', validity: '30 days', price: 1000, tag: 'Popular' },
-    { id: 'glo-m-5.8g', type: 'monthly', volume: '5.8 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 'glo-m-13g',  type: 'monthly', volume: '13.25 GB', validity: '30 days', price: 5000, tag: 'Best value' },
-  ],
-  t2mobile: [
-    { id: 't2-d-100',  type: 'daily',   volume: '100 MB', validity: '1 day',  price: 100,  tag: null },
-    { id: 't2-w-650',  type: 'weekly',  volume: '650 MB', validity: '7 days', price: 500,  tag: null },
-    { id: 't2-m-1.5g', type: 'monthly', volume: '1.5 GB', validity: '30 days', price: 1000, tag: 'Popular' },
-    { id: 't2-m-4.5g', type: 'monthly', volume: '4.5 GB', validity: '30 days', price: 2000, tag: null },
-    { id: 't2-m-11g',  type: 'monthly', volume: '11 GB',  validity: '30 days', price: 4000, tag: 'Best value' },
-  ],
-}
-
-const TYPE_TABS = [
-  { id: 'all',     label: 'All' },
-  { id: 'daily',   label: 'Daily' },
-  { id: 'weekly',  label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-]
-
-const RECENT = [
-  { id: 'r1', name: 'Mum',          phone: '08031234567', net: 'mtn' },
-  { id: 'r2', name: 'Sarah Okafor', phone: '09015550123', net: 'airtel' },
-  { id: 'r3', name: 'Tunde',        phone: '08171122334', net: 't2mobile' },
-]
-
-const CASHBACK_RATE = 0.02
 
 function detectNetwork(phone) {
   const p = phone.replace(/\D/g, '').replace(/^234/, '0')
@@ -95,19 +49,25 @@ function formatNGN(n) {
 }
 
 export default function DesktopData() {
+  const { alert } = useAlert()
+  const { recentNumbers, recentLoading, buying, buy, variations, variationsLoading, fetchVariations, tab, setTab } = useData()
+
   const [phone, setPhone] = useState('')
-  const [manualNet, setManualNet] = useState(null)
+  const [manualNet, setManualNet] = useState('mtn')
   const [planId, setPlanId] = useState(null)
-  const [tab, setTab] = useState('all')
-  const [status, setStatus] = useState('idle')
+  const [pinOpen, setPinOpen] = useState(false)
 
   const detected = detectNetwork(phone)
   const activeNet = manualNet || detected
   const networkInfo = NETWORKS.find(n => n.id === activeNet)
 
-  const networkPlans = activeNet ? PLANS[activeNet] || [] : []
-  const visiblePlans = tab === 'all'
-    ? networkPlans
+  useEffect(() => {
+    if (activeNet) fetchVariations(activeNet)
+  }, [activeNet, fetchVariations])
+
+  const networkPlans = activeNet ? (variations[activeNet] ?? []) : []
+  const visiblePlans = tab === 'hot'
+    ? networkPlans.filter(p => p.hot)
     : networkPlans.filter(p => p.type === tab)
 
   const selectedPlan = networkPlans.find(p => p.id === planId)
@@ -132,17 +92,27 @@ export default function DesktopData() {
   }
 
   function handleBuy() {
-    if (!ready || status !== 'idle') return
-    setStatus('processing')
-    setTimeout(() => {
-      setStatus('done')
-      setTimeout(() => {
-        setStatus('idle')
-        setPhone('')
-        setPlanId(null)
-        setManualNet(null)
-      }, 1800)
-    }, 1000)
+    if (!ready || buying) return
+    setPinOpen(true)
+  }
+
+  async function handlePinConfirm(pin) {
+    const result = await buy({
+      phone,
+      network: activeNet,
+      variationCode: selectedPlan.variationCode,
+      amount: selectedPlan.amount,
+      pin,
+    })
+    setPinOpen(false)
+    if (result.success) {
+      await alert({ type: 'success', title: 'Data activated!', message: `${selectedPlan.volume} sent to ${phone}.` })
+      setPhone('')
+      setPlanId(null)
+      setManualNet(null)
+    } else {
+      alert({ type: 'error', title: 'Purchase failed', message: result.message })
+    }
   }
 
   return (
@@ -308,8 +278,12 @@ export default function DesktopData() {
                   </p>
                 )}
               </div>
-              <div className="inline-flex p-0.5 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
-                {TYPE_TABS.map(t => {
+              <div className="inline-flex flex-wrap gap-0.5 p-0.5 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
+                {TYPE_TABS.filter(t =>
+                  t.id === 'hot'
+                    ? networkPlans.some(p => p.hot)
+                    : networkPlans.some(p => p.type === t.id)
+                ).map(t => {
                   const active = tab === t.id
                   return (
                     <button
@@ -344,7 +318,20 @@ export default function DesktopData() {
               </div>
             )}
 
-            {activeNet && visiblePlans.length === 0 && (
+            {activeNet && variationsLoading && !variations[activeNet] && (
+              <div className="flex items-center justify-center py-8 gap-2 text-[var(--c-text-muted)]">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+                  className="inline-flex text-brand-accent"
+                >
+                  <Loader2 size={18} />
+                </motion.span>
+                <span className="text-[11px]">Loading plans…</span>
+              </div>
+            )}
+
+            {activeNet && !variationsLoading && visiblePlans.length === 0 && (
               <div className="rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] p-5 text-center">
                 <p className="text-[11.5px] text-[var(--c-text-muted)] m-0">
                   No {tab} plans for {networkInfo?.label}.
@@ -371,6 +358,11 @@ export default function DesktopData() {
                       {active && (
                         <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-12 h-12 rounded-full bg-brand-accent/[0.22] blur-xl" />
                       )}
+                      {plan.bonus && (
+                        <span className="absolute top-1 left-1 right-1 inline-flex items-center justify-center px-1 py-0.5 rounded-md bg-[var(--c-surface)] border border-[var(--c-border)] text-[7.5px] font-bold text-brand-accent tracking-[0.2px] leading-none truncate">
+                          {plan.bonus}
+                        </span>
+                      )}
                       {plan.tag && (
                         <span
                           aria-label={plan.tag}
@@ -380,13 +372,23 @@ export default function DesktopData() {
                           ★
                         </span>
                       )}
-                      <span className="relative text-[12.5px] font-black text-[var(--c-text)] tracking-[-0.3px] leading-none mt-1">
-                        {plan.volume}
-                      </span>
-                      <span className="relative inline-flex items-center gap-0.5 text-[9px] text-[var(--c-text-muted)] font-medium leading-none mt-0.5">
-                        <Clock size={8} className="text-brand-accent" />
-                        {plan.validity}
-                      </span>
+                      {plan.type === 'other' ? (
+                        <span className="relative text-[9px] font-semibold text-[var(--c-text)] leading-snug mt-1 text-center line-clamp-3">
+                          {plan.name}
+                        </span>
+                      ) : (
+                        <>
+                          <span className={`relative text-[12.5px] font-black text-[var(--c-text)] tracking-[-0.3px] leading-none ${plan.bonus ? 'mt-4' : 'mt-1'}`}>
+                            {plan.volume}
+                          </span>
+                          {plan.validity !== '—' && (
+                            <span className="relative inline-flex items-center gap-0.5 text-[9px] text-[var(--c-text-muted)] font-medium leading-none mt-0.5">
+                              <Clock size={8} className="text-brand-accent" />
+                              {plan.validity}
+                            </span>
+                          )}
+                        </>
+                      )}
                       <span className="relative text-[12px] font-black text-brand-accent tabular-nums tracking-[-0.2px] leading-none mt-1">
                         {formatNGN(plan.price)}
                       </span>
@@ -443,19 +445,34 @@ export default function DesktopData() {
 
               <button
                 type="button"
-                disabled={!ready || status !== 'idle'}
+                disabled={!ready || buying}
                 onClick={handleBuy}
                 className={[
                   'relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-10 rounded-xl text-[12px] font-bold tracking-[0.2px] transition active:scale-[0.99] mt-1.5',
-                  ready && status === 'idle'
+                  ready && !buying
                     ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] hover:-translate-y-px'
-                    : status === 'done'
-                      ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-                      : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
+                    : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
                 ].join(' ')}
               >
                 <AnimatePresence mode="wait">
-                  {status === 'idle' && (
+                  {buying ? (
+                    <motion.span
+                      key="proc"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <motion.span
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+                        className="inline-flex"
+                      >
+                        <Loader2 size={13} strokeWidth={2.6} />
+                      </motion.span>
+                      Activating data…
+                    </motion.span>
+                  ) : (
                     <motion.span
                       key="idle"
                       initial={{ opacity: 0, y: 4 }}
@@ -473,36 +490,6 @@ export default function DesktopData() {
                             : 'Pick a data plan'}
                     </motion.span>
                   )}
-                  {status === 'processing' && (
-                    <motion.span
-                      key="proc"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <motion.span
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
-                        className="inline-flex"
-                      >
-                        <Loader2 size={13} strokeWidth={2.6} />
-                      </motion.span>
-                      Activating data…
-                    </motion.span>
-                  )}
-                  {status === 'done' && (
-                    <motion.span
-                      key="done"
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="inline-flex items-center gap-2"
-                    >
-                      <Check size={13} strokeWidth={3} />
-                      Data activated
-                    </motion.span>
-                  )}
                 </AnimatePresence>
               </button>
 
@@ -513,45 +500,59 @@ export default function DesktopData() {
             </div>
           </article>
 
-          <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
-            <header className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-[var(--c-border)]">
-              <h3 className="inline-flex items-center gap-1.5 text-[11.5px] font-bold m-0 text-[var(--c-text)]">
-                <Clock size={11} className="text-brand-accent" /> Recent numbers
-              </h3>
-              <span className="text-[9.5px] text-[var(--c-text-muted)]">
-                Tap to use
-              </span>
-            </header>
-            <ul className="list-none m-0 p-0">
-              {RECENT.map((r, i) => {
-                const net = NETWORKS.find(n => n.id === r.net)
-                return (
-                  <li key={r.id} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
-                    <button
-                      type="button"
-                      onClick={() => pickRecent(r)}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[var(--c-surface-soft)] transition"
-                    >
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.05)] shrink-0">
-                        {net?.logo
-                          ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
-                          : <span className="text-[9.5px] font-black text-[var(--c-text-muted)]">?</span>}
-                      </span>
-                      <div className="flex-1 min-w-0 leading-tight">
-                        <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0 truncate">
-                          {r.name}
-                        </p>
-                        <p className="text-[10.5px] font-mono text-[var(--c-text-muted)] m-0 mt-0.5 tabular-nums">
-                          {formatPhone(r.phone)}
-                        </p>
-                      </div>
-                      <ChevronRight size={11} className="text-[var(--c-text-faint)] shrink-0" />
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </article>
+          {recentLoading || recentNumbers.length > 0 ? (
+            <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+              <header className="flex items-center justify-between gap-2 px-4 py-2.5 border-b border-[var(--c-border)]">
+                <h3 className="inline-flex items-center gap-1.5 text-[11.5px] font-bold m-0 text-[var(--c-text)]">
+                  <Clock size={11} className="text-brand-accent" /> Recent numbers
+                </h3>
+                <span className="text-[9.5px] text-[var(--c-text-muted)]">
+                  Tap to use
+                </span>
+              </header>
+              {recentLoading ? (
+                <div className="flex items-center justify-center py-5">
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
+                    className="inline-flex text-brand-accent"
+                  >
+                    <Loader2 size={16} />
+                  </motion.span>
+                </div>
+              ) : (
+                <ul className="list-none m-0 p-0">
+                  {recentNumbers.map((r, i) => {
+                    const net = NETWORKS.find(n => n.id === r.net)
+                    return (
+                      <li key={r.phone} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+                        <button
+                          type="button"
+                          onClick={() => pickRecent(r)}
+                          className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[var(--c-surface-soft)] transition"
+                        >
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.05)] shrink-0">
+                            {net?.logo
+                              ? <img src={net.logo} alt={net.label} className="w-full h-full object-contain rounded-full" />
+                              : <span className="text-[9.5px] font-black text-[var(--c-text-muted)]">?</span>}
+                          </span>
+                          <div className="flex-1 min-w-0 leading-tight">
+                            <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0 truncate">
+                              {net?.label ?? r.net}
+                            </p>
+                            <p className="text-[10.5px] font-mono text-[var(--c-text-muted)] m-0 mt-0.5 tabular-nums">
+                              {formatPhone(r.phone)}
+                            </p>
+                          </div>
+                          <ChevronRight size={11} className="text-[var(--c-text-faint)] shrink-0" />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </article>
+          ) : null}
 
           <article className="rounded-xl border border-[var(--c-border-soft)] bg-[var(--c-surface-soft)] p-3 flex items-start gap-2">
             <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)] shrink-0">
@@ -568,6 +569,15 @@ export default function DesktopData() {
           </article>
         </div>
       </section>
+
+      <PinModal
+        open={pinOpen}
+        title="Enter transaction PIN"
+        subtitle={selectedPlan ? `Confirm ${selectedPlan.volume} · ${formatNGN(selectedPlan.price)} to ${phone}` : ''}
+        loading={buying}
+        onConfirm={handlePinConfirm}
+        onCancel={() => setPinOpen(false)}
+      />
     </div>
   )
 }
