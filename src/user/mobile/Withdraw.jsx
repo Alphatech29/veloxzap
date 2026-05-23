@@ -8,18 +8,13 @@ import {
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useWithdraw, { getTransferFee, MIN_TRANSFER } from '../../hooks/useWithdraw'
+import useBeneficiaries from '../../hooks/useBeneficiaries'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
+import BeneficiaryPicker from '../../components/ui/BeneficiaryPicker'
+import BankAvatar from '../../components/ui/BankAvatar'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 20000]
-
-const BENEFICIARIES = [
-  { id: 'b1', name: 'John Adeyemi',   accountNumber: '0123456789', bankName: 'GTBank',     bankCode: '058' },
-  { id: 'b2', name: 'Fatima Bello',   accountNumber: '9876543210', bankName: 'Access Bank', bankCode: '044' },
-  { id: 'b3', name: 'Emeka Okafor',   accountNumber: '3456789012', bankName: 'Zenith Bank', bankCode: '057' },
-  { id: 'b4', name: 'Aisha Musa',     accountNumber: '6543210987', bankName: 'First Bank',  bankCode: '011' },
-  { id: 'b5', name: 'Tunde Williams', accountNumber: '2109876543', bankName: 'UBA',          bankCode: '033' },
-]
 
 const AVATAR_GRADIENTS = [
   'linear-gradient(135deg,#C9A227,#f5c842)',
@@ -36,15 +31,38 @@ function getInitials(name) {
   return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+const POPULAR_SLUGS = ['opay','zenith','guaranty trust','gtbank','palmpay','kuda','first bank','moniepoint']
+const isPopular = name => POPULAR_SLUGS.some(p => name.toLowerCase().includes(p))
+
+function BankItem({ b, selectedCode, onSelect, showDivider }) {
+  const sel = b.code === selectedCode
+  return (
+    <li className={showDivider ? 'border-t' : ''} style={{ borderColor: 'var(--c-border-soft)' }}>
+      <button type="button" onClick={() => onSelect(b)}
+        className="w-full flex items-center gap-3.5 px-5 py-3.5 text-left transition active:scale-[0.99]"
+        style={sel ? { background: 'var(--c-accent-soft)' } : {}}
+      >
+        <BankAvatar bankCode={b.code} bankName={b.name} size={40} rounded="2xl" />
+        <span className="flex-1 text-[14px] font-medium text-[var(--c-text)] truncate">{b.name}</span>
+        {sel
+          ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-accent text-brand-primary shrink-0"><Check size={13} strokeWidth={3} /></span>
+          : <ChevronRight size={15} className="text-[var(--c-text-muted)] shrink-0" />
+        }
+      </button>
+    </li>
+  )
+}
+
 /* ── Bank picker sheet ──────────────────────────────────────── */
 function BankSheet({ banks, loading, selectedCode, onSelect, onClose }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  const filtered = banks.filter(b =>
-    b.name.toLowerCase().includes(query.trim().toLowerCase())
-  )
+  const q = query.trim().toLowerCase()
+  const filtered = q ? banks.filter(b => b.name.toLowerCase().includes(q)) : null
+  const popular  = !q ? banks.filter(b => isPopular(b.name)) : []
+  const rest     = !q ? banks.filter(b => !isPopular(b.name)) : []
 
   return (
     <>
@@ -114,37 +132,34 @@ function BankSheet({ banks, loading, selectedCode, onSelect, onClose }) {
                 </div>
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : filtered && filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 gap-3">
               <span className="text-3xl">🏦</span>
               <p className="text-[13px] text-[var(--c-text-muted)] m-0">No results for <strong>"{query}"</strong></p>
             </div>
-          ) : (
+          ) : filtered ? (
             <ul className="list-none m-0 p-0">
-              {filtered.map((b, i) => {
-                const sel = b.code === selectedCode
-                return (
-                  <li key={b.code} className={i > 0 ? 'border-t' : ''} style={{ borderColor: 'var(--c-border-soft)' }}>
-                    <button type="button" onClick={() => onSelect(b)}
-                      className="w-full flex items-center gap-3.5 px-5 py-3.5 text-left transition active:scale-[0.99]"
-                      style={sel ? { background: 'var(--c-accent-soft)' } : {}}
-                    >
-                      <span
-                        className="inline-flex items-center justify-center w-10 h-10 rounded-2xl text-[11px] font-black text-white shrink-0"
-                        style={{ background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length] }}
-                      >
-                        {b.name.slice(0, 2).toUpperCase()}
-                      </span>
-                      <span className="flex-1 text-[14px] font-medium text-[var(--c-text)] truncate">{b.name}</span>
-                      {sel
-                        ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-brand-accent text-brand-primary shrink-0"><Check size={13} strokeWidth={3} /></span>
-                        : <ChevronRight size={15} className="text-[var(--c-text-muted)] shrink-0" />
-                      }
-                    </button>
-                  </li>
-                )
-              })}
+              {filtered.map((b, i) => <BankItem key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} showDivider={i > 0} />)}
             </ul>
+          ) : (
+            <>
+              {popular.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-[1.2px] px-5 pt-3 pb-1 m-0" style={{ color: 'var(--c-text-muted)' }}>Popular</p>
+                  <ul className="list-none m-0 p-0">
+                    {popular.map((b, i) => <BankItem key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} showDivider={i > 0} />)}
+                  </ul>
+                  <div className="flex items-center gap-3 px-5 py-2">
+                    <div className="flex-1 h-px" style={{ background: 'var(--c-border)' }} />
+                    <span className="text-[9.5px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--c-text-muted)' }}>All banks</span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--c-border)' }} />
+                  </div>
+                </>
+              )}
+              <ul className="list-none m-0 p-0">
+                {rest.map((b, i) => <BankItem key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} showDivider={i > 0} />)}
+              </ul>
+            </>
           )}
         </div>
       </motion.div>
@@ -179,6 +194,7 @@ export default function MobileWithdraw() {
   const navigate = useNavigate()
   const { alert } = useAlert()
   const { user, wallet, dedicatedAccount, refreshWallet } = useUser()
+  const { beneficiaries, loading: beneficiariesLoading, addOrUpdate } = useBeneficiaries()
   const {
     banks, banksLoading,
     verifying, verifyError, accountName, setAccountName,
@@ -199,7 +215,7 @@ export default function MobileWithdraw() {
   const [bank, setBank]                   = useState(draft?.bank ?? null)
   const [accountNumber, setAccountNumber] = useState(draft?.accountNumber ?? '')
   const [bankSheetOpen, setBankSheetOpen]         = useState(false)
-  const [beneficiaryQuery, setBeneficiaryQuery]   = useState('')
+  const [beneficiaryPickerOpen, setBeneficiaryPickerOpen] = useState(false)
   const [amount, setAmount]               = useState(draft?.amount ?? '')
   const [remark, setRemark]               = useState(draft?.remark ?? '')
   const [pinOpen, setPinOpen]             = useState(false)
@@ -283,6 +299,7 @@ export default function MobileWithdraw() {
       sessionStorage.removeItem(STORAGE_KEY)
       setAmount(''); setRemark(''); setBank(null); setAccountNumber(''); clearRecipient(); setStep(1)
       refreshWallet()
+      addOrUpdate({ account_name: accountName, account_number: accountNumber, bank_name: bank.name, bank_code: bank.code })
     } else {
       setStatusSheet(null)
       setPreviewOpen(true)
@@ -490,15 +507,10 @@ export default function MobileWithdraw() {
                 className="w-full flex items-center gap-3 px-4 py-3 transition active:scale-[0.99]"
                 style={{ background: 'transparent' }}
               >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition"
-                  style={bank
-                    ? { background: 'linear-gradient(135deg,rgba(201,162,39,0.2),rgba(201,162,39,0.08))', border: '1.5px solid rgba(201,162,39,0.35)', color: '#C9A227' }
-                    : { background: 'var(--c-surface-soft)', border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)' }
-                  }
-                >
-                  {bank ? bank.name.slice(0, 2).toUpperCase() : <Building2 size={15} />}
-                </div>
+                {bank
+                  ? <BankAvatar bankCode={bank.code} bankName={bank.name} size={40} rounded="xl" />
+                  : <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'var(--c-surface-soft)', border: '1.5px solid var(--c-border)', color: 'var(--c-text-muted)' }}><Building2 size={15} /></span>
+                }
                 <div className="flex-1 text-left min-w-0">
                   <p className="text-[9px] font-bold text-[var(--c-text-muted)] uppercase tracking-[1px] m-0">Bank</p>
                   <p className={`text-[13.5px] font-semibold m-0 mt-0.5 truncate ${bank ? 'text-[var(--c-text)]' : 'text-[var(--c-text-faint)]'}`}>
@@ -544,75 +556,57 @@ export default function MobileWithdraw() {
               <div className="flex items-center gap-2 px-4 pt-3 pb-2">
                 <Clock size={12} className="text-brand-accent" />
                 <p className="text-[9.5px] font-bold text-[var(--c-text-muted)] uppercase tracking-[1.1px] m-0 flex-1">Recent</p>
+                <button type="button" onClick={() => setBeneficiaryPickerOpen(true)}
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-lg border active:scale-90 transition"
+                  style={{ background: 'var(--c-surface-soft)', borderColor: 'var(--c-border)', color: 'var(--c-text-muted)' }}>
+                  <Search size={11} />
+                </button>
+                <button type="button" onClick={() => setBeneficiaryPickerOpen(true)}
+                  className="text-[9.5px] font-bold px-2 py-0.5 rounded-full border transition"
+                  style={{ color: 'var(--c-text-muted)', borderColor: 'var(--c-border)', background: 'var(--c-surface-soft)' }}>
+                  Show all
+                </button>
               </div>
 
               {/* Search */}
-              <div className="px-4 pb-2">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-[12px] transition-all"
-                  style={{ background: 'var(--c-surface-soft)', border: '1px solid var(--c-border)' }}>
-                  <Search size={12} className="text-[var(--c-text-muted)] shrink-0" />
-                  <input
-                    type="text"
-                    value={beneficiaryQuery}
-                    onChange={e => setBeneficiaryQuery(e.target.value)}
-                    placeholder="Search name, account or bank…"
-                    className="flex-1 bg-transparent border-0 outline-none text-[12px] text-[var(--c-text)] placeholder:text-[var(--c-text-faint)]"
-                    style={{ boxShadow: 'none' }}
-                  />
-                  {beneficiaryQuery && (
-                    <button type="button" onClick={() => setBeneficiaryQuery('')}
-                      className="inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0"
-                      style={{ background: 'var(--c-border)', color: 'var(--c-text-muted)' }}>
-                      <X size={9} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
               <div className="flex flex-col px-4 pb-3 gap-1">
-                {BENEFICIARIES
-                  .filter(b => {
-                    const q = beneficiaryQuery.trim().toLowerCase()
-                    return !q || b.name.toLowerCase().includes(q) || b.accountNumber.includes(q) || b.bankName.toLowerCase().includes(q)
-                  })
-                  .map((b, i) => {
-                  const active = accountNumber === b.accountNumber && bank?.code === b.bankCode
-                  return (
-                    <motion.button
-                      key={b.id}
-                      type="button"
-                      onClick={() => handleBeneficiarySelect(b)}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left w-full"
-                      style={{
-                        background: active
-                          ? 'linear-gradient(135deg,rgba(201,162,39,0.12),rgba(201,162,39,0.06))'
-                          : 'var(--c-surface-soft)',
-                        border: active ? '1.5px solid rgba(201,162,39,0.35)' : '1.5px solid var(--c-border-soft)',
-                        boxShadow: active ? '0 2px 10px rgba(201,162,39,0.12)' : 'none',
-                      }}
-                    >
-                      <span
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0"
-                        style={{ background: active ? 'linear-gradient(135deg,#C9A227,#f0d060)' : AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length], boxShadow: active ? '0 3px 10px rgba(201,162,39,0.4)' : '0 2px 6px rgba(0,0,0,0.15)' }}
-                      >
-                        {getInitials(b.name)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-bold text-[var(--c-text)] m-0 truncate">{b.name}</p>
-                        <p className="text-[10px] text-[var(--c-text-muted)] m-0 truncate">{b.accountNumber} · {b.bankName}</p>
+                {beneficiariesLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-[12px] bg-[var(--c-surface-soft)] animate-pulse">
+                      <div className="w-8 h-8 rounded-full bg-[var(--c-border)] shrink-0" />
+                      <div className="flex-1 flex flex-col gap-1.5">
+                        <div className="h-2.5 w-24 rounded-full bg-[var(--c-border)]" />
+                        <div className="h-2 w-32 rounded-full bg-[var(--c-border)]" />
                       </div>
-                      {active && <Check size={14} className="text-brand-accent shrink-0" />}
-                    </motion.button>
-                  )
-                })}
-                {BENEFICIARIES.filter(b => {
-                  const q = beneficiaryQuery.trim().toLowerCase()
-                  return !q || b.name.toLowerCase().includes(q) || b.accountNumber.includes(q) || b.bankName.toLowerCase().includes(q)
-                }).length === 0 && (
-                  <p className="text-[11px] text-[var(--c-text-muted)] text-center py-3 m-0">
-                    No results for <strong>"{beneficiaryQuery}"</strong>
-                  </p>
+                    </div>
+                  ))
+                ) : beneficiaries.length === 0 ? (
+                  <p className="text-[11px] text-[var(--c-text-muted)] text-center py-3 m-0">No recent beneficiaries yet</p>
+                ) : (
+                  beneficiaries.slice(0, 6).map((b, i) => {
+                    const active = accountNumber === b.account_number && bank?.code === b.bank_code
+                    return (
+                      <motion.button
+                        key={`${b.account_number}-${b.bank_code}`}
+                        type="button"
+                        onClick={() => handleBeneficiarySelect({ accountNumber: b.account_number, bankCode: b.bank_code, bankName: b.bank_name })}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-[12px] transition-all text-left w-full"
+                        style={{
+                          background: active ? 'linear-gradient(135deg,rgba(201,162,39,0.12),rgba(201,162,39,0.06))' : 'var(--c-surface-soft)',
+                          border: active ? '1.5px solid rgba(201,162,39,0.35)' : '1.5px solid var(--c-border-soft)',
+                          boxShadow: active ? '0 2px 10px rgba(201,162,39,0.12)' : 'none',
+                        }}
+                      >
+                        <BankAvatar bankCode={b.bank_code} bankName={b.bank_name} size={32} rounded="full" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-[var(--c-text)] m-0 truncate">{b.account_name}</p>
+                          <p className="text-[10px] text-[var(--c-text-muted)] m-0 truncate">{b.account_number} · {b.bank_name}</p>
+                        </div>
+                        {active && <Check size={14} className="text-brand-accent shrink-0" />}
+                      </motion.button>
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -635,12 +629,7 @@ export default function MobileWithdraw() {
               style={{ background: 'var(--c-surface)', border: '1px solid var(--c-border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
             >
               <div className="flex items-center gap-3 px-4 py-3">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0"
-                  style={{ background: 'linear-gradient(135deg,rgba(201,162,39,0.2),rgba(201,162,39,0.08))', border: '1.5px solid rgba(201,162,39,0.3)', color: '#C9A227' }}
-                >
-                  {bank ? bank.name.slice(0, 2).toUpperCase() : '??'}
-                </div>
+                <BankAvatar bankCode={bank?.code} bankName={bank?.name} size={40} rounded="xl" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[9.5px] font-bold text-[var(--c-text-muted)] uppercase tracking-[0.9px] m-0">To</p>
                   <p className="text-[13.5px] font-bold text-[var(--c-text)] m-0 mt-0.5 truncate">{accountName}</p>
@@ -854,10 +843,7 @@ export default function MobileWithdraw() {
               {/* Recipient row */}
               <div className="mx-5 mb-3 flex items-center gap-3 px-4 py-3 rounded-[16px]"
                 style={{ background: 'var(--c-surface-soft)', border: '1px solid var(--c-border)' }}>
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-[11px] font-black shrink-0"
-                  style={{ background: 'linear-gradient(135deg,rgba(201,162,39,0.2),rgba(201,162,39,0.08))', border: '1.5px solid rgba(201,162,39,0.3)', color: '#C9A227' }}>
-                  {bank?.name.slice(0, 2).toUpperCase()}
-                </span>
+                <BankAvatar bankCode={bank?.code} bankName={bank?.name} size={40} rounded="xl" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13.5px] font-bold text-[var(--c-text)] m-0 truncate">{accountName}</p>
                   <p className="text-[11px] text-[var(--c-text-muted)] m-0">{accountNumber} · {bank?.name}</p>
@@ -1012,6 +998,20 @@ export default function MobileWithdraw() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Beneficiary picker */}
+      <BeneficiaryPicker
+        open={beneficiaryPickerOpen}
+        onClose={() => setBeneficiaryPickerOpen(false)}
+        beneficiaries={beneficiaries}
+        loading={beneficiariesLoading}
+        activeAccountNumber={accountNumber}
+        activeBankCode={bank?.code}
+        onSelect={b => {
+          handleBeneficiarySelect({ accountNumber: b.account_number, bankCode: b.bank_code, bankName: b.bank_name })
+          setBeneficiaryPickerOpen(false)
+        }}
+      />
 
       {/* PIN modal */}
       <PinModal

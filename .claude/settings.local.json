@@ -1,10 +1,20 @@
 {
   "permissions": {
-    "additionalDirectories": [
-      "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user"
-    ],
     "allow": [
-      "Read(//c/Users/HP/Desktop/**)"
+      "Read(//c/Users/HP/Desktop/**)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\HP\\\\Desktop\\\\veloxzap\\\\src\\\\lib\\\\bankLogos.js\")",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "Bash(curl -s \"https://cdn.jsdelivr.net/gh/supermx1/nigerian-banks-api@main/data.json\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(f'{b[\\\\\"code\\\\\"]}|{b[\\\\\"logo\\\\\"]}|{b[\\\\\"name\\\\\"]}'\\) for b in data if b.get\\('logo'\\)]\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"https://cdn.jsdelivr.net/gh/supermx1/nigerian-banks-api@main/data.json\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; $data | Where-Object { $_.logo } | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"https://nigerianbanks.xyz/\" -UseBasicParsing; $r.Content | ConvertFrom-Json | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"https://nigerianbanks.xyz/\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; $data | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
+      "PowerShell($r2 = Invoke-WebRequest -Uri \"https://api.nigerianbanklogos.xyz/banks\" -UseBasicParsing; Write-Output \"STATUS: $\\($r2.StatusCode\\)\"; $r2.Content.Substring\\(0, [Math]::Min\\(2000, $r2.Content.Length\\)\\))"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user",
+      "C:\\Users\\HP\\Desktop\\veloxzap-backend\\controllers\\users",
+      "C:\\Users\\HP\\Desktop\\veloxzap-backend\\utilities"
     ]
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getBanks, verifyBankAccount, submitWithdrawal } from '../lib/withdraw'
+import { buildCodeMap } from '../utils/bankLogos'
 
 export const MIN_TRANSFER = 100
 
@@ -18,7 +19,21 @@ export default function useWithdraw() {
   useEffect(() => {
     getBanks().then(r => {
       setBanksLoading(false)
-      if (r.success) setBanks(r.banks)
+      if (r.success) {
+        const PINNED = ['opay','zenith','guaranty trust','gtbank','palmpay','kuda','first bank','moniepoint']
+        const pinIndex = name => {
+          const n = name.toLowerCase()
+          const i = PINNED.findIndex(p => n.includes(p))
+          return i === -1 ? Infinity : i
+        }
+        const sorted = [...r.banks].sort((a, b) => {
+          const pa = pinIndex(a.name), pb = pinIndex(b.name)
+          if (pa !== pb) return pa - pb
+          return a.name.localeCompare(b.name)
+        })
+        setBanks(sorted)
+        buildCodeMap(sorted)
+      }
     })
   }, [])
 

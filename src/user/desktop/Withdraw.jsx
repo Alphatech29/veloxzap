@@ -1,19 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, ArrowUpRight, ShieldCheck, Info, Loader2,
+  Sparkles, ShieldCheck, Info, Loader2,
   Building2, Search, X, Check, ChevronDown, Clock,
   AlertCircle, CheckCircle2, Receipt, Banknote, MessageSquare,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useWithdraw, { getTransferFee, MIN_TRANSFER } from '../../hooks/useWithdraw'
+import useBeneficiaries from '../../hooks/useBeneficiaries'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
+import BeneficiaryPicker from '../../components/ui/BeneficiaryPicker'
+import BankAvatar from '../../components/ui/BankAvatar'
 
 
 function formatNGN(n) {
   return '₦' + Number(n).toLocaleString('en-NG')
 }
+
+function getInitials(name) {
+  return (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+}
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#C9A227,#f5c842)',
+  'linear-gradient(135deg,#6366f1,#8b5cf6)',
+  'linear-gradient(135deg,#06b6d4,#3b82f6)',
+  'linear-gradient(135deg,#f59e0b,#ef4444)',
+  'linear-gradient(135deg,#10b981,#059669)',
+]
 
 const QUICK_PCTS = [
   { id: '25',  label: '25%', value: 0.25 },
@@ -53,6 +68,31 @@ function SummaryRow({ label, value, bold, accent, muted }) {
   )
 }
 
+const POPULAR_SLUGS = ['opay','zenith','guaranty trust','gtbank','palmpay','kuda','first bank','moniepoint']
+const isPopular = name => POPULAR_SLUGS.some(p => name.toLowerCase().includes(p))
+
+function BankRow({ b, selectedCode, onSelect }) {
+  const selected = b.code === selectedCode
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => onSelect(b)}
+        className={[
+          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]',
+          selected
+            ? 'bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]'
+            : 'hover:bg-[var(--c-surface-soft)] border border-transparent',
+        ].join(' ')}
+      >
+        <BankAvatar bankCode={b.code} bankName={b.name} size={32} rounded="xl" />
+        <span className="flex-1 text-[12.5px] font-semibold text-[var(--c-text)] truncate">{b.name}</span>
+        {selected && <Check size={13} className="text-brand-accent shrink-0" />}
+      </button>
+    </li>
+  )
+}
+
 /* ── Bank picker modal ──────────────────────────────────────── */
 function BankPickerModal({ banks, loading, selectedCode, onSelect, onClose }) {
   const [query, setQuery] = useState('')
@@ -65,9 +105,10 @@ function BankPickerModal({ banks, loading, selectedCode, onSelect, onClose }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const filtered = banks.filter(b =>
-    b.name.toLowerCase().includes(query.trim().toLowerCase())
-  )
+  const q = query.trim().toLowerCase()
+  const filtered = q ? banks.filter(b => b.name.toLowerCase().includes(q)) : null
+  const popular  = !q ? banks.filter(b => isPopular(b.name)) : []
+  const rest     = !q ? banks.filter(b => !isPopular(b.name)) : []
 
   return (
     <>
@@ -139,39 +180,36 @@ function BankPickerModal({ banks, loading, selectedCode, onSelect, onClose }) {
                   </div>
                 ))}
               </div>
-            ) : filtered.length === 0 ? (
+            ) : filtered && filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)]">
                   <Search size={18} />
                 </span>
                 <p className="text-[12px] text-[var(--c-text-muted)] m-0">No bank matches <strong>"{query}"</strong></p>
               </div>
-            ) : (
+            ) : filtered ? (
               <ul className="list-none m-0 p-3 flex flex-col gap-1">
-                {filtered.map(b => {
-                  const selected = b.code === selectedCode
-                  return (
-                    <li key={b.code}>
-                      <button
-                        type="button"
-                        onClick={() => onSelect(b)}
-                        className={[
-                          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition active:scale-[0.98]',
-                          selected
-                            ? 'bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]'
-                            : 'hover:bg-[var(--c-surface-soft)] border border-transparent',
-                        ].join(' ')}
-                      >
-                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-brand-accent text-[10px] font-black shrink-0">
-                          {b.name.slice(0, 2).toUpperCase()}
-                        </span>
-                        <span className="flex-1 text-[12.5px] font-semibold text-[var(--c-text)] truncate">{b.name}</span>
-                        {selected && <Check size={13} className="text-brand-accent shrink-0" />}
-                      </button>
-                    </li>
-                  )
-                })}
+                {filtered.map(b => <BankRow key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} />)}
               </ul>
+            ) : (
+              <div className="p-3 flex flex-col gap-1">
+                {popular.length > 0 && (
+                  <>
+                    <p className="text-[9.5px] font-bold uppercase tracking-[1.2px] text-[var(--c-text-muted)] px-3 pt-1 pb-0.5 m-0">Popular</p>
+                    <ul className="list-none m-0 p-0 flex flex-col gap-1">
+                      {popular.map(b => <BankRow key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} />)}
+                    </ul>
+                    <div className="flex items-center gap-2 my-1.5 px-1">
+                      <div className="flex-1 h-px bg-[var(--c-border)]" />
+                      <span className="text-[9px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">All banks</span>
+                      <div className="flex-1 h-px bg-[var(--c-border)]" />
+                    </div>
+                  </>
+                )}
+                <ul className="list-none m-0 p-0 flex flex-col gap-1">
+                  {rest.map(b => <BankRow key={b.code} b={b} selectedCode={selectedCode} onSelect={onSelect} />)}
+                </ul>
+              </div>
             )}
           </div>
         </div>
@@ -184,6 +222,7 @@ function BankPickerModal({ banks, loading, selectedCode, onSelect, onClose }) {
 export default function DesktopWithdraw() {
   const { alert } = useAlert()
   const { wallet, refreshWallet } = useUser()
+  const { beneficiaries, loading: beneficiariesLoading, addOrUpdate } = useBeneficiaries()
   const {
     banks, banksLoading,
     verifying, verifyError, accountName, setAccountName,
@@ -194,13 +233,14 @@ export default function DesktopWithdraw() {
 
   const balance = wallet?.available_balance ?? 0
 
-  const [amount, setAmount]           = useState('')
-  const [bank, setBank]               = useState(null)
-  const [accountNumber, setAccountNumber] = useState('')
-  const [remark, setRemark]           = useState('')
-  const [bankPickerOpen, setBankPickerOpen] = useState(false)
-  const [pinOpen, setPinOpen]         = useState(false)
-  const [success, setSuccess]         = useState(false)
+  const [amount, setAmount]                   = useState('')
+  const [bank, setBank]                       = useState(null)
+  const [accountNumber, setAccountNumber]     = useState('')
+  const [remark, setRemark]                   = useState('')
+  const [beneficiaryPickerOpen, setBeneficiaryPickerOpen] = useState(false)
+  const [bankPickerOpen, setBankPickerOpen]           = useState(false)
+  const [pinOpen, setPinOpen]                 = useState(false)
+  const [success, setSuccess]                 = useState(false)
 
   const num          = parseFloat(String(amount).replace(/[^\d.]/g, '')) || 0
   const FEE          = getTransferFee(num)
@@ -233,6 +273,13 @@ export default function DesktopWithdraw() {
     setAmount(String(safe))
   }
 
+  function handleBeneficiarySelect(b) {
+    setAccountNumber(b.accountNumber)
+    const matched = banks.find(bk => bk.code === b.bankCode)
+    setBank(matched || { code: b.bankCode, name: b.bankName })
+    clearRecipient()
+  }
+
   function handleBankSelect(b) {
     setBank(b)
     setBankPickerOpen(false)
@@ -256,6 +303,7 @@ export default function DesktopWithdraw() {
     setPinOpen(false)
     if (result.success) {
       setSuccess(true)
+      addOrUpdate({ account_name: accountName, account_number: accountNumber, bank_name: bank.name, bank_code: bank.code })
       setAmount(''); setBank(null); setAccountNumber(''); setRemark(''); clearRecipient()
       refreshWallet()
       alert({ type: 'success', title: 'Transfer successful!', message: result.message || 'Your funds are on the way.' })
@@ -353,9 +401,10 @@ export default function DesktopWithdraw() {
                     : 'bg-[var(--c-surface-soft)] border-[var(--c-border)] hover:border-[var(--c-accent-border)]',
                 ].join(' ')}
               >
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-brand-accent shrink-0">
-                  <Building2 size={15} />
-                </span>
+                {bank
+                  ? <BankAvatar bankCode={bank.code} bankName={bank.name} size={36} rounded="xl" />
+                  : <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-brand-accent shrink-0"><Building2 size={15} /></span>
+                }
                 <span className={`flex-1 text-[13px] font-semibold truncate ${bank ? 'text-[var(--c-text)]' : 'text-[var(--c-text-faint)]'}`}>
                   {bank ? bank.name : 'Select bank'}
                 </span>
@@ -427,6 +476,7 @@ export default function DesktopWithdraw() {
               </div>
             </div>
           </article>
+
         </div>
 
         {/* Sidebar */}
@@ -475,9 +525,7 @@ export default function DesktopWithdraw() {
                 {success ? (
                   <><CheckCircle2 size={14} /> Sent successfully</>
                 ) : (
-                  <><ArrowUpRight size={14} strokeWidth={2.6} />
-                  {!bank ? 'Select a bank' : !accountNumber || accountNumber.length < 10 ? 'Enter account number' : verifying ? 'Verifying account…' : !verified ? 'Verify account first' : belowMin ? `Minimum is ₦${MIN_TRANSFER.toLocaleString()}` : insufficient ? 'Insufficient balance' : `Send ${formatNGN(num)}`}
-                  </>
+                  <>Proceed</>
                 )}
               </button>
 
@@ -485,6 +533,65 @@ export default function DesktopWithdraw() {
                 <ShieldCheck size={9} className="text-brand-accent" />
                 Secured · PIN required to confirm
               </p>
+            </div>
+          </article>
+
+          {/* Beneficiaries */}
+          <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--c-border-soft)]">
+              <Clock size={12} className="text-brand-accent shrink-0" />
+              <h2 className="text-[11px] font-bold text-[var(--c-text-muted)] uppercase tracking-[1.1px] m-0 flex-1">Recent</h2>
+              <button type="button" onClick={() => setBeneficiaryPickerOpen(true)}
+                className="inline-flex items-center justify-center w-6 h-6 rounded-lg border transition hover:border-[var(--c-accent-border)] hover:text-brand-accent active:scale-90"
+                style={{ background: 'var(--c-surface-soft)', borderColor: 'var(--c-border)', color: 'var(--c-text-muted)' }}>
+                <Search size={11} />
+              </button>
+              <button type="button" onClick={() => setBeneficiaryPickerOpen(true)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full border transition hover:border-[var(--c-accent-border)] hover:text-brand-accent"
+                style={{ color: 'var(--c-text-muted)', borderColor: 'var(--c-border)', background: 'var(--c-surface-soft)' }}>
+                Show all
+              </button>
+            </div>
+
+            <div className="px-3 py-3 flex flex-col gap-1">
+              {beneficiariesLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[var(--c-surface-soft)] animate-pulse">
+                    <div className="w-8 h-8 rounded-xl bg-[var(--c-border)] shrink-0" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="h-2.5 w-28 rounded-full bg-[var(--c-border)]" />
+                      <div className="h-2 w-36 rounded-full bg-[var(--c-border)]" />
+                    </div>
+                  </div>
+                ))
+              ) : beneficiaries.length === 0 ? (
+                <p className="text-[11px] text-[var(--c-text-muted)] text-center py-3 m-0">No recent beneficiaries yet</p>
+              ) : (
+                beneficiaries.slice(0, 6).map((b, i) => {
+                  const active = accountNumber === b.account_number && bank?.code === b.bank_code
+                  return (
+                    <motion.button
+                      key={`${b.account_number}-${b.bank_code}`}
+                      type="button"
+                      onClick={() => handleBeneficiarySelect({ accountNumber: b.account_number, bankCode: b.bank_code, bankName: b.bank_name })}
+                      whileTap={{ scale: 0.99 }}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-left w-full transition-all"
+                      style={{
+                        background: active ? 'linear-gradient(135deg,rgba(201,162,39,0.12),rgba(201,162,39,0.05))' : 'var(--c-surface-soft)',
+                        border: active ? '1.5px solid rgba(201,162,39,0.35)' : '1.5px solid var(--c-border-soft)',
+                        boxShadow: active ? '0 2px 8px rgba(201,162,39,0.1)' : 'none',
+                      }}
+                    >
+                      <BankAvatar bankCode={b.bank_code} bankName={b.bank_name} size={32} rounded="xl" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-bold text-[var(--c-text)] m-0 truncate">{b.account_name}</p>
+                        <p className="text-[10px] text-[var(--c-text-muted)] m-0 truncate">{b.account_number} · {b.bank_name}</p>
+                      </div>
+                      {active && <Check size={13} className="text-brand-accent shrink-0" />}
+                    </motion.button>
+                  )
+                })
+              )}
             </div>
           </article>
 
@@ -515,6 +622,17 @@ export default function DesktopWithdraw() {
           />
         )}
       </AnimatePresence>
+
+      {/* Beneficiary picker */}
+      <BeneficiaryPicker
+        open={beneficiaryPickerOpen}
+        onClose={() => setBeneficiaryPickerOpen(false)}
+        beneficiaries={beneficiaries}
+        loading={beneficiariesLoading}
+        activeAccountNumber={accountNumber}
+        activeBankCode={bank?.code}
+        onSelect={b => handleBeneficiarySelect({ accountNumber: b.account_number, bankCode: b.bank_code, bankName: b.bank_name })}
+      />
 
       {/* PIN modal */}
       <PinModal

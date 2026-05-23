@@ -1,4 +1,5 @@
 import { apiFetch } from './api'
+import { getClientMetadata } from './metadata'
 
 export async function getBanks() {
   const result = await apiFetch('/api/v1/users/banks', { method: 'GET' })
@@ -22,12 +23,14 @@ export async function verifyBankAccount({ bank_code, account_number }) {
 }
 
 export async function submitWithdrawal({ amount, bank_code, bank_name, account_number, account_name, pin, narration }) {
+  const meta = await getClientMetadata()
   const result = await apiFetch('/api/v1/users/transfer', {
     method: 'POST',
     body: {
       recipient: { account_number, bank_code, bank_name, account_name },
       transaction: { amount, narration: narration || '' },
       authorization: { pin },
+      metadata: meta,
     },
   })
   if (!result.success) return { success: false, message: result.message }
