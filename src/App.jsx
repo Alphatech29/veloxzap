@@ -17,6 +17,8 @@ import Airtime from './user/Airtime'
 import Data from './user/Data'
 import Bills from './user/Bills'
 import TradeCards from './user/TradeCards'
+import CryptoExchange from './user/CryptoExchange'
+import Finance from './user/Finance'
 import Settings from './user/Settings'
 import ChangePassword from './user/ChangePassword'
 import TransactionPin from './user/TransactionPin'
@@ -83,6 +85,8 @@ function App() {
             <Route path="data" element={<Data />} />
             <Route path="bills" element={<Bills />} />
             <Route path="trade-cards" element={<TradeCards />} />
+            <Route path="crypto-exchange" element={<CryptoExchange />} />
+            <Route path="finance" element={<Finance />} />
             <Route path="settings" element={<Settings />} />
             <Route path="change-password" element={<ChangePassword />} />
             <Route path="transaction-pin" element={<TransactionPin />} />

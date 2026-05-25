@@ -12,7 +12,7 @@
   --c-bg-fx-1: radial-gradient(1200px 600px at 100% -10%, rgba(201, 162, 39, 0.08), transparent 60%);  /* brand.accent */
   --c-bg-fx-2: radial-gradient(900px 500px at -10% 110%, rgba(46, 69, 116, 0.35), transparent 60%);    /* primary.400 */
 
-  --c-surface:                  rgba(20, 42, 92, 0.45);               /* brand.mid */
+  --c-surface:                  rgb(13, 35, 85);              /* brand.mid */
   --c-surface-hover:            rgba(20, 42, 92, 0.7);                /* brand.mid */
   --c-surface-soft:             rgba(245, 245, 240, 0.04);            /* text */
   --c-surface-soft-2:           rgba(245, 245, 240, 0.06);            /* text */

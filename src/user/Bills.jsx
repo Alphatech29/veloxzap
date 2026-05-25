@@ -1,6 +1,6 @@
 import useIsMobile from '../hooks/useIsMobile'
-import DesktopBills from './desktop/Bills'
-import MobileBills from './mobile/Bills'
+import DesktopBills from './desktop/bills'
+import MobileBills from './mobile/bills'
 
 export default function Bills() {
   const isMobile = useIsMobile()

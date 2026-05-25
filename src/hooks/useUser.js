@@ -6,6 +6,7 @@ import {
   updateAvatar as updateAvatarRequest,
 } from '../lib/user'
 import { useAuth } from '../context/AuthContext'
+import { subscribePush } from '../lib/push'
 
 export default function useUser({ auto = true } = {}) {
   const { isAuthenticated } = useAuth()
@@ -52,6 +53,7 @@ export default function useUser({ auto = true } = {}) {
       return
     }
     fetchAll()
+    subscribePush()
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL
     const es = new EventSource(`${API_BASE}/api/v1/users/wallet-stream`, { withCredentials: true })

@@ -8,6 +8,7 @@ import { purchaseAirtime, getRecentAirtimeNumbers } from '../../lib/airtime'
 import { CASHBACK_RATE } from '../../hooks/useAirtime'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
+import BottomSheet, { SheetRow } from '../../components/internalUI/BottomSheet'
 import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
@@ -397,102 +398,57 @@ export default function MobileAirtime() {
       </p>
     </div>
 
-    {/* ── OPay-style confirmation bottom sheet ── */}
-    <AnimatePresence>
-      {sheetOpen && (
-        <>
-          {/* Scrim */}
-          <motion.div
-            key="scrim"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="fixed inset-0 z-[40] bg-[var(--c-scrim)] backdrop-blur-[2px]"
-            onClick={() => !pinOpen && setSheetOpen(false)}
-          />
+    <BottomSheet
+      open={sheetOpen}
+      onClose={() => setSheetOpen(false)}
+      label="Order summary"
+      title="Buy Airtime"
+      closeOnScrimClick={!pinOpen}
+    >
+      {/* Network + phone card */}
+      <div className="mx-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4 flex items-center gap-3">
+        <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-[var(--c-border)] shrink-0 overflow-hidden p-1 shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
+          <img src={networkInfo?.logo} alt={networkInfo?.label} className="w-full h-full object-contain rounded-full" />
+        </span>
+        <div className="min-w-0 leading-tight">
+          <p className="text-[15px] font-black tabular-nums tracking-[0.2px] text-[var(--c-text)] m-0">
+            {formatPhone(phone)}
+          </p>
+          <p className="text-[11px] font-semibold text-[var(--c-text-muted)] m-0 mt-0.5">
+            {networkInfo?.label} · Airtime recharge
+          </p>
+        </div>
+      </div>
 
-          {/* Sheet */}
-          <motion.div
-            key="sheet"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="fixed inset-x-0 bottom-0 z-[50] rounded-t-[28px] bg-[var(--c-menu-bg)] border-t border-[var(--c-border)] shadow-[0_-24px_60px_-12px_rgba(2,7,23,0.5)] flex flex-col"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <span className="w-9 h-1 rounded-full bg-[var(--c-border-strong)]" />
-            </div>
+      {/* Breakdown */}
+      <div className="mx-4 mt-3 flex flex-col gap-0 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+        <SheetRow label="Airtime"  value={formatNGN(num)} />
+        <SheetRow label="Fee"      value="₦0.00" muted />
+        <SheetRow label="Cashback" value={`+${formatNGN(cashback)}`} accent />
+        <div className="h-px bg-[var(--c-border)]" />
+        <SheetRow label="Total" value={formatNGN(num)} bold />
+      </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-2 pb-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[1.3px] font-bold text-brand-accent m-0">
-                  Order summary
-                </p>
-                <h2 className="text-[18px] font-bold tracking-[-0.3px] text-[var(--c-text)] m-0 mt-0.5">
-                  Buy Airtime
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSheetOpen(false)}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] active:scale-90 transition"
-              >
-                <X size={14} />
-              </button>
-            </div>
+      {/* Info note */}
+      <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
+        <Info size={12} className="text-brand-accent shrink-0" />
+        <p className="text-[10.5px] text-[var(--c-text-muted)] m-0">
+          Double-check the number — recharges are <span className="font-semibold text-[var(--c-text)]">non-refundable</span>.
+        </p>
+      </div>
 
-            {/* Network + phone card */}
-            <div className="mx-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4 flex items-center gap-3">
-              <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-[var(--c-border)] shrink-0 overflow-hidden p-1 shadow-[0_4px_12px_rgba(0,0,0,0.12)]">
-                <img src={networkInfo?.logo} alt={networkInfo?.label} className="w-full h-full object-contain rounded-full" />
-              </span>
-              <div className="min-w-0 leading-tight">
-                <p className="text-[15px] font-black tabular-nums tracking-[0.2px] text-[var(--c-text)] m-0">
-                  {formatPhone(phone)}
-                </p>
-                <p className="text-[11px] font-semibold text-[var(--c-text-muted)] m-0 mt-0.5">
-                  {networkInfo?.label} · Airtime recharge
-                </p>
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="mx-4 mt-3 flex flex-col gap-0 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
-              <SheetRow label="Airtime"  value={formatNGN(num)} />
-              <SheetRow label="Fee"      value="₦0.00" muted />
-              <SheetRow label="Cashback" value={`+${formatNGN(cashback)}`} accent />
-              <div className="h-px bg-[var(--c-border)]" />
-              <SheetRow label="Total" value={formatNGN(num)} bold />
-            </div>
-
-            {/* Info note */}
-            <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
-              <Info size={12} className="text-brand-accent shrink-0" />
-              <p className="text-[10.5px] text-[var(--c-text-muted)] m-0">
-                Double-check the number — recharges are <span className="font-semibold text-[var(--c-text)]">non-refundable</span>.
-              </p>
-            </div>
-
-            {/* Confirm button */}
-            <div className="px-4 mt-4">
-              <button
-                type="button"
-                onClick={() => setPinOpen(true)}
-                className="relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-[52px] rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[14px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_8px_28px_-8px_rgba(201,162,39,0.55)] active:scale-[0.99] transition"
-              >
-                <Zap size={16} strokeWidth={2.6} />
-                Confirm &amp; Pay {formatNGN(num)}
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      {/* Confirm button */}
+      <div className="px-4 mt-4">
+        <button
+          type="button"
+          onClick={() => setPinOpen(true)}
+          className="relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-[52px] rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[14px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_8px_28px_-8px_rgba(201,162,39,0.55)] active:scale-[0.99] transition"
+        >
+          <Zap size={16} strokeWidth={2.6} />
+          Confirm &amp; Pay {formatNGN(num)}
+        </button>
+      </div>
+    </BottomSheet>
 
     <PinModal
       open={pinOpen}
@@ -506,17 +462,3 @@ export default function MobileAirtime() {
   )
 }
 
-function SheetRow({ label, value, bold, muted, accent }) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <span className="text-[12px] text-[var(--c-text-muted)] font-medium">{label}</span>
-      <span className={[
-        'text-[13px] font-bold tabular-nums',
-        bold   ? 'text-[var(--c-text)] text-[14px]' : '',
-        muted  ? 'text-[var(--c-text-muted)] font-medium' : '',
-        accent ? 'text-[var(--c-success)]' : '',
-        !bold && !muted && !accent ? 'text-[var(--c-text)]' : '',
-      ].join(' ')}>{value}</span>
-    </div>
-  )
-}

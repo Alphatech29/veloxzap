@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone,
-  Receipt, CreditCard, ArrowLeftRight, TrendingUp, Wifi,
-  Sparkles, ShieldCheck, ChevronRight, Gift,
+  Receipt, ArrowLeftRight, TrendingUp, Wifi,
+  Sparkles, ShieldCheck, ChevronRight, Gift, Bitcoin,
   Check, Clock, Coins, Lock, X,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
@@ -13,9 +13,9 @@ const QUICK_ACTIONS = [
   { to: '/user/airtime',   label: 'Airtime',  icon: Smartphone, featured: true },
   { to: '/user/data',      label: 'Data',     icon: Wifi },
   { to: '/user/bills',     label: 'Bills',    icon: Receipt },
-  { to: '/user/cards',     label: 'Cards',    icon: CreditCard },
+  { to: '/user/trade-cards', label: 'Gift Card', icon: Gift },
   { to: '/user/convert',   label: 'Convert',  icon: ArrowLeftRight },
-  { to: '/user/rewards',   label: 'Rewards',  icon: Gift },
+  { to: '/user/crypto-exchange', label: 'Crypto Exchange', icon: Bitcoin },
 ]
 
 const PALETTE = ['#C9A227', '#7AA7FF', '#E89B6B', '#5BD0A0', '#A78BFA', '#F472B6']

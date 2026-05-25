@@ -9,7 +9,10 @@
       "PowerShell($r = Invoke-WebRequest -Uri \"https://cdn.jsdelivr.net/gh/supermx1/nigerian-banks-api@main/data.json\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; $data | Where-Object { $_.logo } | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
       "PowerShell($r = Invoke-WebRequest -Uri \"https://nigerianbanks.xyz/\" -UseBasicParsing; $r.Content | ConvertFrom-Json | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
       "PowerShell($r = Invoke-WebRequest -Uri \"https://nigerianbanks.xyz/\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; $data | ForEach-Object { \"$\\($_.code\\)|$\\($_.logo\\)|$\\($_.name\\)\" })",
-      "PowerShell($r2 = Invoke-WebRequest -Uri \"https://api.nigerianbanklogos.xyz/banks\" -UseBasicParsing; Write-Output \"STATUS: $\\($r2.StatusCode\\)\"; $r2.Content.Substring\\(0, [Math]::Min\\(2000, $r2.Content.Length\\)\\))"
+      "PowerShell($r2 = Invoke-WebRequest -Uri \"https://api.nigerianbanklogos.xyz/banks\" -UseBasicParsing; Write-Output \"STATUS: $\\($r2.StatusCode\\)\"; $r2.Content.Substring\\(0, [Math]::Min\\(2000, $r2.Content.Length\\)\\))",
+      "Bash(node -e \"const wp = require\\('web-push'\\); const keys = wp.generateVAPIDKeys\\(\\); console.log\\('PUBLIC:', keys.publicKey\\); console.log\\('PRIVATE:', keys.privateKey\\);\")",
+      "Bash(node -e \"const wp = require\\('web-push'\\); const k = wp.generateVAPIDKeys\\(\\); console.log\\('PUBLIC='+k.publicKey\\); console.log\\('PRIVATE='+k.privateKey\\);\")",
+      "PowerShell(Rename-Item \"c:\\\\Users\\\\HP\\\\Desktop\\\\veloxzap\\\\src\\\\user\\\\mobile\\\\bills\\\\PaymentForm.jsx\" \"Electricity.jsx\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user",

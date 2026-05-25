@@ -1,7 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Smartphone, Wifi, Receipt, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
-  CreditCard, Activity, Gift, Tag, User as UserIcon, LifeBuoy,
+  CreditCard, Activity, Gift, Tag, Bitcoin, TrendingUp, User as UserIcon, LifeBuoy,
   LogOut, X, ChevronRight, ShieldCheck, Crown, Settings,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
@@ -32,9 +32,11 @@ const NAV_GROUPS = [
     items: [
       { to: '/user/deposit',     label: 'Deposit',      icon: ArrowDownLeft },
       { to: '/user/withdraw',    label: 'Withdraw',     icon: ArrowUpRight },
-      { to: '/user/convert',     label: 'Convert',      icon: ArrowLeftRight },
-      { to: '/user/cards',       label: 'Virtual cards', icon: CreditCard },
-      { to: '/user/trade-cards', label: 'Trade cards',  icon: Tag },
+      { to: '/user/convert',          label: 'Convert',        icon: ArrowLeftRight },
+      { to: '/user/crypto-exchange',  label: 'Crypto Exchange', icon: Bitcoin },
+      { to: '/user/finance',          label: 'Finance',         icon: TrendingUp },
+      { to: '/user/cards',            label: 'Virtual cards',  icon: CreditCard },
+      { to: '/user/trade-cards',      label: 'Trade cards',    icon: Tag },
     ],
   },
   {

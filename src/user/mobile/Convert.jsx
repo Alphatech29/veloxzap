@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronDown, ArrowDownUp, Sparkles, Info,
   ShieldCheck, X, Check, TrendingUp,
 } from 'lucide-react'
+import BottomSheet from '../../components/internalUI/BottomSheet'
 
 const CURRENCIES = [
   { code: 'NGN',  name: 'Nigerian Naira', rate: 1,         decimals: 2 },
@@ -224,16 +225,13 @@ export default function MobileConvert() {
         Locked rate for 30s · executed at submit time
       </p>
 
-      <AnimatePresence>
-        {picker && (
-          <CurrencyPicker
-            selected={picker === 'from' ? fromCode : toCode}
-            otherCode={picker === 'from' ? toCode : fromCode}
-            onSelect={handleSelectCurrency}
-            onClose={() => setPicker(null)}
-          />
-        )}
-      </AnimatePresence>
+      <CurrencyPicker
+        open={!!picker}
+        selected={picker === 'from' ? fromCode : toCode}
+        otherCode={picker === 'from' ? toCode : fromCode}
+        onSelect={handleSelectCurrency}
+        onClose={() => setPicker(null)}
+      />
     </div>
   )
 }
@@ -312,51 +310,11 @@ function RateRow({ icon: Icon, label, value, tone, emphasized }) {
   )
 }
 
-function CurrencyPicker({ selected, otherCode, onSelect, onClose }) {
+function CurrencyPicker({ open, selected, otherCode, onSelect, onClose }) {
   return (
-    <>
-      <motion.button
-        type="button"
-        aria-label="Close"
-        onClick={onClose}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-[var(--c-scrim)] backdrop-blur-[3px] border-0"
-      />
-      <motion.div
-        role="dialog"
-        aria-label="Pick a currency"
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 30, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-[28px] bg-[var(--c-menu-bg)] border-t border-x border-[var(--c-accent-soft-2)] shadow-[0_-24px_50px_-12px_rgba(2,7,23,0.6)]"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
-      >
-        <div className="flex justify-center pt-3 pb-1.5">
-          <span className="block w-12 h-1.5 rounded-full bg-[var(--c-border-strong)]" />
-        </div>
-        <div className="flex items-center justify-between px-5 pt-2 pb-4">
-          <div>
-            <p className="text-[10.5px] uppercase tracking-[1.2px] text-brand-accent font-semibold m-0">
-              Select currency
-            </p>
-            <h3 className="text-[18px] font-bold tracking-[-0.3px] text-[var(--c-text)] m-0 mt-0.5">
-              Choose asset
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] active:scale-95 transition"
-          >
-            <X size={15} />
-          </button>
-        </div>
-        <ul className="list-none m-0 px-3 pb-2 space-y-1.5">
-          {CURRENCIES.map(c => {
+    <BottomSheet open={open} onClose={onClose} label="Select currency" title="Choose asset" maxHeight="85vh">
+      <ul className="list-none m-0 px-3 pb-2 space-y-1.5 overflow-y-auto">
+        {CURRENCIES.map(c => {
             const active = c.code === selected
             const blocked = c.code === otherCode
             return (
@@ -393,8 +351,7 @@ function CurrencyPicker({ selected, otherCode, onSelect, onClose }) {
               </li>
             )
           })}
-        </ul>
-      </motion.div>
-    </>
+      </ul>
+    </BottomSheet>
   )
 }

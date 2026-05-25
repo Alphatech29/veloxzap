@@ -1,15 +1,16 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Settings as SettingsIcon, Palette, Shield, Bell, Eye, Info,
   Sparkles, ChevronRight, Globe, Coins, Clock, Sun, Moon, Monitor,
-  KeyRound, Lock, Smartphone, Fingerprint, Mail, MessageCircle,
-  Activity, Download, Trash2, FileText, ShieldCheck, HelpCircle,
-  Check, AlertTriangle,
+  KeyRound, Lock, Smartphone, Mail, MessageCircle,
+  FileText, ShieldCheck, HelpCircle,
+  Check, AlertTriangle, BellRing, BellOff, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import { useTheme } from '../../context/ThemeContext'
+import { subscribePush, unsubscribePush } from '../../lib/push'
 
 const SECTIONS = [
   { id: 'preferences',   label: 'Preferences',   icon: SettingsIcon },
@@ -42,14 +43,47 @@ export default function DesktopSettings() {
   )
   const [density, setDensity]         = useState('comfortable')
 
-  const [emailLogin, setEmailLogin]       = useState(true)
-  const [emailTx, setEmailTx]             = useState(true)
-  const [pushLogin, setPushLogin]         = useState(true)
-  const [pushTx, setPushTx]               = useState(true)
-  const [smsLogin, setSmsLogin]           = useState(false)
-  const [smsTx, setSmsTx]                 = useState(true)
-  const [emailPromos, setEmailPromos]     = useState(false)
-  const [newsletter, setNewsletter]       = useState(true)
+  const [emailLogin, setEmailLogin]   = useState(true)
+  const [emailTx, setEmailTx]         = useState(true)
+  const [smsLogin, setSmsLogin]       = useState(false)
+  const [smsTx, setSmsTx]             = useState(true)
+  const [emailPromos, setEmailPromos] = useState(false)
+  const [newsletter, setNewsletter]   = useState(true)
+
+  const pushSupported = 'Notification' in window && 'serviceWorker' in navigator
+  const [pushPermission, setPushPermission] = useState(() =>
+    pushSupported ? Notification.permission : 'unsupported'
+  )
+  const [pushSubscribed, setPushSubscribed] = useState(false)
+  const [pushLoading, setPushLoading]       = useState(false)
+
+  useEffect(() => {
+    if (!pushSupported) return
+    navigator.serviceWorker.ready
+      .then(reg => reg.pushManager.getSubscription())
+      .then(sub => { if (sub) { setPushSubscribed(true); setPushPermission('granted') } })
+      .catch(() => {})
+  }, [pushSupported])
+
+  async function handlePushToggle() {
+    if (pushLoading) return
+    setPushLoading(true)
+    try {
+      if (pushSubscribed) {
+        await unsubscribePush()
+        setPushSubscribed(false)
+        setPushPermission(Notification.permission)
+      } else {
+        await subscribePush()
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        setPushSubscribed(!!sub)
+        setPushPermission(Notification.permission)
+      }
+    } finally {
+      setPushLoading(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4 max-w-[1240px] mx-auto pb-10">
@@ -150,6 +184,64 @@ export default function DesktopSettings() {
           </Section>
 
           <Section id="notifications" title="Notifications" subtitle="Choose how we reach you." setRef={setRef}>
+
+            {/* Push notification banner */}
+            {pushSupported && (
+              <div className="px-4 pt-4 pb-3 border-b border-[var(--c-border)]">
+                {pushPermission === 'denied' ? (
+                  <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[color-mix(in_srgb,#ef4444_8%,transparent)] border border-[color-mix(in_srgb,#ef4444_25%,transparent)]">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-[color-mix(in_srgb,#ef4444_12%,transparent)] border border-[color-mix(in_srgb,#ef4444_25%,transparent)] text-[#ef4444]">
+                      <BellOff size={15} />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12.5px] font-bold text-[#ef4444] m-0">Push blocked by browser</p>
+                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">
+                        Go to your browser site settings and allow notifications for this site, then refresh.
+                      </p>
+                    </div>
+                  </div>
+                ) : pushSubscribed ? (
+                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[var(--c-success-bg)] border border-[var(--c-success)]">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-[var(--c-success-bg)] border border-[var(--c-success)] text-[var(--c-success)]">
+                      <BellRing size={15} />
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0">Push notifications active</p>
+                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">Credit alerts will appear even when the app is closed.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handlePushToggle}
+                      disabled={pushLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold border transition shrink-0 text-[#ef4444] border-[color-mix(in_srgb,#ef4444_30%,transparent)] bg-[color-mix(in_srgb,#ef4444_8%,transparent)] hover:bg-[color-mix(in_srgb,#ef4444_15%,transparent)]"
+                    >
+                      {pushLoading ? <Loader2 size={12} className="animate-spin" /> : <BellOff size={12} />}
+                      Disable
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border-[rgba(232,197,71,0.55)]">
+                      <BellRing size={15} />
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0">Enable push notifications</p>
+                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">Get instant credit alerts even when VeloxZap is closed.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handlePushToggle}
+                      disabled={pushLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition shrink-0 bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] hover:opacity-90 shadow-[0_4px_12px_-4px_rgba(201,162,39,0.5)]"
+                    >
+                      {pushLoading ? <Loader2 size={12} className="animate-spin" /> : <BellRing size={12} />}
+                      Enable
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <NotificationMatrix
               rows={[
                 { id: 'login', label: 'Login alerts',        sub: 'New sign-ins on your account' },
@@ -158,14 +250,14 @@ export default function DesktopSettings() {
                 { id: 'news',  label: 'Newsletter',          sub: 'Monthly product roundup' },
               ]}
               values={{
-                login: { email: emailLogin, push: pushLogin, sms: smsLogin },
-                tx:    { email: emailTx,    push: pushTx,    sms: smsTx },
+                login: { email: emailLogin, push: pushSubscribed, sms: smsLogin },
+                tx:    { email: emailTx,    push: pushSubscribed, sms: smsTx },
                 promo: { email: emailPromos, push: false, sms: false },
                 news:  { email: newsletter,  push: false, sms: false },
               }}
               setters={{
-                login: { email: setEmailLogin, push: setPushLogin, sms: setSmsLogin },
-                tx:    { email: setEmailTx,    push: setPushTx,    sms: setSmsTx },
+                login: { email: setEmailLogin, push: handlePushToggle, sms: setSmsLogin },
+                tx:    { email: setEmailTx,    push: handlePushToggle, sms: setSmsTx },
                 promo: { email: setEmailPromos, push: () => {}, sms: () => {} },
                 news:  { email: setNewsletter,  push: () => {}, sms: () => {} },
               }}
@@ -448,7 +540,10 @@ function NotificationMatrix({ rows, values, setters }) {
                 <td key={channel} className="px-3 py-3 text-center">
                   <Toggle
                     on={values[row.id][channel]}
-                    onClick={() => setters[row.id][channel](v => !v)}
+                    onClick={() => {
+                      const setter = setters[row.id][channel]
+                      channel === 'push' ? setter() : setter(v => !v)
+                    }}
                   />
                 </td>
               ))}

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import useGiftCards, { DENOMINATIONS, countryLabel, countryCode } from '../../hooks/useGiftCards'
 import { useAlert } from '../../components/ui/Alert'
+import BottomSheet from '../../components/internalUI/BottomSheet'
 
 function formatNGN(n) {
   return '₦' + n.toLocaleString('en-NG')
@@ -75,7 +76,7 @@ function ImageSlot({ index, file, onFile, onRemove }) {
 }
 
 /* ── Rates bottom sheet ─────────────────────────────────────── */
-function RatesSheet({ brands, brandsLoading, onClose }) {
+function RatesSheet({ open, brands, brandsLoading, onClose }) {
   const [query, setQuery] = useState('')
 
   const filtered = brands.filter(b =>
@@ -83,25 +84,7 @@ function RatesSheet({ brands, brandsLoading, onClose }) {
   )
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[5px]"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 340, damping: 32, mass: 0.85 }}
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-[28px] overflow-hidden shadow-[0_-24px_80px_rgba(0,0,0,0.5)]"
-        style={{ maxHeight: '88vh', background: 'var(--c-surface)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-[var(--c-border)]" />
-        </div>
-
+    <BottomSheet open={open} onClose={onClose} maxHeight="88vh">
         {/* Header */}
         <div className="relative overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[rgba(201,162,39,0.1)] via-transparent to-transparent pointer-events-none" />
@@ -214,13 +197,12 @@ function RatesSheet({ brands, brandsLoading, onClose }) {
           <ShieldCheck size={10} className="text-brand-accent" />
           <span className="text-[10px] text-[var(--c-text-muted)]">Rates update in real time · subject to change</span>
         </div>
-      </motion.div>
-    </>
+    </BottomSheet>
   )
 }
 
 /* ── Brand picker bottom sheet ──────────────────────────────── */
-function BrandSheet({ brands, brandsLoading, selectedId, onSelect, onClose }) {
+function BrandSheet({ open, brands, brandsLoading, selectedId, onSelect, onClose }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
 
@@ -236,30 +218,7 @@ function BrandSheet({ brands, brandsLoading, selectedId, onSelect, onClose }) {
   const isEmpty = filteredTradeable.length === 0 && filteredUnavailable.length === 0
 
   return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[5px]"
-        onClick={onClose}
-      />
-
-      {/* Sheet */}
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 340, damping: 32, mass: 0.85 }}
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-[28px] overflow-hidden shadow-[0_-24px_80px_rgba(0,0,0,0.5)]"
-        style={{ maxHeight: '88vh', background: 'var(--c-surface)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-[var(--c-border)]" />
-        </div>
-
+    <BottomSheet open={open} onClose={onClose} maxHeight="88vh">
         {/* Header */}
         <div className="relative overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-[rgba(201,162,39,0.1)] via-transparent to-transparent pointer-events-none" />
@@ -427,8 +386,7 @@ function BrandSheet({ brands, brandsLoading, selectedId, onSelect, onClose }) {
           <ShieldCheck size={10} className="text-brand-accent" />
           <span className="text-[10px] text-[var(--c-text-muted)]">Best rates · Verified in minutes</span>
         </div>
-      </motion.div>
-    </>
+    </BottomSheet>
   )
 }
 
@@ -900,51 +858,26 @@ export default function MobileTradeCards() {
       </div>
 
       {/* Rates sheet */}
-      <AnimatePresence>
-        {ratesSheetOpen && (
-          <RatesSheet
-            brands={brands}
-            brandsLoading={brandsLoading}
-            onClose={() => setRatesSheetOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      <RatesSheet
+        open={ratesSheetOpen}
+        brands={brands}
+        brandsLoading={brandsLoading}
+        onClose={() => setRatesSheetOpen(false)}
+      />
 
       {/* Brand picker sheet */}
-      <AnimatePresence>
-        {brandSheetOpen && (
-          <BrandSheet
-            brands={brands}
-            brandsLoading={brandsLoading}
-            selectedId={brand}
-            onSelect={id => { setBrand(id); resetFrom(1); setBrandSheetOpen(false) }}
-            onClose={() => setBrandSheetOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      <BrandSheet
+        open={brandSheetOpen}
+        brands={brands}
+        brandsLoading={brandsLoading}
+        selectedId={brand}
+        onSelect={id => { setBrand(id); resetFrom(1); setBrandSheetOpen(false) }}
+        onClose={() => setBrandSheetOpen(false)}
+      />
 
       {/* Confirm sheet */}
-      <AnimatePresence>
-        {sheetOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => !submitting && setSheetOpen(false)} />
-            <motion.div
-              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 32, mass: 0.85 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--c-surface)] rounded-t-[28px] border-t border-[var(--c-border)] shadow-[0_-20px_60px_rgba(0,0,0,0.35)]"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)' }}
-            >
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-[var(--c-border)]" />
-              </div>
-              <div className="px-5 pt-3">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[15px] font-bold text-[var(--c-text)] m-0">Confirm trade</h2>
-                  <button type="button" onClick={() => !submitting && setSheetOpen(false)} disabled={submitting} className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)] active:scale-90 transition disabled:opacity-40 disabled:cursor-not-allowed">
-                    <X size={14} />
-                  </button>
-                </div>
-
+      <BottomSheet open={sheetOpen} onClose={() => !submitting && setSheetOpen(false)} title="Confirm trade" closeOnScrimClick={!submitting}>
+        <div className="px-5 pt-3">
                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] mb-4">
                   <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1.5 shrink-0">
                     {selectedBrandData?.logo && <img src={selectedBrandData.logo} alt={selectedBrandData.name} className="w-full h-full object-contain" />}
@@ -996,11 +929,8 @@ export default function MobileTradeCards() {
                   <ShieldCheck size={9} className="text-brand-accent" />
                   Secured · Paid to wallet after verification
                 </p>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+        </div>
+      </BottomSheet>
 
     </div>
   )

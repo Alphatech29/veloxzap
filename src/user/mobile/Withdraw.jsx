@@ -12,6 +12,7 @@ import useBeneficiaries from '../../hooks/useBeneficiaries'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
 import BeneficiaryPicker from '../../components/ui/BeneficiaryPicker'
+import BottomSheet from '../../components/internalUI/BottomSheet'
 import BankAvatar from '../../components/ui/BankAvatar'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 20000]
@@ -54,10 +55,10 @@ function BankItem({ b, selectedCode, onSelect, showDivider }) {
 }
 
 /* ── Bank picker sheet ──────────────────────────────────────── */
-function BankSheet({ banks, loading, selectedCode, onSelect, onClose }) {
+function BankSheet({ open, banks, loading, selectedCode, onSelect, onClose }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
-  useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => { if (open) inputRef.current?.focus() }, [open])
 
   const q = query.trim().toLowerCase()
   const filtered = q ? banks.filter(b => b.name.toLowerCase().includes(q)) : null
@@ -65,64 +66,31 @@ function BankSheet({ banks, loading, selectedCode, onSelect, onClose }) {
   const rest     = !q ? banks.filter(b => !isPopular(b.name)) : []
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[6px]"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-        transition={{ type: 'spring', stiffness: 320, damping: 30, mass: 0.9 }}
-        className="fixed bottom-0 left-0 right-0 z-50 flex flex-col rounded-t-[28px] overflow-hidden"
-        style={{
-          maxHeight: '90vh',
-          background: 'var(--c-surface)',
-          paddingBottom: 'env(safe-area-inset-bottom,0px)',
-          boxShadow: '0 -20px 60px rgba(0,0,0,0.4)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
-        <div className="flex justify-center pt-3.5 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-[var(--c-border)]" />
-        </div>
-
-        {/* Header */}
-        <div className="px-5 pt-4 pb-4 shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-[10px] font-bold text-brand-accent uppercase tracking-[1.2px] m-0">Transfer to</p>
-              <h2 className="text-[18px] font-bold text-[var(--c-text)] m-0 mt-0.5">Select bank</h2>
-            </div>
-            <button type="button" onClick={onClose}
-              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)] active:scale-90 transition">
-              <X size={14} />
+    <BottomSheet open={open} onClose={onClose} label="Transfer to" title="Select bank" maxHeight="90vh">
+      {/* Search */}
+      <div className="px-5 pb-4 shrink-0">
+        <div
+          className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border transition-all focus-within:shadow-[0_0_0_3px_rgba(201,162,39,0.15)]"
+          style={{ background: 'var(--c-surface-soft)', borderColor: 'var(--c-border)' }}
+        >
+          <Search size={14} className="text-[var(--c-text-muted)] shrink-0" />
+          <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Search bank name…"
+            className="flex-1 bg-transparent border-0 outline-none text-[13.5px] text-[var(--c-text)] placeholder:text-[var(--c-text-faint)]"
+            style={{ boxShadow: 'none' }}
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery('')}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--c-border)] text-[var(--c-text-muted)] transition active:scale-90">
+              <X size={10} />
             </button>
-          </div>
-          <div
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border transition-all focus-within:shadow-[0_0_0_3px_rgba(201,162,39,0.15)]"
-            style={{ background: 'var(--c-surface-soft)', borderColor: 'var(--c-border)' }}
-          >
-            <Search size={14} className="text-[var(--c-text-muted)] shrink-0" />
-            <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)}
-              placeholder="Search bank name…"
-              className="flex-1 bg-transparent border-0 outline-none text-[13.5px] text-[var(--c-text)] placeholder:text-[var(--c-text-faint)]"
-              style={{ boxShadow: 'none' }}
-            />
-            {query && (
-              <button type="button" onClick={() => setQuery('')}
-                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--c-border)] text-[var(--c-text-muted)] transition active:scale-90">
-                <X size={10} />
-              </button>
-            )}
-          </div>
+          )}
         </div>
+      </div>
 
-        <div className="h-px" style={{ background: 'var(--c-border)' }} />
+      <div className="h-px" style={{ background: 'var(--c-border)' }} />
 
-        <div className="overflow-y-auto flex-1">
+      <div className="overflow-y-auto flex-1">
           {loading ? (
             <div className="flex flex-col px-5 py-3 gap-2">
               {Array.from({ length: 7 }).map((_, i) => (
@@ -161,9 +129,8 @@ function BankSheet({ banks, loading, selectedCode, onSelect, onClose }) {
               </ul>
             </>
           )}
-        </div>
-      </motion.div>
-    </>
+      </div>
+    </BottomSheet>
   )
 }
 
@@ -794,16 +761,13 @@ export default function MobileWithdraw() {
       </AnimatePresence>
 
       {/* Bank sheet */}
-      <AnimatePresence>
-        {bankSheetOpen && (
-          <BankSheet
-            banks={banks} loading={banksLoading}
-            selectedCode={bank?.code}
-            onSelect={handleBankSelect}
-            onClose={() => setBankSheetOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      <BankSheet
+        open={bankSheetOpen}
+        banks={banks} loading={banksLoading}
+        selectedCode={bank?.code}
+        onSelect={handleBankSelect}
+        onClose={() => setBankSheetOpen(false)}
+      />
 
       {/* Preview sheet */}
       <AnimatePresence>

@@ -141,10 +141,11 @@ export async function apiFetch(path, options = {}) {
   try { payload = await response.json() } catch { payload = null }
 
   if (!response.ok || !payload?.success) {
+    const errField = payload?.error
     return {
       success: false,
-      message: payload?.error || payload?.message || 'Request failed. Please try again.',
-      code: payload?.error?.code,
+      message: (typeof errField === 'string' ? errField : errField?.detail || errField?.message || null) || payload?.message || 'Request failed. Please try again.',
+      code: typeof errField === 'object' ? errField?.code : payload?.code,
       status: response.status,
       payload,
     }

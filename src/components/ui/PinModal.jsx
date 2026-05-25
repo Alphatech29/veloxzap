@@ -59,7 +59,7 @@ function PinBoxes({ value, onChange, masked, onComplete }) {
   )
 }
 
-export default function PinModal({ open, title, subtitle, loading, onConfirm, onCancel }) {
+export default function PinModal({ open, title, subtitle, loading, error, onConfirm, onCancel }) {
   const isMobile = useIsMobile()
   const [pin, setPin] = useState('')
   const [masked, setMasked] = useState(true)
@@ -106,6 +106,21 @@ export default function PinModal({ open, title, subtitle, loading, onConfirm, on
       </div>
 
       <PinBoxes value={pin} onChange={setPin} masked={masked} onComplete={submit} />
+
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            key="pin-err"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="text-[11.5px] font-semibold text-center text-[var(--c-danger)] bg-[var(--c-danger-soft)] border border-[var(--c-danger-border)] rounded-xl px-3 py-2 leading-snug"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col gap-2.5">
         <button

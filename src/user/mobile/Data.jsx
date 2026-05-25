@@ -12,6 +12,7 @@ import t2Logo from '../../assets/t2.png'
 import useData, { TYPE_TABS } from '../../hooks/useData'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
+import BottomSheet, { SheetRow } from '../../components/internalUI/BottomSheet'
 
 const NETWORKS = [
   { id: 'mtn',      label: 'MTN',      logo: mtnLogo,    color: '#FFCC00' },
@@ -475,69 +476,44 @@ export default function MobileData() {
         Secured by VeloxZap · NCC licensed VAS
       </p>
 
-      {/* Confirmation bottom sheet */}
-      <AnimatePresence>
-        {sheetOpen && selectedPlan && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40"
-              onClick={() => !buying && setSheetOpen(false)}
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 340, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--c-surface)] rounded-t-[28px] px-5 pt-3 pb-8 shadow-[0_-8px_32px_rgba(0,0,0,0.18)]"
-            >
-              <div className="w-10 h-1 rounded-full bg-[var(--c-border)] mx-auto mb-5" />
+      <BottomSheet
+        open={sheetOpen && !!selectedPlan}
+        onClose={() => !buying && setSheetOpen(false)}
+        label="Data purchase"
+        title="Order summary"
+        closeOnScrimClick={!buying}
+      >
+        <div className="rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] p-3.5 mx-4 mb-1 flex items-center gap-3">
+          {networkInfo && (
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+              <img src={networkInfo.logo} alt={networkInfo.label} className="w-full h-full object-contain rounded-full" />
+            </span>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-[var(--c-text)] m-0">{formatPhone(phone)}</p>
+            <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">{networkInfo?.label}</p>
+          </div>
+        </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[15px] font-bold text-[var(--c-text)] m-0 inline-flex items-center gap-2">
-                  <Receipt size={15} className="text-brand-accent" /> Order summary
-                </h3>
-                {!buying && (
-                  <button type="button" onClick={() => setSheetOpen(false)} className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)]">
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
+        <div className="mx-4 mt-3 flex flex-col rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+          <SheetRow label="Plan"   value={`${selectedPlan?.volume}${selectedPlan?.validity !== '—' ? ` · ${selectedPlan?.validity}` : ''}`} bold />
+          {selectedPlan?.bonus && <SheetRow label="Bonus"  value={selectedPlan.bonus} accent />}
+          <SheetRow label="Amount" value={formatNGN(selectedPlan?.price ?? 0)} />
+          <div className="h-px bg-[var(--c-border)]" />
+          <SheetRow label="Total"  value={formatNGN(selectedPlan?.price ?? 0)} bold accent />
+        </div>
 
-              <div className="rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] p-3.5 mb-4 flex items-center gap-3">
-                {networkInfo && (
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-                    <img src={networkInfo.logo} alt={networkInfo.label} className="w-full h-full object-contain rounded-full" />
-                  </span>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold text-[var(--c-text)] m-0">{formatPhone(phone)}</p>
-                  <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">{networkInfo?.label}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2.5 mb-5">
-                <SheetRow label="Plan"     value={`${selectedPlan.volume}${selectedPlan.validity !== '—' ? ` · ${selectedPlan.validity}` : ''}`} bold />
-                {selectedPlan.bonus && <SheetRow label="Bonus"   value={selectedPlan.bonus} accent />}
-                <SheetRow label="Amount"  value={formatNGN(selectedPlan.price)} />
-                <div className="border-t border-dashed border-[var(--c-border)]" />
-                <SheetRow label="Total"   value={formatNGN(selectedPlan.price)} bold accent />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setPinOpen(true)}
-                disabled={buying}
-                className="w-full h-12 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[13.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] active:scale-[0.99] transition disabled:opacity-60"
-              >
-                Confirm &amp; Pay
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+        <div className="px-4 mt-4">
+          <button
+            type="button"
+            onClick={() => setPinOpen(true)}
+            disabled={buying}
+            className="w-full h-12 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[13.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] active:scale-[0.99] transition disabled:opacity-60"
+          >
+            Confirm &amp; Pay
+          </button>
+        </div>
+      </BottomSheet>
 
       <PinModal
         open={pinOpen}
@@ -551,17 +527,3 @@ export default function MobileData() {
   )
 }
 
-function SheetRow({ label, value, bold, accent }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-[12px] text-[var(--c-text-muted)]">{label}</span>
-      <span className={[
-        'text-[12.5px]',
-        bold   ? 'font-bold text-[var(--c-text)]' : 'font-semibold text-[var(--c-text)]',
-        accent ? 'text-brand-accent' : '',
-      ].join(' ')}>
-        {value}
-      </span>
-    </div>
-  )
-}

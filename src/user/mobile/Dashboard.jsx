@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone, Wifi,
-  Receipt, Gift, Bitcoin, Globe2, ShieldCheck, ChevronRight,
+  Receipt, Gift, Bitcoin, ShieldCheck, ChevronRight,
   Sparkles, CreditCard, TrendingUp, Lock,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
@@ -12,8 +12,8 @@ const QUICK_ACTIONS = [
   { to: '/user/bills',        label: 'Bills',        icon: Receipt },
   { to: '/user/data',         label: 'Data',         icon: Wifi },
   { to: '/user/trade-cards',  label: 'Trade Card',   icon: Gift },
-  { to: '/user/crypto-trade', label: 'Crypto Trade', icon: Bitcoin },
-  { to: '/user/global',       label: 'Global',       icon: Globe2 },
+  { to: '/user/crypto-exchange', label: 'Crypto Trade', icon: Bitcoin },
+  { to: '/user/finance',      label: 'Finance',      icon: TrendingUp },
   { to: '/user/buy-giftcard', label: 'Buy Gift Card', icon: Gift },
   { to: '/user/convert',       label: 'Convert',       icon: TrendingUp },
 ]
