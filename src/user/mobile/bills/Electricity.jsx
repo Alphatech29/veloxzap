@@ -144,7 +144,7 @@ export default function PaymentForm({ categoryId, onBack }) {
             <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
               <Sparkles size={8} /> {cat.label}
             </p>
-            <h1 className="text-[17px] font-black tracking-[-0.4px] text-[var(--c-text)] m-0 leading-tight">
+            <h1 className="text-[13px] font-semibold tracking-[-0.4px] text-[var(--c-text)] m-0 leading-tight">
               Pay {cat.label}
             </h1>
           </div>

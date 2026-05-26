@@ -155,7 +155,7 @@ export default function CableForm({ onBack }) {
             <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
               <Sparkles size={8} /> Cable TV
             </p>
-            <h1 className="text-[17px] font-black tracking-[-0.4px] text-[var(--c-text)] m-0 leading-tight">Pay Cable TV</h1>
+            <h1 className="text-[14px] font-semibold tracking-[-0.4px] text-[var(--c-text)] m-0 leading-tight">Pay Cable TV</h1>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[8.5px] font-bold uppercase tracking-[0.7px] text-brand-accent">
             <ShieldCheck size={9} /> Secure
@@ -651,7 +651,7 @@ export default function CableForm({ onBack }) {
               <button type="button" onClick={() => setPinOpen(true)}
                 className="relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-[52px] rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[14px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_8px_28px_-8px_rgba(201,162,39,0.55)] active:scale-[0.99] transition"
               >
-                
+
                 Pay
               </button>
             </div>

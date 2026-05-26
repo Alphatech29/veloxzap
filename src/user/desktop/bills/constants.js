@@ -1,4 +1,4 @@
-import { Tv, Zap, Wifi } from 'lucide-react'
+import { Tv, Zap, Wifi, Ticket } from 'lucide-react'
 import dstvLogo from '../../../assets/dstv.jpg'
 import gotvLogo from '../../../assets/gotv.jpg'
 import startimesLogo from '../../../assets/startime.jpg'
@@ -17,6 +17,15 @@ import abaLogo from '../../../assets/aba.jpg'
 import yedcLogo from '../../../assets/yedc.jpg'
 import spectranetLogo from '../../../assets/spectranet.webp'
 import smileLogo from '../../../assets/smile.jpg'
+import sportybetLogo from '../../../assets/bettings/sportybet.png'
+import nairabetLogo from '../../../assets/bettings/nairabet.png'
+import betkingLogo from '../../../assets/bettings/betking.jpg'
+import betwayLogo from '../../../assets/bettings/betway.png'
+import cloudbetLogo from '../../../assets/bettings/cloudbet.png'
+import livescorebetLogo from '../../../assets/bettings/livescorebet.png'
+import bangbetLogo from '../../../assets/bettings/bangbet.png'
+import xbetLogo from '../../../assets/bettings/1xbet.png'
+import naijabetLogo from '../../../assets/bettings/naijabet.png'
 
 export const CATEGORIES = [
   {
@@ -49,6 +58,16 @@ export const CATEGORIES = [
     accountLabel: 'Account number',
     accountPlaceholder: 'Account / username',
   },
+  {
+    id: 'betting',
+    label: 'Betting',
+    icon: Ticket,
+    desc: 'Fund your betting wallet instantly.',
+    providers: ['SportyBet', 'BetWay', 'BetKing', 'BangBet', '+8 more'],
+    count: 12,
+    accountLabel: 'User ID / Username',
+    accountPlaceholder: 'Enter your user ID',
+  },
 ]
 
 export const PROVIDERS = {
@@ -75,6 +94,20 @@ export const PROVIDERS = {
   internet: [
     { id: 'spectranet', label: 'Spectranet', logo: spectranetLogo, serviceId: 'spectranet' },
     { id: 'smile',      label: 'Smile',      logo: smileLogo,      serviceId: 'smile' },
+  ],
+  betting: [
+    { id: 'betnaija',     label: 'BetNaija',     logo: null,              serviceId: 'betnaija' },
+    { id: 'sportybet',    label: 'SportyBet',    logo: sportybetLogo,     serviceId: 'sportybet' },
+    { id: 'nairabet',     label: 'NairaBet',     logo: nairabetLogo,      serviceId: 'nairabet' },
+    { id: 'betking',      label: 'BetKing',      logo: betkingLogo,       serviceId: 'betking' },
+    { id: 'betway',       label: 'BetWay',       logo: betwayLogo,        serviceId: 'betway' },
+    { id: 'cloudbet',     label: 'CloudBet',     logo: cloudbetLogo,      serviceId: 'cloudbet' },
+    { id: 'livescorebet', label: 'LiveScoreBet', logo: livescorebetLogo,  serviceId: 'livescorebet' },
+    { id: 'supabet',      label: 'SupaBet',      logo: null,              serviceId: 'supabet' },
+    { id: 'betland',      label: 'BetLand',      logo: null,              serviceId: 'betland' },
+    { id: 'bangbet',      label: 'BangBet',      logo: bangbetLogo,       serviceId: 'bangbet' },
+    { id: '1xbet',        label: '1xBet',        logo: xbetLogo,          serviceId: '1xbet' },
+    { id: 'naijabet',     label: 'NaijaBet',     logo: naijabetLogo,      serviceId: 'naijabet' },
   ],
 }
 

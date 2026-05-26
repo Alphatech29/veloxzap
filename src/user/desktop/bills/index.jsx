@@ -4,6 +4,7 @@ import CategoryListing from './CategoryListing'
 import PaymentForm from './PaymentForm'
 import CableForm from './CableForm'
 import InternetForm from './InternetForm'
+import BettingForm from './BettingForm'
 
 export default function DesktopBills() {
   const [selectedCategoryId, setSelectedCategoryId] = useState(null)
@@ -29,6 +30,16 @@ export default function DesktopBills() {
           transition={{ duration: 0.22 }}
         >
           <InternetForm onBack={() => setSelectedCategoryId(null)} />
+        </motion.div>
+      ) : selectedCategoryId === 'betting' ? (
+        <motion.div
+          key="betting"
+          initial={{ opacity: 0, x: 32 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 32 }}
+          transition={{ duration: 0.22 }}
+        >
+          <BettingForm onBack={() => setSelectedCategoryId(null)} />
         </motion.div>
       ) : selectedCategoryId ? (
         <motion.div

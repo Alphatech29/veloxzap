@@ -5,6 +5,7 @@ import CategoryListing from './CategoryListing'
 import PaymentForm from './Electricity'
 import CableForm from './CableForm'
 import InternetForm from './InternetForm'
+import BettingForm from './BettingForm'
 
 export default function MobileBills() {
   const navigate = useNavigate()
@@ -20,6 +21,11 @@ export default function MobileBills() {
       ) : selectedCategoryId === 'internet' ? (
         <InternetForm
           key="internet"
+          onBack={() => setSelectedCategoryId(null)}
+        />
+      ) : selectedCategoryId === 'betting' ? (
+        <BettingForm
+          key="betting"
           onBack={() => setSelectedCategoryId(null)}
         />
       ) : selectedCategoryId ? (

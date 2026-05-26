@@ -19,7 +19,7 @@ export default function CategoryListing({ onSelect, onBack }) {
           <p className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-[1.4px] text-brand-accent font-bold m-0">
             <Sparkles size={9} /> Pay bills
           </p>
-          <h1 className="text-[20px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5 leading-tight">
+          <h1 className="text-[17px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5 leading-tight">
             Bills &amp; utilities
           </h1>
           <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
