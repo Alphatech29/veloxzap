@@ -26,6 +26,8 @@ import livescorebetLogo from '../../../assets/bettings/livescorebet.png'
 import bangbetLogo from '../../../assets/bettings/bangbet.png'
 import xbetLogo from '../../../assets/bettings/1xbet.png'
 import naijabetLogo from '../../../assets/bettings/naijabet.png'
+import betnaijaLogo from '../../../assets/bettings/bet9ja.png'
+import betlandLogo from '../../../assets/bettings/betland.jpg'
 
 export const CATEGORIES = [
   {
@@ -96,7 +98,7 @@ export const PROVIDERS = {
     { id: 'smile',      label: 'Smile',      logo: smileLogo,      serviceId: 'smile' },
   ],
   betting: [
-    { id: 'betnaija',     label: 'BetNaija',     logo: null,              serviceId: 'betnaija' },
+    { id: 'betnaija',     label: 'Bet9ja',       logo: betnaijaLogo,      serviceId: 'betnaija' },
     { id: 'sportybet',    label: 'SportyBet',    logo: sportybetLogo,     serviceId: 'sportybet' },
     { id: 'nairabet',     label: 'NairaBet',     logo: nairabetLogo,      serviceId: 'nairabet' },
     { id: 'betking',      label: 'BetKing',      logo: betkingLogo,       serviceId: 'betking' },
@@ -104,7 +106,7 @@ export const PROVIDERS = {
     { id: 'cloudbet',     label: 'CloudBet',     logo: cloudbetLogo,      serviceId: 'cloudbet' },
     { id: 'livescorebet', label: 'LiveScoreBet', logo: livescorebetLogo,  serviceId: 'livescorebet' },
     { id: 'supabet',      label: 'SupaBet',      logo: null,              serviceId: 'supabet' },
-    { id: 'betland',      label: 'BetLand',      logo: null,              serviceId: 'betland' },
+    { id: 'betland',      label: 'BetLand',      logo: betlandLogo,       serviceId: 'betland' },
     { id: 'bangbet',      label: 'BangBet',      logo: bangbetLogo,       serviceId: 'bangbet' },
     { id: '1xbet',        label: '1xBet',        logo: xbetLogo,          serviceId: '1xbet' },
     { id: 'naijabet',     label: 'NaijaBet',     logo: naijabetLogo,      serviceId: 'naijabet' },

@@ -1,12 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, Check, ShieldCheck, Info, X, Ticket,
+  Sparkles, Check, ShieldCheck, Info, X, Volleyball,
   Loader2, ChevronLeft, Receipt,
 } from 'lucide-react'
 import { PROVIDERS, formatNGN } from './constants'
 import useBetting from '../../../hooks/useBetting'
-import useUser from '../../../hooks/useUser'
 import { useAlert } from '../../../components/ui/Alert'
 import PinModal from '../../../components/ui/PinModal'
 
@@ -32,10 +31,7 @@ function ProviderLogo({ provider, size = 'md' }) {
 export default function BettingForm({ onBack }) {
   const providers = PROVIDERS.betting
   const bet = useBetting()
-  const { user } = useUser()
   const { alert } = useAlert()
-
-  const phone = user?.phone_number || ''
 
   const [providerId, setProviderId] = useState(null)
   const [accountId, setAccountId] = useState('')
@@ -45,15 +41,33 @@ export default function BettingForm({ onBack }) {
 
   const provider = providers.find(p => p.id === providerId)
   const num = Number(rawAmount.replace(/,/g, '')) || 0
-  const ready = !!provider && accountId.length >= 3 && num >= 100
+  const validated = !!bet.customerName
+  const ready = !!provider && validated && num >= 100
   const status = bet.buying ? 'processing' : bet.reference ? 'done' : 'idle'
 
   function pickProvider(id) {
     setProviderId(id)
     setAccountId('')
     setRawAmount('')
+    bet.resetValidation()
     bet.reset()
   }
+
+  const validateTimerRef = useRef(null)
+
+  useEffect(() => {
+    clearTimeout(validateTimerRef.current)
+    if (!provider || accountId.length < 3) {
+      bet.resetValidation()
+      return
+    }
+    validateTimerRef.current = setTimeout(() => {
+      if (!bet.validating) {
+        bet.validate({ serviceID: provider.serviceId, betting_number: accountId })
+      }
+    }, 700)
+    return () => clearTimeout(validateTimerRef.current)
+  }, [accountId, provider?.serviceId])
 
   function handleAmountInput(e) {
     const raw = e.target.value.replace(/[^0-9]/g, '')
@@ -63,21 +77,12 @@ export default function BettingForm({ onBack }) {
   async function handlePinConfirm(pin) {
     setPinError(null)
     setPinOpen(false)
-
-    let result
-    try {
-      result = await bet.buy({
-        serviceID: provider?.serviceId,
-        billersCode: accountId,
-        amount: num,
-        phone,
-        pin,
-      })
-    } catch {
-      alert({ type: 'error', title: 'Payment failed', message: 'Network error. Please try again.' })
-      return
-    }
-
+    const result = await bet.buy({
+      serviceID: provider?.serviceId,
+      billersCode: accountId,
+      amount: num,
+      pin,
+    })
     if (!result?.success) {
       const msg = result?.message || 'Something went wrong. Please try again.'
       if (msg.toLowerCase().includes('pin')) {
@@ -188,7 +193,10 @@ export default function BettingForm({ onBack }) {
                           type="text"
                           inputMode="text"
                           value={accountId}
-                          onChange={e => setAccountId(e.target.value.slice(0, 40))}
+                          onChange={e => {
+                            setAccountId(e.target.value.slice(0, 40))
+                            bet.resetValidation()
+                          }}
                           placeholder="Enter your account ID"
                           autoCapitalize="none"
                           autoComplete="off"
@@ -205,7 +213,7 @@ export default function BettingForm({ onBack }) {
                             exit={{ opacity: 0, scale: 0.6 }}
                             transition={{ duration: 0.15 }}
                             type="button"
-                            onClick={() => setAccountId('')}
+                            onClick={() => { setAccountId(''); bet.resetValidation() }}
                             aria-label="Clear"
                             className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--c-surface)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] active:scale-90 transition shrink-0"
                           >
@@ -215,11 +223,72 @@ export default function BettingForm({ onBack }) {
                       </AnimatePresence>
                     </div>
                   </div>
+
+                  {/* Validation feedback */}
+                  <div className="mt-2">
+                    <AnimatePresence initial={false} mode="wait">
+                      {bet.validating ? (
+                        <motion.div key="validating"
+                          initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
+                          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)]">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)] shrink-0">
+                              <Loader2 size={11} className="animate-spin text-[var(--c-text-muted)]" />
+                            </span>
+                            <div className="flex-1">
+                              <p className="text-[8px] uppercase tracking-[0.8px] font-bold text-[var(--c-text-faint)] m-0 mb-0.5">Checking</p>
+                              <p className="text-[11px] font-semibold text-[var(--c-text-muted)] m-0">Verifying account…</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : bet.customerName ? (
+                        <motion.div key="valid"
+                          initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
+                          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border"
+                            style={{ background: 'rgba(16,185,129,0.06)', borderColor: 'rgba(16,185,129,0.22)' }}
+                          >
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0"
+                              style={{ background: 'rgba(16,185,129,0.15)', border: '1.5px solid rgba(16,185,129,0.35)' }}
+                            >
+                              <Check size={11} strokeWidth={3} style={{ color: '#10b981' }} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[8px] uppercase tracking-[0.8px] font-bold m-0 mb-0.5" style={{ color: 'rgba(16,185,129,0.65)' }}>Account verified</p>
+                              <p className="text-[11.5px] font-black m-0 truncate" style={{ color: '#10b981' }}>{bet.customerName}</p>
+                            </div>
+                            <ShieldCheck size={14} className="shrink-0" style={{ color: 'rgba(16,185,129,0.45)' }} />
+                          </div>
+                        </motion.div>
+                      ) : bet.validationError ? (
+                        <motion.div key="invalid"
+                          initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}
+                          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                        >
+                          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border"
+                            style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}
+                          >
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full shrink-0"
+                              style={{ background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.25)' }}
+                            >
+                              <X size={11} strokeWidth={2.5} style={{ color: '#f87171' }} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[8px] uppercase tracking-[0.8px] font-bold m-0 mb-0.5" style={{ color: 'rgba(248,113,113,0.65)' }}>Not found</p>
+                              <p className="text-[11px] font-semibold m-0 truncate" style={{ color: '#f87171' }}>{bet.validationError}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
                 </article>
 
                 {/* Amount */}
                 <AnimatePresence>
-                  {accountId.length >= 3 && (
+                  {validated && (
                     <motion.article
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -265,21 +334,32 @@ export default function BettingForm({ onBack }) {
                       </div>
 
                       <div className="grid grid-cols-3 gap-1.5">
-                        {PRESETS.map(p => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => setRawAmount(String(p))}
-                            className={[
-                              'py-2 rounded-xl text-[11px] font-bold transition active:scale-[0.96]',
-                              num === p
-                                ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-[0_4px_12px_rgba(201,162,39,0.35)]'
-                                : 'bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)] hover:border-[var(--c-accent-border)]',
-                            ].join(' ')}
-                          >
-                            {formatNGN(p)}
-                          </button>
-                        ))}
+                        {PRESETS.map(p => {
+                          const active = num === p
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setRawAmount(String(p))}
+                              className={[
+                                'relative flex flex-col items-center justify-center py-2.5 px-1 rounded-xl transition-all duration-150 active:scale-[0.95]',
+                                active
+                                  ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft shadow-[0_4px_12px_-2px_rgba(201,162,39,0.45)]'
+                                  : 'bg-[var(--c-surface-soft)] border border-[var(--c-border)] hover:border-[var(--c-accent-border)]',
+                              ].join(' ')}
+                            >
+                              {active && (
+                                <span className="absolute top-1 right-1.5 inline-flex items-center justify-center w-3 h-3 rounded-full bg-brand-primary/20">
+                                  <Check size={6} strokeWidth={3.5} className="text-brand-primary" />
+                                </span>
+                              )}
+                              <span className={['text-[9px] font-semibold leading-none mb-0.5', active ? 'text-brand-primary/70' : 'text-[var(--c-text-faint)]'].join(' ')}>₦</span>
+                              <span className={['text-[12px] font-black tabular-nums leading-none', active ? 'text-brand-primary' : 'text-[var(--c-text)]'].join(' ')}>
+                                {p.toLocaleString('en-NG')}
+                              </span>
+                            </button>
+                          )
+                        })}
                       </div>
                     </motion.article>
                   )}
@@ -294,7 +374,7 @@ export default function BettingForm({ onBack }) {
         <div className="flex flex-col gap-3 min-[960px]:sticky min-[960px]:top-[80px]">
           <AnimatePresence mode="wait">
 
-            {status === 'done' && (
+            {status === 'done' ? (
               <motion.div key="success"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
@@ -344,9 +424,7 @@ export default function BettingForm({ onBack }) {
                   </div>
                 </article>
               </motion.div>
-            )}
-
-            {status !== 'done' && (
+            ) : (
               <motion.div key="summary"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
@@ -368,6 +446,7 @@ export default function BettingForm({ onBack }) {
                     {[
                       { label: 'Bookmaker', value: provider?.label || '—' },
                       { label: 'Account ID', value: accountId || '—', mono: true },
+                      { label: 'Verified name', value: bet.customerName || '—' },
                       { label: 'Amount', value: num > 0 ? formatNGN(num) : '—', bold: true },
                     ].map((row, i) => (
                       <div key={i} className="flex items-baseline justify-between gap-2">
@@ -409,16 +488,18 @@ export default function BettingForm({ onBack }) {
                         </>
                       ) : (
                         <>
-                          <Ticket size={13} strokeWidth={2.6} />
+
                           {ready
-                            ? `Fund ${formatNGN(num)}`
+                            ? `Fund`
                             : !provider
                               ? 'Select a bookmaker'
-                              : accountId.length < 3
-                                ? 'Enter account ID'
-                                : num < 100
-                                  ? 'Enter amount (min ₦100)'
-                                  : 'Fund Wallet'}
+                              : bet.validating
+                                ? 'Verifying account…'
+                                : !validated
+                                  ? 'Enter & verify account ID'
+                                  : num < 100
+                                    ? 'Enter amount (min ₦100)'
+                                    : 'Fund Wallet'}
                         </>
                       )}
                     </button>
