@@ -31,6 +31,10 @@ function formatNGN(n) {
   return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function formatUSD(n) {
+  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 function formatShortNGN(n) {
   return '₦' + n.toLocaleString('en-NG')
 }
@@ -40,7 +44,10 @@ export default function MobileDashboard() {
   const [hidden, setHidden] = useState(
     () => localStorage.getItem('vzap_hide_balance') === '1'
   )
-  const balance = Number(wallet?.ngn_balance ?? 0)
+  const [currency, setCurrency] = useState('NGN')
+  const ngnBalance = Number(wallet?.ngn_balance ?? 0)
+  const usdBalance = Number(wallet?.usd_balance ?? 0)
+  const balance = currency === 'NGN' ? ngnBalance : usdBalance
   const inflow = 642300
   const outflow = 298140
 
@@ -60,13 +67,31 @@ export default function MobileDashboard() {
             <ShieldCheck size={11} />
             Vault balance
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.16] text-[9.5px] uppercase tracking-[1.1px] text-white/80 font-semibold">
-            <span className="relative flex w-1.5 h-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-brand-accent animate-ping opacity-70" />
-              <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-brand-accent" />
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.08] border border-white/[0.12]">
+              {[
+                { code: 'NGN', flag: 'https://flagcdn.com/w20/ng.png', alt: 'Nigeria' },
+                { code: 'USD', flag: 'https://flagcdn.com/w20/us.png', alt: 'USA' },
+              ].map(({ code, flag, alt }) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setCurrency(code)}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px] transition ${currency === code ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-sm' : 'text-white/55'}`}
+                >
+                  <img src={flag} alt={alt} className="w-3.5 h-3.5 rounded-full object-cover" />
+                  {code}
+                </button>
+              ))}
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.16] text-[9.5px] uppercase tracking-[1.1px] text-white/80 font-semibold">
+              <span className="relative flex w-1.5 h-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-brand-accent animate-ping opacity-70" />
+                <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-brand-accent" />
+              </span>
+              Live
             </span>
-            Live
-          </span>
+          </div>
         </div>
 
         <div className="relative flex items-end justify-between gap-3 mt-3">
@@ -77,8 +102,10 @@ export default function MobileDashboard() {
                 className="w-[170px] h-[28px] rounded-md bg-white/[0.08] border border-white/[0.10] animate-pulse"
               />
             ) : (
-              <div className="text-[28px] font-bold tracking-[-0.6px] truncate">
-                {hidden ? '₦••••••••' : formatNGN(balance)}
+              <div className="text-[25px] font-bold tracking-[-0.6px] truncate">
+                {hidden
+                  ? (currency === 'NGN' ? '₦••••••••' : '$••••••')
+                  : (currency === 'NGN' ? formatNGN(balance) : formatUSD(balance))}
               </div>
             )}
           </div>

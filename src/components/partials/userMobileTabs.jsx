@@ -33,7 +33,7 @@ export default function UserMobileTabs() {
           className="pointer-events-none absolute inset-x-10 -bottom-2 h-12 rounded-full bg-brand-accent/[0.14] blur-3xl"
         />
 
-        <div className="relative flex items-stretch gap-1 p-1.5 rounded-[28px] backdrop-blur-2xl bg-[var(--c-menu-bg)]/85 border border-[var(--c-accent-soft-2)] shadow-[0_24px_56px_-18px_rgba(2,7,23,0.65),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="relative flex items-stretch gap-1 p-1.5 rounded-[28px] backdrop-blur-2xl bg-[var(--c-menu-bg)] border border-[var(--c-accent-soft-2)] shadow-[0_24px_56px_-18px_rgba(2,7,23,0.65),inset_0_1px_0_rgba(255,255,255,0.06)]">
           <span
             aria-hidden
             className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[var(--c-accent-border-strong)] to-transparent"

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, Sun, HelpCircle, X, Sunrise, Sunset } from 'lucide-react'
 import useUser from '../../hooks/useUser'
@@ -36,11 +36,18 @@ export default function UserMobileHeader() {
     ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase()
     : 'there'
   const { label: greetLabel, Icon: GreetIcon } = greeting()
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    function onScroll() { setScrolled(window.scrollY > 10) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-30 backdrop-blur-2xl bg-[var(--c-top-bg)]/90 border-b border-[var(--c-side-border)] text-[var(--c-text)]"
+        className={`fixed top-0 left-0 right-0 z-30 text-[var(--c-text)] transition-all duration-300 ${scrolled ? 'backdrop-blur-2xl bg-[var(--c-top-bg)] border-b border-[var(--c-side-border)]' : 'bg-transparent border-b border-transparent'}`}
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="h-[60px] flex items-center gap-3 px-4">

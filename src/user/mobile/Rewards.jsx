@@ -1,28 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import useSettings from '../../hooks/useSettings'
+import useUser from '../../hooks/useUser'
 import {
   ChevronLeft, Gift, Sparkles, TrendingUp, Crown, Star,
   ArrowUpRight, Zap, Users, ChevronRight, Coins, Lock, Check,
-  Copy, Share2, UserPlus, Wallet,
+  Copy, Share2, UserPlus, Wallet, ShieldCheck, Send, MailPlus,
+  Fingerprint,
 } from 'lucide-react'
 
-const HERO_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.4), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.2), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
-
-const REFERRAL = {
-  code: 'VLX-JOHN24',
-  link: 'https://veloxzap.com/r/VLX-JOHN24',
-  perReferral: 1000,
-  friendBonus: 500,
-  friends: 12,
-  earned: 12000,
-}
-
-const EARN = [
-  { id: 'refer',    label: 'Refer a friend',    rate: '₦1,000',  icon: Users,        cash: true },
-  { id: 'swap',     label: 'Crypto swap',       rate: '5× pts',  icon: TrendingUp },
-  { id: 'bills',    label: 'Bills & utilities', rate: '2× pts',  icon: Zap },
-  { id: 'card',     label: 'Card spending',     rate: '1.5×',    icon: Coins },
+const EARN_STATIC = [
+  { id: 'swap',  label: 'Crypto swap',       rate: '5× pts',  icon: TrendingUp },
+  { id: 'bills', label: 'Bills & utilities', rate: '2× pts',  icon: Zap },
+  { id: 'card',  label: 'Card spending',     rate: '1.5×',    icon: Coins },
 ]
 
 const PERKS = [
@@ -33,8 +24,8 @@ const PERKS = [
 ]
 
 const RECENT = [
-  { id: 'r0', title: 'Referral · Sarah O.',  amount: 1000, kind: 'cash', meta: 'Today, 09:14' },
-  { id: 'r1', title: 'DSTV bill payment',    amount: 240,  kind: 'pts',  meta: 'Today, 14:20' },
+  { id: 'r0', title: 'Referral · Sarah O.',  amount: 1000, kind: 'cash', meta: 'Today · 09:14' },
+  { id: 'r1', title: 'DSTV bill payment',    amount: 240,  kind: 'pts',  meta: 'Today · 14:20' },
   { id: 'r2', title: 'USDT → NGN swap',      amount: 437,  kind: 'pts',  meta: 'Yesterday' },
   { id: 'r3', title: 'Referral · Daniel A.', amount: 1000, kind: 'cash', meta: 'May 6' },
   { id: 'r4', title: 'Sign-up bonus',        amount: 500,  kind: 'pts',  meta: 'May 1' },
@@ -42,7 +33,7 @@ const RECENT = [
 
 const LIST = {
   hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.04 } },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
 }
 
 const ITEM = {
@@ -50,249 +41,377 @@ const ITEM = {
   show: { opacity: 1, y: 0 },
 }
 
-function formatNum(n) {
-  return n.toLocaleString('en-NG')
-}
+function fmt(n) { return Number(n).toLocaleString('en-NG') }
+function fmtN(n) { return '₦' + fmt(n) }
 
 export default function MobileRewards() {
   const navigate = useNavigate()
   const [copied, setCopied] = useState(null)
+  const { settings } = useSettings()
+  const { user } = useUser()
 
-  const points = 2840
+  const referralCode = user?.referral_code ?? ''
+  const siteUrl      = settings?.site_url ? settings.site_url.replace(/\/$/, '') : 'https://yourwebsite.com'
+  const referralLink = referralCode ? `${siteUrl}/auth/register?ref=${referralCode}` : ''
+  const perReferral  = settings?.referral_rewards ? Number(settings.referral_rewards) : 1000
+  const friendBonus  = 500
+
+  const EARN = [
+    { id: 'refer', label: 'Refer a friend', rate: fmtN(perReferral), icon: Users, cash: true },
+    ...EARN_STATIC,
+  ]
+
+  const points     = 2840
   const nextTierAt = 5000
-  const progress = Math.min(100, (points / nextTierAt) * 100)
-  const cashback = 12500
+  const progress   = Math.min(100, (points / nextTierAt) * 100)
+  const cashback   = 12500
+  const earned     = 12000
+  const friends    = 12
 
   function handleCopy(key, value) {
-    if (navigator.clipboard) navigator.clipboard.writeText(value)
+    if (!value) return
+    navigator.clipboard?.writeText(value)
     setCopied(key)
-    setTimeout(() => setCopied(null), 1500)
+    setTimeout(() => setCopied(null), 1800)
   }
 
   async function handleShare() {
-    const text = `Join me on VeloxZap and get ₦${formatNum(REFERRAL.friendBonus)} bonus. Use my code ${REFERRAL.code}`
+    const text = `Join me on VeloxZap and get ₦${fmt(friendBonus)} bonus. Use my code ${referralCode}`
     if (navigator.share) {
-      try { await navigator.share({ title: 'VeloxZap', text, url: REFERRAL.link }) } catch {}
+      try { await navigator.share({ title: 'VeloxZap', text, url: referralLink }) } catch {}
     } else {
-      handleCopy('share', `${text} — ${REFERRAL.link}`)
+      handleCopy('share', `${text} — ${referralLink}`)
     }
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3.5">
+      {/* Back */}
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
       >
-        <ChevronLeft size={14} /> Back
+        <ChevronLeft size={13} /> Back
       </button>
 
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
+            <Gift size={9} /> Rewards & referrals
+          </p>
+          <h1 className="text-[17px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5">
+            Earn rewards
+          </h1>
+        </div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-brand-accent/20 to-brand-gold-soft/10 border border-[rgba(201,162,39,0.35)] text-[8.5px] font-bold uppercase tracking-[0.8px] text-brand-accent shrink-0">
+          <Crown size={8} strokeWidth={2.8} /> Gold tier
+        </span>
+      </div>
+
+      {/* ── Hero ── */}
       <motion.article
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative overflow-hidden p-5 rounded-[24px] border border-[rgba(201,162,39,0.36)] text-text shadow-[0_18px_44px_-14px_rgba(2,7,23,0.55)]"
-        style={{ background: HERO_BG }}
+        className="relative overflow-hidden rounded-[18px] border border-[rgba(201,162,39,0.28)] shadow-[0_14px_36px_-12px_rgba(2,7,23,0.55)]"
+        style={{ background: 'linear-gradient(140deg,#0d2657 0%,#091a3a 55%,#040e24 100%)' }}
       >
-        <span aria-hidden className="absolute -top-12 -right-12 w-[200px] h-[200px] rounded-full bg-brand-accent/15 blur-3xl pointer-events-none" />
-        <span aria-hidden className="absolute -bottom-12 -left-10 w-[150px] h-[150px] rounded-full bg-brand-gold-soft/10 blur-3xl pointer-events-none" />
+        <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.22)' }} />
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(232,197,71,0.12)' }} />
+        <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(201,162,39,0.18) 1px,transparent 1px)', backgroundSize: '18px 18px' }} />
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,162,39,0.7),transparent)' }} />
 
-        <div className="relative flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[1.4px] text-brand-accent font-semibold">
-            <Gift size={11} />
-            Rewards & referrals
-          </span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-accent/15 border border-[rgba(201,162,39,0.4)] text-[9.5px] uppercase tracking-[0.9px] font-bold text-brand-accent">
-            <Star size={9} strokeWidth={2.6} /> Gold tier
-          </span>
-        </div>
-
-        <div className="relative mt-3">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[36px] font-black tracking-[-1px] text-text leading-none tabular-nums">
-              {formatNum(points)}
+        <div className="relative p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="inline-flex items-center gap-1 text-[8.5px] uppercase tracking-[1.4px] font-bold text-brand-accent">
+              <Sparkles size={8} /> Points balance
             </span>
-            <span className="text-[13px] font-bold text-white/65 tracking-[1px]">
-              PTS
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-[0.8px] text-brand-accent" style={{ background: 'rgba(201,162,39,0.12)', border: '1px solid rgba(201,162,39,0.3)' }}>
+              <Star size={7} strokeWidth={3} /> Gold
             </span>
           </div>
-          <p className="text-[11.5px] text-white/65 m-0 mt-1.5">
-            Worth approximately ₦{formatNum(Math.floor(points * 5))} in benefits
+
+          <div className="flex items-baseline gap-1.5 mb-0.5">
+            <span className="text-[34px] font-black tracking-[-2px] text-white leading-none tabular-nums">
+              {fmt(points)}
+            </span>
+            <span className="text-[11px] font-bold text-white/40 tracking-[1.5px]">PTS</span>
+          </div>
+          <p className="text-[10px] m-0 mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            ≈ {fmtN(Math.floor(points * 5))} in benefits ready to redeem
           </p>
-        </div>
 
-        <div className="relative mt-4 pt-4 border-t border-white/[0.08]">
-          <div className="flex items-center justify-between mb-1.5 text-[10.5px]">
-            <span className="font-semibold text-white/85">
-              Progress to <span className="text-brand-accent">Platinum</span>
-            </span>
-            <span className="tabular-nums font-bold text-text">
-              {formatNum(points)} / {formatNum(nextTierAt)}
-            </span>
+          <div className="pt-3 border-t border-white/[0.07]">
+            <div className="flex items-center justify-between mb-1.5 text-[9.5px]">
+              <span className="font-semibold text-white/70">
+                Next tier: <span className="text-brand-accent font-bold">Platinum</span>
+              </span>
+              <span className="tabular-nums font-bold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                {fmt(points)} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {fmt(nextTierAt)}</span>
+              </span>
+            </div>
+            <div className="relative w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 1.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{ background: 'linear-gradient(90deg,#C9A227,#f0d060)', boxShadow: '0 0 10px rgba(201,162,39,0.5)' }}
+              />
+            </div>
+            <p className="text-[9px] m-0 mt-1 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              {fmt(nextTierAt - points)} pts away from Platinum
+            </p>
           </div>
-          <div className="relative w-full h-2 rounded-full bg-white/[0.08] overflow-hidden">
-            <motion.span
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              className="absolute left-0 top-0 bottom-0 rounded-full bg-gradient-to-r from-brand-accent to-brand-gold-soft shadow-[0_0_12px_rgba(201,162,39,0.6)]"
-            />
+
+          {/* 4-stat grid */}
+          <div className="grid grid-cols-2 gap-1.5 mt-3">
+            {[
+              { label: 'Cashback ready',  value: fmtN(cashback), accent: true },
+              { label: 'Cash earned',     value: fmtN(earned) },
+              { label: 'Friends joined',  value: fmt(friends) },
+              { label: 'Pending payout',  value: fmtN(2000), sub: '2 referrals' },
+            ].map(({ label, value, sub, accent }) => (
+              <div
+                key={label}
+                className="flex flex-col justify-between p-2.5 rounded-[10px]"
+                style={{
+                  background: accent ? 'rgba(201,162,39,0.12)' : 'rgba(255,255,255,0.04)',
+                  border: accent ? '1px solid rgba(201,162,39,0.25)' : '1px solid rgba(255,255,255,0.07)',
+                }}
+              >
+                <p className="text-[8px] uppercase tracking-[0.8px] font-bold m-0" style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.4)' }}>
+                  {label}
+                </p>
+                <div>
+                  <p className="text-[14px] font-black tabular-nums tracking-[-0.5px] m-0 mt-1 leading-none" style={{ color: accent ? '#C9A227' : '#fff' }}>
+                    {value}
+                  </p>
+                  {sub && <p className="text-[8px] m-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{sub}</p>}
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-[10.5px] text-white/55 m-0 mt-1.5">
-            {formatNum(nextTierAt - points)} pts to unlock Platinum perks
-          </p>
         </div>
       </motion.article>
 
-      <section className="relative overflow-hidden rounded-2xl bg-[var(--c-surface)] border border-[var(--c-accent-border)] p-4">
-        <span aria-hidden className="pointer-events-none absolute -top-10 -right-10 w-32 h-32 rounded-full bg-brand-accent/[0.16] blur-2xl" />
-        <span aria-hidden className="pointer-events-none absolute -bottom-10 -left-10 w-28 h-28 rounded-full bg-brand-gold-soft/[0.12] blur-2xl" />
+      {/* ── Refer & earn ── */}
+      <article
+        className="relative overflow-hidden rounded-[18px] border border-[var(--c-accent-border)]"
+        style={{ background: 'var(--c-surface)' }}
+      >
+        <div className="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.08)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,162,39,0.4),transparent)' }} />
 
-        <div className="relative flex items-start gap-3">
-          <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.32)] shrink-0">
-            <UserPlus size={17} strokeWidth={2} />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[1.2px] text-brand-accent font-bold m-0">
-              <Wallet size={10} /> Refer & earn cash
-            </p>
-            <h3 className="text-[16px] font-bold text-[var(--c-text)] m-0 mt-1 tracking-[-0.2px] leading-tight">
-              Earn ₦{formatNum(REFERRAL.perReferral)} per friend
-            </h3>
-            <p className="text-[11.5px] text-[var(--c-text-muted)] m-0 mt-1 leading-snug">
-              Paid in real cash to your wallet · friend gets ₦{formatNum(REFERRAL.friendBonus)} welcome bonus
-            </p>
+        <div className="relative p-4">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span
+              className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 border border-[rgba(232,197,71,0.45)]"
+              style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', boxShadow: '0 4px 14px rgba(201,162,39,0.3)', color: '#0A1F44' }}
+            >
+              <UserPlus size={15} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="text-[8.5px] uppercase tracking-[1.2px] text-brand-accent font-bold m-0">Refer & earn cash</p>
+              <h2 className="text-[17px] font-black text-[var(--c-text)] m-0 tracking-[-0.4px] leading-tight">
+                {fmtN(perReferral)} <span className="text-[var(--c-text-muted)] font-semibold text-[12px]">per friend</span>
+              </h2>
+            </div>
           </div>
-        </div>
 
-        <div className="relative grid grid-cols-2 gap-2 mt-4">
-          <div className="rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] px-3 py-2.5">
-            <p className="text-[9.5px] uppercase tracking-[1.1px] text-[var(--c-text-muted)] font-semibold m-0">
-              Friends joined
-            </p>
-            <p className="text-[18px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.4px]">
-              {formatNum(REFERRAL.friends)}
-            </p>
-          </div>
-          <div className="rounded-xl bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] px-3 py-2.5">
-            <p className="text-[9.5px] uppercase tracking-[1.1px] text-brand-accent font-bold m-0">
-              Cash earned
-            </p>
-            <p className="text-[18px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.4px]">
-              ₦{formatNum(REFERRAL.earned)}
-            </p>
-          </div>
-        </div>
+          <p className="text-[11px] text-[var(--c-text-muted)] m-0 leading-relaxed mb-3.5">
+            Paid directly to your wallet the moment your friend completes their first deposit. Your friend also gets a {fmtN(friendBonus)} welcome bonus.
+          </p>
 
-        <div className="relative mt-3 flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-dashed border-[var(--c-accent-border)]">
-          <div className="flex-1 min-w-0 leading-tight">
-            <p className="text-[9.5px] uppercase tracking-[1.1px] text-[var(--c-text-muted)] font-semibold m-0">
-              Your referral code
-            </p>
-            <p className="text-[16px] font-black text-brand-accent m-0 mt-0.5 tracking-[1.8px] truncate">
-              {REFERRAL.code}
-            </p>
+          {/* 3-step how-it-works */}
+          <div className="grid grid-cols-3 gap-1.5 mb-4">
+            {[
+              { n: '01', label: 'Share code',    desc: 'Send to friends or family' },
+              { n: '02', label: 'They sign up',  desc: 'Using your code at signup' },
+              { n: '03', label: 'You both earn', desc: 'Cash hits your wallet' },
+            ].map(({ n, label, desc }) => (
+              <div key={n} className="flex flex-col gap-1.5 p-2 rounded-[10px] border border-[var(--c-border-soft)]" style={{ background: 'var(--c-surface-soft)' }}>
+                <span
+                  className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-black text-brand-primary border border-[rgba(232,197,71,0.5)]"
+                  style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)' }}
+                >
+                  {n}
+                </span>
+                <p className="text-[9.5px] font-bold text-[var(--c-text)] m-0 leading-tight">{label}</p>
+                <p className="text-[8.5px] text-[var(--c-text-muted)] m-0 leading-snug">{desc}</p>
+              </div>
+            ))}
           </div>
-          <button
-            type="button"
-            onClick={() => handleCopy('code', REFERRAL.code)}
-            aria-label="Copy referral code"
-            className={[
-              'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[10px] text-[10.5px] font-bold tracking-[0.2px] active:scale-95 transition shrink-0',
-              copied === 'code'
-                ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-                : 'bg-[var(--c-surface)] border border-[var(--c-border)] text-brand-accent hover:border-[var(--c-accent-border)]',
-            ].join(' ')}
+
+          {/* Premium referral card visual */}
+          <div
+            className="relative overflow-hidden rounded-xl p-3.5 mb-2.5"
+            style={{
+              background: 'linear-gradient(135deg,#0d2657 0%,#142A5C 50%,#091a3a 100%)',
+              border: '1px solid rgba(201,162,39,0.25)',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.28)',
+            }}
           >
-            {copied === 'code'
-              ? <><Check size={11} strokeWidth={2.8} /> Copied</>
-              : <><Copy size={11} /> Copy</>}
-          </button>
-        </div>
+            <div className="absolute -top-5 -right-5 w-20 h-20 rounded-full blur-2xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.2)' }} />
+            <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.08) 1px,transparent 1px)', backgroundSize: '12px 12px' }} />
+            <div className="relative flex items-center justify-between mb-3">
+              <span className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[1.4px] text-white/40 font-bold">
+                <Fingerprint size={9} /> Referral Card
+              </span>
+              <span className="text-[9px] font-black text-brand-accent tracking-[1px]">VeloxZap</span>
+            </div>
+            <p className="relative text-[20px] font-black text-brand-accent tracking-[3px] m-0 leading-none">
+              {referralCode || '——'}
+            </p>
+            <div className="relative flex items-center justify-between mt-3">
+              <div>
+                <p className="text-[7.5px] uppercase tracking-[1px] text-white/35 font-bold m-0">Referral Code</p>
+                <p className="text-[9px] text-white/55 m-0 mt-0.5 font-medium">{user?.full_name || 'Your account'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopy('code', referralCode)}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[9.5px] font-bold transition active:scale-95"
+                style={copied === 'code'
+                  ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }
+                  : { background: 'rgba(201,162,39,0.15)', color: '#C9A227', border: '1px solid rgba(201,162,39,0.3)' }}
+              >
+                {copied === 'code' ? <><Check size={9} strokeWidth={3} /> Copied</> : <><Copy size={9} /> Copy</>}
+              </button>
+            </div>
+          </div>
 
-        <div className="relative mt-2 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => handleCopy('link', REFERRAL.link)}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] text-[11.5px] font-bold active:scale-95 hover:border-[var(--c-accent-border)] transition"
-          >
-            {copied === 'link'
-              ? <><Check size={12} strokeWidth={2.8} /> Link copied</>
-              : <><Copy size={12} /> Copy link</>}
-          </button>
+          {/* Referral link row */}
+          <div className="flex items-center gap-2 px-2.5 py-2 rounded-[10px] border border-[var(--c-border)] mb-2.5" style={{ background: 'var(--c-surface-soft)' }}>
+            <span className="flex-1 min-w-0 text-[9.5px] font-mono text-[var(--c-text-muted)] truncate">
+              {referralLink || 'Loading…'}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleCopy('link', referralLink)}
+              disabled={!referralLink}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[9.5px] font-bold transition active:scale-95 shrink-0"
+              style={copied === 'link'
+                ? { background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)' }
+                : { background: 'var(--c-surface-soft-2)', color: 'var(--c-text-muted)', border: '1px solid var(--c-border-soft)' }}
+            >
+              {copied === 'link' ? <><Check size={9} strokeWidth={3} /> Copied</> : <><Copy size={9} /> Copy</>}
+            </button>
+          </div>
+
+          {/* Share channels */}
+          <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+            {[
+              { id: 'whatsapp', label: 'WhatsApp', icon: Send },
+              { id: 'email',    label: 'Email',    icon: MailPlus },
+              { id: 'copy',     label: 'Copy link', icon: Copy },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={id === 'copy'
+                  ? () => handleCopy('share', `Join VeloxZap with code ${referralCode} — ${referralLink}`)
+                  : handleShare}
+                className="group flex flex-col items-center gap-1 py-2 rounded-[10px] border transition active:scale-95"
+                style={{ background: 'var(--c-surface-soft)', borderColor: 'var(--c-border-soft)' }}
+              >
+                <Icon size={12} className="text-brand-accent" />
+                <span className="text-[8.5px] font-bold text-[var(--c-text-muted)]">{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* CTA */}
           <button
             type="button"
             onClick={handleShare}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[11.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.32)] active:scale-95 transition"
+            className="inline-flex items-center justify-center gap-1.5 w-full h-[40px] rounded-[11px] font-bold text-[12px] transition active:scale-[0.99]"
+            style={{
+              background: 'linear-gradient(135deg,#C9A227,#f0d060)',
+              color: '#0A1F44',
+              border: '1px solid rgba(232,197,71,0.5)',
+              boxShadow: '0 6px 20px -4px rgba(201,162,39,0.5)',
+            }}
           >
-            <Share2 size={12} strokeWidth={2.6} /> Share
+            <Share2 size={13} strokeWidth={2.6} /> Share & earn {fmtN(perReferral)}
           </button>
         </div>
-      </section>
+      </article>
 
+      {/* ── Cashback claim ── */}
       <button
         type="button"
-        className="group relative overflow-hidden flex items-center gap-3 p-3.5 rounded-2xl text-left bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] hover:border-[var(--c-accent-border-strong)] active:scale-[0.99] transition"
+        className="group relative overflow-hidden flex items-center gap-2.5 p-3 rounded-[16px] text-left transition active:scale-[0.995]"
+        style={{
+          background: 'var(--c-surface)',
+          border: '1px solid var(--c-accent-border)',
+          boxShadow: '0 4px 20px rgba(201,162,39,0.08)',
+        }}
       >
-        <span aria-hidden className="pointer-events-none absolute -top-6 -right-6 w-16 h-16 rounded-full bg-brand-accent/[0.18] blur-2xl group-hover:bg-brand-accent/[0.3] transition" />
-        <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.32)] shrink-0">
+        <span
+          className="relative inline-flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
+          style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 4px 16px rgba(201,162,39,0.32)', color: '#0A1F44' }}
+        >
           <Coins size={17} strokeWidth={2} />
         </span>
         <div className="relative flex-1 min-w-0">
-          <p className="text-[10px] uppercase tracking-[1.1px] text-brand-accent font-bold m-0">
-            Cashback available
-          </p>
-          <p className="text-[16px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.3px]">
-            ₦{formatNum(cashback)}
-          </p>
+          <p className="text-[8.5px] uppercase tracking-[1px] text-brand-accent font-bold m-0">Cashback available</p>
+          <p className="text-[18px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.5px] leading-tight">{fmtN(cashback)}</p>
+          <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">Bills, swaps & card spending</p>
         </div>
-        <span className="relative inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-brand-primary text-text text-[11px] font-bold">
+        <span
+          className="relative inline-flex items-center gap-0.5 px-2.5 py-1 rounded-[10px] font-bold text-[10.5px] shrink-0"
+          style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 3px 10px rgba(201,162,39,0.28)' }}
+        >
           Claim <ArrowUpRight size={11} strokeWidth={2.6} />
         </span>
       </button>
 
+      {/* ── Ways to earn ── */}
       <section>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <h3 className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0">
-            <Sparkles size={11} className="text-brand-accent" /> Earn more
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <h3 className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[1.2px] font-semibold text-[var(--c-text-muted)] m-0">
+            <Sparkles size={10} className="text-brand-accent" /> Ways to earn
           </h3>
+          <span className="text-[9px] text-[var(--c-text-muted)] font-semibold">{EARN.length} methods</span>
         </div>
         <motion.div
           variants={LIST}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-2 gap-2"
+          className="rounded-[16px] border border-[var(--c-border)] overflow-hidden"
+          style={{ background: 'var(--c-surface)' }}
         >
-          {EARN.map(({ id, label, rate, icon: Icon, cash }) => (
-            <motion.div
-              key={id}
-              variants={ITEM}
-              className="relative overflow-hidden flex items-center gap-2.5 p-2.5 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]"
-            >
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-[10px] bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent shrink-0">
-                <Icon size={15} />
-              </span>
-              <div className="flex-1 min-w-0 leading-tight">
-                <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0 truncate">
-                  {label}
-                </p>
-                <p className="text-[10px] text-brand-accent font-bold m-0 mt-0.5 tracking-[0.2px] inline-flex items-center gap-1">
-                  {cash && <Wallet size={9} strokeWidth={2.6} />}
-                  {rate}{cash ? ' cash' : ''}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+          <div className="grid grid-cols-2 gap-px" style={{ background: 'var(--c-border)' }}>
+            {EARN.map(({ id, label, rate, icon: Icon, cash }) => (
+              <motion.div key={id} variants={ITEM} className="flex items-center gap-2 p-3" style={{ background: 'var(--c-surface)' }}>
+                <span
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-[9px] border shrink-0"
+                  style={{ background: 'var(--c-accent-soft-2)', borderColor: 'var(--c-accent-border)', color: '#C9A227' }}
+                >
+                  <Icon size={13} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-[var(--c-text)] m-0 truncate">{label}</p>
+                  <p className="text-[9.5px] text-brand-accent font-black m-0 mt-0.5 inline-flex items-center gap-0.5 tabular-nums">
+                    {cash && <Wallet size={8} strokeWidth={2.8} />}{rate}{cash ? ' cash' : ''}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </section>
 
+      {/* ── Perks store ── */}
       <section>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <h3 className="text-[11px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0">
-            Perks
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <h3 className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[1.2px] font-semibold text-[var(--c-text-muted)] m-0">
+            <Star size={10} className="text-brand-accent" /> Perks store
           </h3>
-          <span className="text-[10px] text-[var(--c-text-muted)] tabular-nums">
+          <span className="text-[9px] text-[var(--c-text-muted)] tabular-nums">
             {PERKS.filter(p => p.unlocked || points >= p.cost).length}/{PERKS.length} unlocked
           </span>
         </div>
@@ -300,45 +419,44 @@ export default function MobileRewards() {
           variants={LIST}
           initial="hidden"
           animate="show"
-          className="list-none m-0 p-0 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden"
+          className="list-none m-0 p-0 rounded-[16px] border border-[var(--c-border)] overflow-hidden"
+          style={{ background: 'var(--c-surface)' }}
         >
           {PERKS.map(({ id, label, cost, icon: Icon, unlocked }, i) => {
             const reachable = unlocked || points >= cost
             return (
-              <motion.li
-                key={id}
-                variants={ITEM}
-                className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}
-              >
-                <div className="flex items-center gap-3 p-3">
+              <motion.li key={id} variants={ITEM} className={i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}>
+                <div className="flex items-center gap-2.5 px-3 py-2.5">
                   <span
-                    className={[
-                      'relative inline-flex items-center justify-center w-9 h-9 rounded-[10px] border shrink-0',
-                      reachable
-                        ? 'bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border-[var(--c-accent-border)] text-brand-accent'
-                        : 'bg-[var(--c-surface-soft)] border-[var(--c-border-soft)] text-[var(--c-text-faint)]',
-                    ].join(' ')}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-[9px] border shrink-0"
+                    style={reachable
+                      ? { background: 'var(--c-accent-soft-2)', borderColor: 'var(--c-accent-border)', color: '#C9A227' }
+                      : { background: 'var(--c-surface-soft)', borderColor: 'var(--c-border-soft)', color: 'var(--c-text-faint)' }}
                   >
-                    <Icon size={15} />
+                    <Icon size={13} />
                   </span>
-                  <div className="flex-1 min-w-0 leading-tight">
-                    <p className={['text-[12.5px] font-semibold m-0 truncate', reachable ? 'text-[var(--c-text)]' : 'text-[var(--c-text-muted)]'].join(' ')}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold m-0 truncate" style={{ color: reachable ? 'var(--c-text)' : 'var(--c-text-muted)' }}>
                       {label}
                     </p>
-                    <p className="text-[10px] text-[var(--c-text-muted)] m-0 mt-0.5 inline-flex items-center gap-1 tabular-nums">
-                      <Coins size={9} className="text-brand-accent" /> {formatNum(cost)} pts
+                    <p className="text-[9px] text-[var(--c-text-muted)] m-0 mt-0.5 inline-flex items-center gap-0.5 tabular-nums">
+                      <Coins size={8} className="text-brand-accent" /> {fmt(cost)} pts
                     </p>
                   </div>
                   {reachable ? (
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[10.5px] font-bold border border-[rgba(232,197,71,0.55)] active:scale-95 transition"
+                      className="inline-flex items-center gap-0.5 px-2 py-1 rounded-[8px] text-[9.5px] font-bold transition active:scale-95 shrink-0"
+                      style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 3px 10px rgba(201,162,39,0.22)' }}
                     >
-                      <Check size={10} strokeWidth={2.8} /> Claim
+                      <Check size={9} strokeWidth={3} /> Claim
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-surface-soft)] text-[var(--c-text-faint)] text-[10px] font-semibold">
-                      <Lock size={9} />
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-[8px] text-[9px] font-bold shrink-0"
+                      style={{ background: 'var(--c-surface-soft)', border: '1px solid var(--c-border-soft)', color: 'var(--c-text-faint)' }}
+                    >
+                      <Lock size={8} /> Locked
                     </span>
                   )}
                 </div>
@@ -348,49 +466,50 @@ export default function MobileRewards() {
         </motion.ul>
       </section>
 
+      {/* ── Recent earnings ── */}
       <section>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <h3 className="text-[11px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0">
-            Recent earnings
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <h3 className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[1.2px] font-semibold text-[var(--c-text-muted)] m-0">
+            <Coins size={10} className="text-brand-accent" /> Recent earnings
           </h3>
-          <button
-            type="button"
-            className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-brand-accent active:scale-95 transition"
-          >
-            See all <ChevronRight size={11} />
+          <button type="button" className="inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-brand-accent active:scale-95 transition">
+            See all <ChevronRight size={10} />
           </button>
         </div>
-        <ul className="list-none m-0 p-0 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+        <ul className="list-none m-0 p-0 rounded-[16px] border border-[var(--c-border)] overflow-hidden" style={{ background: 'var(--c-surface)' }}>
           {RECENT.map((r, i) => {
             const isCash = r.kind === 'cash'
             return (
-              <li key={r.id} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+              <li key={r.id} className={i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}>
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 px-3 py-2.5">
                   <span
-                    className={[
-                      'inline-flex items-center justify-center w-8 h-8 rounded-[9px] border',
-                      isCash
-                        ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border-[rgba(232,197,71,0.55)]'
-                        : 'bg-[var(--c-accent-soft)] border-[var(--c-accent-border)] text-brand-accent',
-                    ].join(' ')}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] border shrink-0"
+                    style={isCash
+                      ? { background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', borderColor: 'rgba(232,197,71,0.5)' }
+                      : { background: 'var(--c-accent-soft)', borderColor: 'var(--c-accent-border)', color: '#C9A227' }}
                   >
-                    {isCash ? <Wallet size={13} strokeWidth={2.4} /> : <Coins size={13} strokeWidth={2.4} />}
+                    {isCash ? <Wallet size={11} strokeWidth={2.4} /> : <Coins size={11} strokeWidth={2.4} />}
                   </span>
-                  <div className="flex flex-col min-w-0 leading-tight">
-                    <span className="text-[12.5px] font-semibold text-[var(--c-text)] truncate">
-                      {r.title}
-                    </span>
-                    <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5 truncate">
-                      {r.meta}
-                    </span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">{r.title}</span>
+                    <span className="text-[9px] text-[var(--c-text-muted)] mt-0.5">{r.meta}</span>
                   </div>
-                  <span className={['text-[12.5px] font-bold tabular-nums whitespace-nowrap', isCash ? 'text-[var(--c-success)]' : 'text-brand-accent'].join(' ')}>
-                    {isCash ? `+₦${formatNum(r.amount)}` : `+${formatNum(r.amount)} pts`}
+                  <span
+                    className="text-[11.5px] font-bold tabular-nums whitespace-nowrap"
+                    style={{ color: isCash ? 'var(--c-success)' : '#C9A227' }}
+                  >
+                    {isCash ? `+₦${fmt(r.amount)}` : `+${fmt(r.amount)} pts`}
                   </span>
                 </div>
               </li>
             )
           })}
+          <li className="border-t border-[var(--c-border-soft)]">
+            <div className="flex items-center gap-1 px-3 py-2">
+              <ShieldCheck size={9} className="text-brand-accent shrink-0" />
+              <p className="text-[9px] text-[var(--c-text-muted)] m-0">Earnings settle in real-time</p>
+            </div>
+          </li>
         </ul>
       </section>
     </div>
