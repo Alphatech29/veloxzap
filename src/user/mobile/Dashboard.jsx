@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone, Wifi,
   Receipt, Gift, Bitcoin, ShieldCheck, ChevronRight,
-  Sparkles, CreditCard, TrendingUp, Lock,
+  Sparkles, TrendingUp, Lock,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 
@@ -40,7 +40,7 @@ export default function MobileDashboard() {
   const [hidden, setHidden] = useState(
     () => localStorage.getItem('vzap_hide_balance') === '1'
   )
-  const balance = Number(wallet?.available_balance ?? 0)
+  const balance = Number(wallet?.ngn_balance ?? 0)
   const inflow = 642300
   const outflow = 298140
 
@@ -84,7 +84,11 @@ export default function MobileDashboard() {
           </div>
           <button
             type="button"
-            onClick={() => setHidden(h => !h)}
+            onClick={() => setHidden(h => {
+              const next = !h
+              localStorage.setItem('vzap_hide_balance', next ? '1' : '0')
+              return next
+            })}
             aria-label={hidden ? 'Show balance' : 'Hide balance'}
             className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-white/[0.08] border border-white/[0.16] active:scale-95 transition"
           >

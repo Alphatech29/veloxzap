@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import useSettings from '../../hooks/useSettings'
+import useUser from '../../hooks/useUser'
 import {
   Gift, Sparkles, TrendingUp, Crown, Star, ArrowUpRight, Zap,
   Users, ChevronRight, Coins, Lock, Check, Copy, Share2, UserPlus,
@@ -9,9 +11,6 @@ import {
 const HERO_BG = `radial-gradient(640px 240px at 100% 0%, rgba(201,162,39,0.32), transparent 65%), radial-gradient(420px 200px at 0% 100%, rgba(232,197,71,0.18), transparent 60%), linear-gradient(135deg, rgba(20,42,92,0.98), rgba(10,31,68,1))`
 
 const REFERRAL = {
-  code: 'VLX-JOHN24',
-  link: 'https://veloxzap.com/r/VLX-JOHN24',
-  perReferral: 1000,
   friendBonus: 500,
   friends: 12,
   earned: 12000,
@@ -19,8 +18,7 @@ const REFERRAL = {
   pendingAmount: 2000,
 }
 
-const EARN = [
-  { id: 'refer', label: 'Refer a friend',     desc: 'Real cash for every signup',   rate: '₦1,000',  icon: Users,       cash: true },
+const EARN_STATIC = [
   { id: 'swap',  label: 'Crypto swap',        desc: '5× points on every swap',      rate: '5× pts',  icon: TrendingUp },
   { id: 'bills', label: 'Bills & utilities',  desc: 'Cable, electricity, internet', rate: '2× pts',  icon: Zap },
   { id: 'card',  label: 'Card spending',      desc: 'Tap your virtual card',        rate: '1.5×',    icon: Coins },
@@ -58,6 +56,18 @@ function formatNGN(n) {
 
 export default function DesktopRewards() {
   const [copied, setCopied] = useState(null)
+  const { settings } = useSettings()
+  const { user } = useUser()
+
+  const referralCode = user?.referral_code ?? ''
+  const siteUrl = settings?.site_url ? settings.site_url.replace(/\/$/, '') : 'https://yourwebsite.com'
+  const referralLink = referralCode ? `${siteUrl}/auth/register?ref=${referralCode}` : ''
+
+  const perReferral = settings?.referral_rewards ? Number(settings.referral_rewards) : 1000
+  const EARN = [
+    { id: 'refer', label: 'Refer a friend', desc: 'Real cash for every signup', rate: '₦' + perReferral.toLocaleString('en-NG'), icon: Users, cash: true },
+    ...EARN_STATIC,
+  ]
 
   const points = 2840
   const nextTierAt = 5000
@@ -71,11 +81,11 @@ export default function DesktopRewards() {
   }
 
   async function handleShare() {
-    const text = `Join me on VeloxZap and get ₦${formatNum(REFERRAL.friendBonus)} bonus. Use my code ${REFERRAL.code}`
+    const text = `Join me on VeloxZap and get ₦${formatNum(REFERRAL.friendBonus)} bonus. Use my code ${referralCode}`
     if (navigator.share) {
-      try { await navigator.share({ title: 'VeloxZap', text, url: REFERRAL.link }) } catch {}
+      try { await navigator.share({ title: 'VeloxZap', text, url: referralLink }) } catch {}
     } else {
-      handleCopy('share', `${text} — ${REFERRAL.link}`)
+      handleCopy('share', `${text} — ${referralLink}`)
     }
   }
 
@@ -175,7 +185,7 @@ export default function DesktopRewards() {
               </span>
             </div>
             <h2 className="text-[24px] font-black text-[var(--c-text)] m-0 mt-3 tracking-[-0.5px] leading-tight">
-              Earn ₦{formatNum(REFERRAL.perReferral)} for every friend that signs up.
+              Earn ₦{formatNum(perReferral)} for every friend that signs up.
             </h2>
             <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-2 leading-snug">
               Paid in real cash to your wallet · friend gets a ₦{formatNum(REFERRAL.friendBonus)} welcome bonus when they make their first deposit.
@@ -194,17 +204,17 @@ export default function DesktopRewards() {
                 Your referral code
               </p>
               <p className="text-[20px] font-black text-brand-accent m-0 mt-1 tracking-[2px] tabular-nums">
-                {REFERRAL.code}
+                {referralCode || '—'}
               </p>
             </div>
 
             <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
               <span className="flex-1 min-w-0 text-[11px] font-mono text-[var(--c-text-muted)] truncate">
-                {REFERRAL.link}
+                {referralLink || '—'}
               </span>
               <button
                 type="button"
-                onClick={() => handleCopy('link', REFERRAL.link)}
+                onClick={() => handleCopy('link', referralLink)}
                 className={[
                   'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10.5px] font-bold tracking-[0.2px] transition shrink-0',
                   copied === 'link'
@@ -222,7 +232,7 @@ export default function DesktopRewards() {
                   key={id}
                   type="button"
                   onClick={id === 'copy'
-                    ? () => handleCopy('share', `Join VeloxZap with code ${REFERRAL.code} — ${REFERRAL.link}`)
+                    ? () => handleCopy('share', `Join VeloxZap with code ${referralCode} — ${referralLink}`)
                     : handleShare}
                   className="inline-flex flex-col items-center gap-1 py-2 rounded-lg bg-[var(--c-surface)] border border-[var(--c-border)] hover:border-[var(--c-accent-border)] active:scale-[0.97] transition"
                 >

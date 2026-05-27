@@ -7,6 +7,7 @@ import {
   User, Clock, MessageSquare,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import KycGate from '../../components/internalUI/KycGate'
 import useWithdraw, { getTransferFee, MIN_TRANSFER } from '../../hooks/useWithdraw'
 import useBeneficiaries from '../../hooks/useBeneficiaries'
 import { useAlert } from '../../components/ui/Alert'
@@ -168,7 +169,7 @@ export default function MobileWithdraw() {
     verify, submitting, submitError, submit, reset, clearRecipient,
   } = useWithdraw()
 
-  const balance = wallet?.available_balance ?? 0
+  const balance = wallet?.ngn_balance ?? 0
 
   const STORAGE_KEY = 'veloxzap.withdraw.draft'
 
@@ -295,6 +296,7 @@ export default function MobileWithdraw() {
   const senderInitials = getInitials(senderName)
 
   return (
+    <KycGate verified={user?.is_kyc_verified === 1}>
     <div className="flex flex-col pb-6">
 
       {/* ── Header ── */}
@@ -987,5 +989,6 @@ export default function MobileWithdraw() {
         onCancel={() => setPinOpen(false)}
       />
     </div>
+    </KycGate>
   )
 }

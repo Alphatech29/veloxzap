@@ -47,9 +47,8 @@ function todayString() {
 
 function buildAccounts(wallet) {
   return [
-    { id: 'ngn',  symbol: '₦', label: 'NGN',  name: 'Naira wallet',  balance: Number(wallet?.available_balance ?? 0), delta: 0 },
-    { id: 'usd',  symbol: '$', label: 'USD',  name: 'Dollar wallet', balance: 0, delta: 0 },
-    { id: 'usdt', symbol: '₮', label: 'USDT', name: 'Stable coin',   balance: 0, delta: 0 },
+    { id: 'ngn', symbol: '₦', label: 'NGN', name: 'Naira wallet',  balance: Number(wallet?.ngn_balance ?? 0), delta: 0 },
+    { id: 'usd', symbol: '$', label: 'USD', name: 'Dollar wallet', balance: Number(wallet?.usd_balance ?? 0), delta: 0 },
   ]
 }
 

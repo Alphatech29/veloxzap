@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import { useTheme } from '../../context/ThemeContext'
+import useSettings from '../../hooks/useSettings'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -73,6 +74,10 @@ function resolveAvatarUrl(value) {
 export default function UserSidebar({ open, onClose, onLogout }) {
   const { user } = useUser()
   const { theme } = useTheme()
+  const { settings } = useSettings()
+  const referralReward = settings?.referral_rewards
+    ? '₦' + Number(settings.referral_rewards).toLocaleString('en-NG')
+    : null
   const logo = theme === 'dark' ? '/logo-2.png' : '/logo-1.png'
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
@@ -197,7 +202,7 @@ export default function UserSidebar({ open, onClose, onLogout }) {
             Refer & earn
           </p>
           <p className="text-[12px] font-bold text-[var(--c-text)] m-0 mt-0.5">
-            ₦1,000 per friend
+            {referralReward ? `${referralReward} per friend` : '₦1,000 per friend'}
           </p>
           <p className="text-[10px] text-[var(--c-text-muted)] m-0 mt-0.5 leading-snug">
             Real cash to your wallet.

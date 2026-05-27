@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import useUser from '../../hooks/useUser'
+import useSettings from '../../hooks/useSettings'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -30,8 +31,12 @@ const ICON_BTN =
 
 export default function UserTopbar({ onOpenDrawer, onLogout }) {
   const { user } = useUser()
+  const { settings } = useSettings()
   const [menuOpen, setMenuOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
+  const referralReward = settings?.referral_rewards
+    ? 'Earn ₦' + Number(settings.referral_rewards).toLocaleString('en-NG')
+    : 'Earn ₦1,000'
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
   const isDark = theme === 'dark'
@@ -65,7 +70,7 @@ export default function UserTopbar({ onOpenDrawer, onLogout }) {
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 right-0 min-[960px]:left-[260px] z-30 h-[68px] flex items-center gap-3 px-4 min-[960px]:px-[22px] backdrop-blur-xl bg-[var(--c-top-bg)] border-b border-[var(--c-side-border)] text-[var(--c-text)]">
+    <header className="fixed top-0 left-0 right-0 min-[960px]:left-[260px] z-[9999] h-[68px] flex items-center gap-3 px-4 min-[960px]:px-[22px] backdrop-blur-xl bg-[var(--c-top-bg)] border-b border-[var(--c-side-border)] text-[var(--c-text)]">
       <span
         aria-hidden
         className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--color-brand-accent)_38%,transparent)] to-transparent pointer-events-none"
@@ -227,7 +232,7 @@ export default function UserTopbar({ onOpenDrawer, onLogout }) {
                   <MenuItem to="/user/settings" icon={Settings} label="Settings" />
                 </div>
                 <div className="px-1.5 pb-1.5 border-t border-[var(--c-border-soft)] pt-1.5">
-                  <MenuItem to="/user/rewards" icon={Gift} label="Refer & earn" trailing="Earn ₦5,000" />
+                  <MenuItem to="/user/rewards" icon={Gift} label="Refer & earn" trailing={referralReward} />
                   <MenuItem to="/user/contact" icon={HelpCircle} label="Help center" />
                 </div>
                 <div className="px-1.5 pb-1.5 border-t border-[var(--c-border-soft)] pt-1.5">

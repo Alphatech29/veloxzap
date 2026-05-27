@@ -1,29 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowDownUp, Sparkles, Info, ShieldCheck,
-  Check, TrendingUp, ArrowLeftRight, Receipt, Clock, Zap, Loader2,
+  TrendingUp, Receipt, Zap, Loader2, Clock,
 } from 'lucide-react'
-
-const USD_RATE  = 1620
-const FEE_RATE  = 0.005
-
-const BALANCES = {
-  USD: 0,
-  NGN: 1284750.45,
-}
+import useUser from '../../hooks/useUser'
+import useSettings from '../../hooks/useSettings'
+import { convertCurrency, getConversionHistory } from '../../lib/convert'
+import { useAlert } from '../../components/ui/Alert'
 
 const QUICK_PCTS = [
   { id: '25',  label: '25%', value: 0.25 },
   { id: '50',  label: '50%', value: 0.5  },
   { id: '75',  label: '75%', value: 0.75 },
   { id: 'max', label: 'Max', value: 1    },
-]
-
-const RECENT = [
-  { id: 'c1', from: 'NGN', to: 'USD', amount: 250000,  received: 154.32, when: 'Today · 09:42' },
-  { id: 'c2', from: 'USD', to: 'NGN', amount: 50,      received: 81000,  when: 'Yesterday'      },
-  { id: 'c3', from: 'NGN', to: 'USD', amount: 100000,  received: 61.73,  when: 'May 5'          },
 ]
 
 function fmt(num, code) {
@@ -33,25 +23,43 @@ function fmt(num, code) {
 }
 
 export default function DesktopConvert() {
+  const { wallet }              = useUser()
+  const { settings }            = useSettings()
+  const { alert }               = useAlert()
   const [direction, setDirection] = useState('usd-ngn')
   const [amount, setAmount]       = useState('')
-  const [status, setStatus]       = useState('idle')
+  const [converting, setConverting] = useState(false)
+  const [history, setHistory]     = useState([])
 
-  const fromCode  = direction === 'usd-ngn' ? 'USD' : 'NGN'
-  const toCode    = direction === 'usd-ngn' ? 'NGN' : 'USD'
-  const balance   = BALANCES[fromCode] ?? 0
+  const loadHistory = useCallback(async () => {
+    const res = await getConversionHistory({ limit: 5 })
+    if (res.success) setHistory(res.conversions)
+  }, [])
 
-  const num        = parseFloat(String(amount).replace(/[^\d.]/g, '')) || 0
-  const fee        = num * FEE_RATE
-  const netAmount  = num - fee
-  const converted  = direction === 'usd-ngn' ? netAmount * USD_RATE : netAmount / USD_RATE
+  useEffect(() => { loadHistory() }, [loadHistory])
+
+  const usdRate  = Number(settings?.ngn_to_usd ?? 0)
+  const rates    = { NGN: 1, USD: usdRate }
+  const balances = {
+    NGN: Number(wallet?.ngn_balance ?? 0),
+    USD: Number(wallet?.usd_balance ?? 0),
+  }
+
+  const fromCode = direction === 'usd-ngn' ? 'USD' : 'NGN'
+  const toCode   = direction === 'usd-ngn' ? 'NGN' : 'USD'
+  const balance  = balances[fromCode] ?? 0
+
+  const num       = parseFloat(String(amount).replace(/[^\d.]/g, '')) || 0
+  const converted = rates[toCode] ? num * (rates[fromCode] / rates[toCode]) : 0
 
   const insufficient = num > balance
-  const canSubmit    = num > 0 && !insufficient && status === 'idle'
+  const canSubmit    = num > 0 && !insufficient && usdRate > 0 && !converting
 
-  const rateDisplay = direction === 'usd-ngn'
-    ? `1 USD = ₦${USD_RATE.toLocaleString()}`
-    : `1 NGN = $${(1 / USD_RATE).toFixed(6)}`
+  const rateDisplay = usdRate > 0
+    ? direction === 'usd-ngn'
+      ? `1 USD = ₦${usdRate.toLocaleString()}`
+      : `1 NGN = $${(1 / usdRate).toFixed(6)}`
+    : '—'
 
   function handleAmountChange(e) {
     const raw     = e.target.value.replace(/[^\d.]/g, '')
@@ -69,13 +77,22 @@ export default function DesktopConvert() {
     setAmount(String(Math.floor(balance * pct * 100) / 100))
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit) return
-    setStatus('processing')
-    setTimeout(() => {
-      setStatus('done')
-      setTimeout(() => { setStatus('idle'); setAmount('') }, 1800)
-    }, 1000)
+    setConverting(true)
+    const result = await convertCurrency({ amount: num, from: fromCode })
+    setConverting(false)
+    if (result.success) {
+      alert({
+        type: 'success',
+        title: 'Converted successfully',
+        message: `${fmt(num, fromCode)} → ${fmt(result.data?.converted ?? converted, toCode)}`,
+      })
+      setAmount('')
+      loadHistory()
+    } else {
+      alert({ type: 'error', title: 'Conversion failed', message: result.message })
+    }
   }
 
   return (
@@ -88,11 +105,11 @@ export default function DesktopConvert() {
           </p>
           <h1 className="text-[20px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">Convert</h1>
           <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-0.5">
-            Exchange between USD and NGN at live rates · {Math.round(FEE_RATE * 1000) / 10}% transparent fee.
+            Exchange between USD and NGN at live rates.
           </p>
         </div>
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[9.5px] font-bold uppercase tracking-[1px] text-brand-accent">
-          <ShieldCheck size={10} /> Live rates · refreshed every 30s
+          <ShieldCheck size={10} /> Live rates
         </span>
       </header>
 
@@ -162,7 +179,7 @@ export default function DesktopConvert() {
             <div className="flex items-center justify-between mb-2 mt-3">
               <h2 className="text-[12.5px] font-bold m-0 text-[var(--c-text)] tracking-[-0.1px]">You receive</h2>
               <span className="text-[10px] text-[var(--c-text-muted)] font-medium">
-                Balance · <span className="font-bold text-[var(--c-text)] tabular-nums">{fmt(BALANCES[toCode] ?? 0, toCode)}</span>
+                Balance · <span className="font-bold text-[var(--c-text)] tabular-nums">{fmt(balances[toCode] ?? 0, toCode)}</span>
               </span>
             </div>
 
@@ -180,40 +197,51 @@ export default function DesktopConvert() {
           </article>
 
           {/* Recent conversions */}
-          <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="inline-flex items-center gap-1.5 text-[12px] font-bold m-0 text-[var(--c-text)] tracking-[-0.1px]">
-                <Clock size={11} className="text-brand-accent" /> Recent conversions
-              </h3>
-              <span className="text-[10px] text-[var(--c-text-muted)]">Last 30 days</span>
-            </div>
-            <ul className="list-none m-0 p-0 flex flex-col gap-1.5">
-              {RECENT.map(r => (
-                <li
-                  key={r.id}
-                  className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]"
-                >
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]">
-                    <ArrowLeftRight size={12} />
-                  </span>
-                  <div className="flex flex-col min-w-0 leading-tight">
-                    <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">
-                      {r.from} → {r.to}
+          {history.length > 0 && (
+            <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="inline-flex items-center gap-1.5 text-[12px] font-bold m-0 text-[var(--c-text)] tracking-[-0.1px]">
+                  <Clock size={11} className="text-brand-accent" /> Recent conversions
+                </h3>
+                <span className="text-[10px] text-[var(--c-text-muted)]">Last 5</span>
+              </div>
+              <ul className="list-none m-0 p-0 flex flex-col gap-1.5">
+                {history.map((r, i) => (
+                  <li
+                    key={r.reference ?? i}
+                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]"
+                  >
+                    <div className="relative w-8 h-8 shrink-0">
+                      <img
+                        src={`https://flagcdn.com/w40/${flagCode(r.from_currency)}.png`}
+                        alt={r.from_currency}
+                        className="absolute top-0 left-0 w-5 h-5 rounded-full object-cover border-2 border-[var(--c-surface)]"
+                      />
+                      <img
+                        src={`https://flagcdn.com/w40/${flagCode(r.to_currency)}.png`}
+                        alt={r.to_currency}
+                        className="absolute bottom-0 right-0 w-5 h-5 rounded-full object-cover border-2 border-[var(--c-surface)]"
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0 leading-tight">
+                      <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">
+                        {r.from_currency} → {r.to_currency}
+                      </span>
+                      <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5 inline-flex items-center gap-0.5">
+                        <Clock size={9} /> {timeAgo(r.created_at)}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-[var(--c-text-muted)] tabular-nums">
+                      -{fmt(Number(r.from_amount), r.from_currency)}
                     </span>
-                    <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5 inline-flex items-center gap-0.5">
-                      <Clock size={9} /> {r.when}
+                    <span className="text-[11.5px] font-bold tabular-nums text-[var(--c-success)] whitespace-nowrap">
+                      +{fmt(Number(r.to_amount), r.to_currency)}
                     </span>
-                  </div>
-                  <span className="text-[11px] font-mono text-[var(--c-text-muted)] tabular-nums">
-                    -{fmt(r.amount, r.from)}
-                  </span>
-                  <span className="text-[11.5px] font-bold tabular-nums text-[var(--c-success)] whitespace-nowrap">
-                    +{fmt(r.received, r.to)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </article>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -235,18 +263,10 @@ export default function DesktopConvert() {
             </header>
 
             <div className="p-4 flex flex-col gap-2">
-              <SummaryRow label="Rate"                              value={rateDisplay}                                    mono />
-              <SummaryRow label="You send"                         value={fmt(num, fromCode)}                             bold />
-              <SummaryRow label={`Fee (${(FEE_RATE*100).toFixed(1)}%)`} value={fmt(fee, fromCode)}                       muted />
-              <SummaryRow label="Slippage"                         value="≤ 0.10%"                                        muted />
+              <SummaryRow label="Rate"        value={rateDisplay}         mono />
+              <SummaryRow label="You send"    value={fmt(num, fromCode)}  bold />
               <div className="border-t border-dashed border-[var(--c-border)] my-0.5" />
-              <SummaryRow label="You receive"                      value={fmt(converted, toCode)}                         accent hint="Settles in ≤ 5 seconds" />
-              <div className="flex items-center justify-between mt-0.5 pt-2.5 border-t border-[var(--c-border)]">
-                <p className="text-[10px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] m-0">Net out</p>
-                <p className="text-[15px] font-black tabular-nums text-[var(--c-text)] tracking-[-0.3px] m-0">
-                  {fmt(netAmount, fromCode)}
-                </p>
-              </div>
+              <SummaryRow label="You receive" value={fmt(converted, toCode)} accent hint="Settles in ≤ 5 seconds" />
 
               <button
                 type="button"
@@ -256,31 +276,23 @@ export default function DesktopConvert() {
                   'relative overflow-hidden inline-flex items-center justify-center gap-2 w-full h-10 rounded-xl text-[12px] font-bold tracking-[0.2px] transition active:scale-[0.99] mt-1.5',
                   canSubmit
                     ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_6px_18px_-6px_rgba(201,162,39,0.5)] hover:-translate-y-px'
-                    : status === 'done'
-                      ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-                      : insufficient
-                        ? 'bg-[var(--c-danger-soft)] text-[var(--c-danger)] border border-[var(--c-danger-border)] cursor-not-allowed'
-                        : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
+                    : insufficient
+                      ? 'bg-[var(--c-danger-soft)] text-[var(--c-danger)] border border-[var(--c-danger-border)] cursor-not-allowed'
+                      : 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)] cursor-not-allowed',
                 ].join(' ')}
               >
                 <AnimatePresence mode="wait">
-                  {status === 'idle' && (
-                    <motion.span key="idle" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="inline-flex items-center gap-2">
-                      <Zap size={13} strokeWidth={2.6} />
-                      {insufficient ? 'Insufficient balance' : num > 0 ? `Convert · ${fmt(num, fromCode)}` : 'Enter an amount'}
-                    </motion.span>
-                  )}
-                  {status === 'processing' && (
+                  {converting ? (
                     <motion.span key="proc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-2">
                       <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} className="inline-flex">
                         <Loader2 size={13} strokeWidth={2.6} />
                       </motion.span>
                       Converting…
                     </motion.span>
-                  )}
-                  {status === 'done' && (
-                    <motion.span key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="inline-flex items-center gap-2">
-                      <Check size={13} strokeWidth={3} /> Converted successfully
+                  ) : (
+                    <motion.span key="idle" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="inline-flex items-center gap-2">
+                      <Zap size={13} strokeWidth={2.6} />
+                      {insufficient ? 'Insufficient balance' : num > 0 ? `Convert · ${fmt(num, fromCode)}` : 'Enter an amount'}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -299,31 +311,20 @@ export default function DesktopConvert() {
               <TrendingUp size={11} className="text-brand-accent" /> Live rate
             </h3>
             <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent text-[11px] font-black shrink-0">
-                $₦
-              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                <img src="https://flagcdn.com/w40/us.png" alt="USD" className="w-6 h-4 rounded object-cover" />
+                <img src="https://flagcdn.com/w40/ng.png" alt="NGN" className="w-6 h-4 rounded object-cover" />
+              </div>
               <div className="flex flex-col min-w-0 leading-tight">
                 <span className="text-[12px] font-bold text-[var(--c-text)]">USD / NGN</span>
                 <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5">US Dollar · Nigerian Naira</span>
               </div>
               <div className="text-right shrink-0">
                 <span className="text-[13px] font-bold tabular-nums text-[var(--c-text)]">
-                  ₦{USD_RATE.toLocaleString()}
+                  {usdRate > 0 ? `₦${usdRate.toLocaleString()}` : '—'}
                 </span>
                 <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">per 1 USD</p>
               </div>
-            </div>
-          </article>
-
-          <article className="rounded-xl border border-[var(--c-border-soft)] bg-[var(--c-surface-soft)] p-3 flex items-start gap-2">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)] shrink-0">
-              <Info size={12} />
-            </span>
-            <div className="leading-snug">
-              <p className="text-[11px] font-semibold text-[var(--c-text)] m-0">Lock the rate</p>
-              <p className="text-[10px] text-[var(--c-text-muted)] m-0 mt-0.5">
-                Big convert? Schedule with limit orders in <span className="text-brand-accent font-semibold">Pro tools</span>.
-              </p>
             </div>
           </article>
         </div>
@@ -332,16 +333,33 @@ export default function DesktopConvert() {
   )
 }
 
+const FLAG_MAP = { NGN: 'ng', USD: 'us' }
+function flagCode(currency) { return FLAG_MAP[currency?.toUpperCase()] ?? 'un' }
+
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+  if (diff < 60)   return 'Just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+}
+
 function CurrencyLabel({ code }) {
   const isUSD = code === 'USD'
+  const flag  = isUSD ? 'us' : 'ng'
+  const name  = isUSD ? 'US Dollar' : 'Nigerian Naira'
   return (
     <div className="inline-flex items-center gap-2 px-3.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] shrink-0">
-      <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent text-[13px] font-black">
-        {isUSD ? '$' : '₦'}
-      </span>
+      <img
+        src={`https://flagcdn.com/w40/${flag}.png`}
+        alt={code}
+        className="w-9 h-9 rounded-lg object-cover border border-[var(--c-border-soft)] shrink-0"
+      />
       <div className="flex flex-col items-start leading-tight">
         <span className="text-[12.5px] font-bold text-[var(--c-text)] tracking-[-0.1px]">{code}</span>
-        <span className="text-[9.5px] text-[var(--c-text-muted)]">{isUSD ? 'US Dollar' : 'Nigerian Naira'}</span>
+        <span className="text-[9.5px] text-[var(--c-text-muted)]">{name}</span>
       </div>
     </div>
   )

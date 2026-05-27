@@ -6,22 +6,16 @@ import {
   ShieldCheck, X, Check, TrendingUp,
 } from 'lucide-react'
 import BottomSheet from '../../components/internalUI/BottomSheet'
+import ProcessingOverlay from '../../components/internalUI/ProcessingOverlay'
+import useUser from '../../hooks/useUser'
+import useSettings from '../../hooks/useSettings'
+import { convertCurrency } from '../../lib/convert'
+import { useAlert } from '../../components/ui/Alert'
 
 const CURRENCIES = [
-  { code: 'NGN',  name: 'Nigerian Naira', rate: 1,         decimals: 2 },
-  { code: 'USDT', name: 'Tether USD',     rate: 1750,      decimals: 2 },
-  { code: 'USD',  name: 'US Dollar',      rate: 1700,      decimals: 2 },
-  { code: 'BTC',  name: 'Bitcoin',        rate: 105000000, decimals: 6 },
-  { code: 'ETH',  name: 'Ethereum',       rate: 5800000,   decimals: 6 },
+  { code: 'NGN', name: 'Nigerian Naira', decimals: 2, flag: 'https://flagcdn.com/w40/ng.png' },
+  { code: 'USD', name: 'US Dollar',      decimals: 2, flag: 'https://flagcdn.com/w40/us.png' },
 ]
-
-const BALANCES = {
-  NGN: 1284750.45,
-  USDT: 320.50,
-  USD: 0,
-  BTC: 0.00184,
-  ETH: 0.062,
-}
 
 const QUICK_PCTS = [
   { id: '25', label: '25%', value: 0.25 },
@@ -45,22 +39,38 @@ function formatBalance(code, value) {
 
 export default function MobileConvert() {
   const navigate = useNavigate()
+  const { wallet } = useUser()
+  const { settings } = useSettings()
+
+  const usdRate = Number(settings?.ngn_to_usd ?? 0)
+
+  const rates = { NGN: 1, USD: usdRate }
+
+  const balances = {
+    NGN: Number(wallet?.ngn_balance ?? 0),
+    USD: Number(wallet?.usd_balance ?? 0),
+  }
+
+  const { alert } = useAlert()
+
   const [fromCode, setFromCode] = useState('NGN')
-  const [toCode, setToCode] = useState('USDT')
-  const [amount, setAmount] = useState('100000')
+  const [toCode, setToCode] = useState('USD')
+  const [amount, setAmount] = useState('')
   const [picker, setPicker] = useState(null)
-  const [submitted, setSubmitted] = useState(false)
+  const [converting, setConverting] = useState(false)
 
   const from = CURRENCIES.find(c => c.code === fromCode)
   const to = CURRENCIES.find(c => c.code === toCode)
-  const balance = BALANCES[fromCode] ?? 0
+  const balance = balances[fromCode] ?? 0
 
   const num = Number(String(amount).replace(/[^\d.]/g, '')) || 0
-  const converted = num * (from.rate / to.rate)
+  const converted = rates[to.code] ? num * (rates[from.code] / rates[to.code]) : 0
   const insufficient = num > balance
-  const canSubmit = num > 0 && !insufficient
+  const canSubmit = num > 0 && !insufficient && usdRate > 0 && !converting
 
-  const rateDisplay = `1 ${from.code} = ${formatAmount(from.rate / to.rate, to.decimals)} ${to.code}`
+  const rateDisplay = usdRate > 0
+    ? `1 USD = ${formatAmount(usdRate, 2)} NGN`
+    : 'Rate unavailable'
 
   function handleAmountChange(e) {
     const raw = e.target.value.replace(/[^\d.]/g, '')
@@ -90,14 +100,27 @@ export default function MobileConvert() {
     setPicker(null)
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit) return
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 2400)
+    setConverting(true)
+    const result = await convertCurrency({ amount: num, from: fromCode })
+    setConverting(false)
+    if (!result.success) {
+      alert({ type: 'error', title: 'Conversion failed', message: result.message || 'Please try again.' })
+      return
+    }
+    setAmount('')
+    alert({ type: 'success', title: 'Conversion successful', message: `${formatAmount(num, from.decimals)} ${fromCode} converted to ${formatAmount(converted, to.decimals)} ${toCode}` })
   }
 
   return (
     <div className="flex flex-col gap-4">
+
+      <ProcessingOverlay
+        open={converting}
+        title="Converting…"
+        subtitle={`${formatAmount(num, from.decimals)} ${fromCode} → ${toCode}`}
+      />
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -114,7 +137,7 @@ export default function MobileConvert() {
           Convert
         </h1>
         <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Swap between fiat and crypto at live rates · zero hidden fees
+          Swap between NGN and USD instantly · zero hidden fees
         </p>
       </div>
 
@@ -141,7 +164,7 @@ export default function MobileConvert() {
 
         <CurrencyCard
           label="You receive"
-          balanceLabel={`Balance: ${formatBalance(toCode, BALANCES[toCode] ?? 0)}`}
+          balanceLabel={`Balance: ${formatBalance(toCode, balances[toCode] ?? 0)}`}
           currency={to}
           amount={num > 0 ? formatAmount(converted, to.decimals) : '0'}
           editable={false}
@@ -149,7 +172,7 @@ export default function MobileConvert() {
         />
       </div>
 
-      {fromCode === 'NGN' && balance > 0 && (
+      {balance > 0 && (
         <div className="flex gap-1.5">
           {QUICK_PCTS.map(p => (
             <button
@@ -166,7 +189,7 @@ export default function MobileConvert() {
 
       <div className="rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-3 flex flex-col gap-2">
         <RateRow icon={TrendingUp} label="Rate" value={rateDisplay} />
-        <RateRow label="Network fee" value="₦0 · gasless" tone="success" />
+        <RateRow label="Network fee" value="Free · no hidden charges" tone="success" />
         <RateRow
           label="You receive"
           value={`≈ ${num > 0 ? formatAmount(converted, to.decimals) : '0'} ${to.code}`}
@@ -177,43 +200,27 @@ export default function MobileConvert() {
       <button
         type="button"
         onClick={handleSubmit}
-        disabled={!canSubmit && !submitted}
+        disabled={!canSubmit}
         className={[
           'inline-flex items-center justify-center gap-1.5 w-full py-3 rounded-2xl text-[14px] font-bold tracking-[-0.1px] transition',
-          submitted
-            ? 'bg-[var(--c-success-bg)] text-[var(--c-success)] border border-[var(--c-success-bg)]'
-            : 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_8px_22px_rgba(201,162,39,0.36)] active:scale-[0.98]',
-          !canSubmit && !submitted ? 'opacity-50 cursor-not-allowed' : '',
+          'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_8px_22px_rgba(201,162,39,0.36)] active:scale-[0.98]',
+          !canSubmit ? 'opacity-50 cursor-not-allowed' : '',
         ].join(' ')}
       >
         <AnimatePresence mode="wait" initial={false}>
-          {submitted ? (
-            <motion.span
-              key="ok"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="inline-flex items-center gap-1.5"
-            >
-              <Check size={16} strokeWidth={2.6} /> Conversion queued
+          {converting ? (
+            <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="inline-flex items-center gap-1.5">
+              <motion.span animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} className="inline-flex">
+                <ArrowDownUp size={15} strokeWidth={2.4} />
+              </motion.span>
+              Converting…
             </motion.span>
           ) : insufficient ? (
-            <motion.span
-              key="low"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.span key="low" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               Insufficient {fromCode}
             </motion.span>
           ) : (
-            <motion.span
-              key="go"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              className="inline-flex items-center gap-1.5"
-            >
+            <motion.span key="go" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} className="inline-flex items-center gap-1.5">
               <ArrowDownUp size={15} strokeWidth={2.4} /> Convert {fromCode} → {toCode}
             </motion.span>
           )}
@@ -222,16 +229,18 @@ export default function MobileConvert() {
 
       <p className="inline-flex items-center justify-center gap-1.5 text-[10.5px] text-[var(--c-text-muted)] mt-1 mb-2">
         <ShieldCheck size={11} className="text-brand-accent" />
-        Locked rate for 30s · executed at submit time
+        {usdRate > 0 ? `Rate: 1 USD = ${usdRate.toLocaleString('en-NG')} NGN · indicative` : 'Fetching rate…'}
       </p>
 
       <CurrencyPicker
         open={!!picker}
         selected={picker === 'from' ? fromCode : toCode}
         otherCode={picker === 'from' ? toCode : fromCode}
+        balances={balances}
         onSelect={handleSelectCurrency}
         onClose={() => setPicker(null)}
       />
+
     </div>
   )
 }
@@ -240,12 +249,17 @@ function CurrencyCard({ label, balanceLabel, currency, amount, editable, onAmoun
   return (
     <article
       className={[
-        'relative overflow-hidden p-3.5 rounded-2xl bg-[var(--c-surface)] border transition',
-        insufficient ? 'border-[var(--c-danger-border)]' : 'border-[var(--c-border)]',
+        'relative overflow-hidden rounded-2xl bg-[var(--c-surface)] border transition-all duration-200',
+        insufficient
+          ? 'border-[var(--c-danger-border)] shadow-[0_0_0_3px_rgba(239,68,68,0.08)]'
+          : editable
+            ? 'border-[var(--c-accent-border)] shadow-[0_0_0_3px_rgba(201,162,39,0.07)]'
+            : 'border-[var(--c-border)]',
       ].join(' ')}
     >
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] uppercase tracking-[1.2px] font-semibold text-[var(--c-text-muted)] m-0">
+      {/* top strip */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+        <p className="text-[9.5px] uppercase tracking-[1.4px] font-bold text-[var(--c-text-muted)] m-0">
           {label}
         </p>
         {balanceLabel && (
@@ -254,36 +268,54 @@ function CurrencyCard({ label, balanceLabel, currency, amount, editable, onAmoun
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+
+      {/* main row */}
+      <div className="flex items-center gap-3 px-4 pb-4 pt-1">
         <button
           type="button"
           onClick={onPick}
           aria-label={`Pick currency · ${currency.code}`}
-          className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-[12px] bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent active:scale-95 hover:shadow-[0_0_14px_-2px_rgba(201,162,39,0.4)] transition shrink-0"
+          className="inline-flex items-center gap-2 pl-1 pr-2.5 py-1.5 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] hover:border-[var(--c-accent-border)] active:scale-95 transition shrink-0 shadow-sm"
         >
-          <span className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] bg-[var(--c-menu-bg)] text-[var(--c-text)] text-[10.5px] font-bold tracking-[0.4px]">
-            {currency.code.slice(0, 3)}
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full overflow-hidden border border-[var(--c-border-soft)] shadow-sm">
+            <img src={currency.flag} alt={currency.code} className="w-full h-full object-cover" />
           </span>
-          <ChevronDown size={13} strokeWidth={2.4} />
+          <div className="flex flex-col items-start leading-none">
+            <span className="text-[12px] font-black text-[var(--c-text)] tracking-[0.2px]">{currency.code}</span>
+            <span className="text-[9px] text-[var(--c-text-muted)] font-medium mt-0.5">{currency.name.split(' ')[0]}</span>
+          </div>
+          <ChevronDown size={12} strokeWidth={2.6} className="text-[var(--c-text-muted)] ml-0.5" />
         </button>
+
         {editable ? (
           <input
             type="text"
             inputMode="decimal"
             value={amount}
             onChange={onAmountChange}
-            placeholder="0"
+            placeholder="0.00"
             className={[
-              'flex-1 min-w-0 bg-transparent border-0 outline-0 text-right text-[22px] font-bold tracking-[-0.4px] tabular-nums placeholder:text-[var(--c-text-faint)]',
+              'flex-1 min-w-0 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 appearance-none',
+              'text-right text-[20px] font-black tracking-[-0.6px] tabular-nums',
+              'placeholder:text-[var(--c-text-faint)]',
               insufficient ? 'text-[var(--c-danger)]' : 'text-[var(--c-text)]',
             ].join(' ')}
+            style={{ boxShadow: 'none' }}
           />
         ) : (
-          <p className="flex-1 min-w-0 m-0 text-right text-[22px] font-bold tracking-[-0.4px] tabular-nums text-[var(--c-text)] truncate">
+          <p className={[
+            'flex-1 min-w-0 m-0 text-right text-[20px] font-black tracking-[-0.6px] tabular-nums truncate',
+            amount === '0' ? 'text-[var(--c-text-faint)]' : 'text-[var(--c-text)]',
+          ].join(' ')}>
             {amount}
           </p>
         )}
       </div>
+
+      {/* subtle bottom glow for editable */}
+      {editable && (
+        <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-accent/40 to-transparent" />
+      )}
     </article>
   )
 }
@@ -310,7 +342,7 @@ function RateRow({ icon: Icon, label, value, tone, emphasized }) {
   )
 }
 
-function CurrencyPicker({ open, selected, otherCode, onSelect, onClose }) {
+function CurrencyPicker({ open, selected, otherCode, balances, onSelect, onClose }) {
   return (
     <BottomSheet open={open} onClose={onClose} label="Select currency" title="Choose asset" maxHeight="85vh">
       <ul className="list-none m-0 px-3 pb-2 space-y-1.5 overflow-y-auto">
@@ -331,15 +363,15 @@ function CurrencyPicker({ open, selected, otherCode, onSelect, onClose }) {
                     blocked ? 'opacity-40 cursor-not-allowed' : 'active:scale-[0.99]',
                   ].join(' ')}
                 >
-                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-[14px] bg-[var(--c-menu-bg)] border border-[var(--c-border)] text-[var(--c-text)] text-[12px] font-bold tracking-[0.4px]">
-                    {c.code}
+                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-[var(--c-menu-bg)] border border-[var(--c-border)] overflow-hidden">
+                    <img src={c.flag} alt={c.code} className="w-full h-full object-cover" />
                   </span>
                   <span className="flex-1 min-w-0 leading-tight">
                     <span className="block text-[14px] font-semibold text-[var(--c-text)] truncate">
                       {c.name}
                     </span>
                     <span className="block text-[11px] text-[var(--c-text-muted)] mt-0.5 tabular-nums">
-                      Balance · {formatAmount(BALANCES[c.code] ?? 0, c.decimals)} {c.code}
+                      Balance · {formatAmount(balances[c.code] ?? 0, c.decimals)} {c.code}
                     </span>
                   </span>
                   {active && (

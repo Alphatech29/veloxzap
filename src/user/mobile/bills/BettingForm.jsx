@@ -667,7 +667,7 @@ export default function BettingForm({ onBack }) {
               <button type="button" onClick={() => setPinOpen(true)}
                 className="inline-flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[13px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_6px_20px_-6px_rgba(201,162,39,0.55)] active:scale-[0.99] transition"
               >
-              
+
                 Fund Wallet
               </button>
             </div>

@@ -6,6 +6,7 @@ import {
   AlertCircle, CheckCircle2, Receipt, Banknote, MessageSquare,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import KycGate from '../../components/internalUI/KycGate'
 import useWithdraw, { getTransferFee, MIN_TRANSFER } from '../../hooks/useWithdraw'
 import useBeneficiaries from '../../hooks/useBeneficiaries'
 import { useAlert } from '../../components/ui/Alert'
@@ -221,7 +222,7 @@ function BankPickerModal({ banks, loading, selectedCode, onSelect, onClose }) {
 /* ── Main component ─────────────────────────────────────────── */
 export default function DesktopWithdraw() {
   const { alert } = useAlert()
-  const { wallet, refreshWallet } = useUser()
+  const { user, wallet, refreshWallet } = useUser()
   const { beneficiaries, loading: beneficiariesLoading, addOrUpdate } = useBeneficiaries()
   const {
     banks, banksLoading,
@@ -231,7 +232,7 @@ export default function DesktopWithdraw() {
     submit, reset, clearRecipient,
   } = useWithdraw()
 
-  const balance = wallet?.available_balance ?? 0
+  const balance = wallet?.ngn_balance ?? 0
 
   const [amount, setAmount]                   = useState('')
   const [bank, setBank]                       = useState(null)
@@ -314,6 +315,7 @@ export default function DesktopWithdraw() {
   }
 
   return (
+    <KycGate verified={user?.is_kyc_verified === 1}>
     <div className="flex flex-col gap-4 max-w-[1240px] mx-auto pb-8">
 
       <header className="flex items-end justify-between gap-3 flex-wrap">
@@ -644,5 +646,6 @@ export default function DesktopWithdraw() {
         onCancel={() => setPinOpen(false)}
       />
     </div>
+    </KycGate>
   )
 }
