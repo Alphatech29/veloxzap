@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { ThemeProvider, useTheme } from '../context/ThemeContext'
+import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/useTheme'
 import UserSidebar from '../components/partials/userSidebar'
 import UserTopbar from '../components/partials/userTopbar'
 import UserFooter from '../components/partials/userFooter'
@@ -90,9 +90,5 @@ function UserShell() {
 }
 
 export default function UserLayout() {
-  return (
-    <ThemeProvider>
-      <UserShell />
-    </ThemeProvider>
-  )
+  return <UserShell />
 }

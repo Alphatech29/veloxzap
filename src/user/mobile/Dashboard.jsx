@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone, Wifi,
   Receipt, Gift, Bitcoin, ShieldCheck, ChevronRight,
-  Sparkles, TrendingUp, Lock,
+  Sparkles, TrendingUp, Lock, PiggyBank,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 
@@ -11,9 +11,9 @@ const QUICK_ACTIONS = [
   { to: '/user/airtime',      label: 'Airtime',      icon: Smartphone },
   { to: '/user/bills',        label: 'Bills',        icon: Receipt },
   { to: '/user/data',         label: 'Data',         icon: Wifi },
+  { to: '/user/savings',      label: 'Save & Earn',  icon: PiggyBank },
   { to: '/user/trade-cards',  label: 'Trade Card',   icon: Gift },
   { to: '/user/crypto-exchange', label: 'Crypto Trade', icon: Bitcoin },
-  { to: '/user/finance',      label: 'Finance',      icon: TrendingUp },
   { to: '/user/buy-giftcard', label: 'Buy Gift Card', icon: Gift },
   { to: '/user/convert',       label: 'Convert',       icon: TrendingUp },
 ]

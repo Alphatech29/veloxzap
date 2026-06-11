@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { verifyMeter, purchaseElectricity } from '../lib/bills'
+import { queryKeys } from '../lib/queryKeys'
+
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
 
 export default function useBills() {
+  const queryClient = useQueryClient()
+
   // ── Meter verification ──
   const [verifyStatus, setVerifyStatus] = useState('idle')
   const [customerName, setCustomerName] = useState('')
@@ -9,12 +19,27 @@ export default function useBills() {
   const [minimumAmount, setMinimumAmount] = useState(null)
 
   // ── Purchase ──
-  const [buying, setBuying] = useState(false)
-  const [buyError, setBuyError] = useState(null)
   const [token, setToken] = useState('')
   const [reference, setReference] = useState('')
 
   const timerRef = useRef(null)
+
+  const verifyMutation = useMutation({
+    mutationFn: ({ billersCode, serviceID, type }) => verifyMeter({ billersCode, serviceID, type }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setCustomerName(result.data?.customerName || '')
+        setCustomerAddress(result.data?.customerAddress || '')
+        setMinimumAmount(result.data?.minimumAmount ?? null)
+        setVerifyStatus('found')
+      } else {
+        setCustomerName('')
+        setCustomerAddress('')
+        setMinimumAmount(null)
+        setVerifyStatus('invalid')
+      }
+    },
+  })
 
   const verify = useCallback(({ billersCode, serviceID, type }) => {
     clearTimeout(timerRef.current)
@@ -28,63 +53,45 @@ export default function useBills() {
     }
 
     setVerifyStatus('loading')
-    timerRef.current = setTimeout(async () => {
-      const result = await verifyMeter({ billersCode, serviceID, type })
-      if (result.success) {
-        setCustomerName(result.data?.customerName || '')
-        setCustomerAddress(result.data?.customerAddress || '')
-        setMinimumAmount(result.data?.minimumAmount ?? null)
-        setVerifyStatus('found')
-      } else {
-        setCustomerName('')
-        setCustomerAddress('')
-        setMinimumAmount(null)
-        setVerifyStatus('invalid')
-      }
+    timerRef.current = setTimeout(() => {
+      verifyMutation.mutate({ billersCode, serviceID, type })
     }, 700)
-  }, [])
+  }, [verifyMutation])
 
-  const buy = useCallback(async ({ billersCode, serviceID, variation_code, amount, pin, phone = '' }) => {
-    setBuying(true)
-    setBuyError(null)
-
-    try {
-      const result = await purchaseElectricity({ billersCode, serviceID, variation_code, amount, pin, phone })
-      setBuying(false)
-      if (!result.success) {
-        setBuyError(result.message || 'Payment failed. Please try again.')
-      } else {
+  const buyMutation = useMutation({
+    mutationFn: (payload) => purchaseElectricity(payload),
+    onSuccess: (result) => {
+      if (result.success) {
         setToken(result.data?.token || '')
         setReference(result.data?.reference || '')
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
       }
-      return result
-    } catch {
-      setBuying(false)
-      const msg = 'Network error. Please try again.'
-      setBuyError(msg)
-      return { success: false, message: msg }
-    }
-  }, [])
+    },
+  })
+
+  const buy = useCallback((payload) => buyMutation.mutateAsync(payload), [buyMutation])
 
   const resetVerify = useCallback(() => {
     clearTimeout(timerRef.current)
+    verifyMutation.reset()
     setVerifyStatus('idle')
     setCustomerName('')
     setCustomerAddress('')
     setMinimumAmount(null)
-  }, [])
+  }, [verifyMutation])
 
   const reset = useCallback(() => {
     clearTimeout(timerRef.current)
+    verifyMutation.reset()
+    buyMutation.reset()
     setVerifyStatus('idle')
     setCustomerName('')
     setCustomerAddress('')
     setMinimumAmount(null)
-    setBuying(false)
-    setBuyError(null)
     setToken('')
     setReference('')
-  }, [])
+  }, [verifyMutation, buyMutation])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
@@ -96,8 +103,8 @@ export default function useBills() {
     verify,
     resetVerify,
 
-    buying,
-    buyError,
+    buying: buyMutation.isPending,
+    buyError: mutationError(buyMutation, 'Payment failed. Please try again.'),
     token,
     reference,
     buy,

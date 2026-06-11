@@ -18,11 +18,16 @@ export function setOnSessionExpired(cb) {
 
 async function refreshSession() {
   if (refreshPromise) return refreshPromise
-  refreshPromise = fetch(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  })
+  refreshPromise = getCsrfToken()
+    .then(token => fetch(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': token,
+      },
+    }))
     .then(r => r.ok)
     .catch(() => false)
     .finally(() => { refreshPromise = null })

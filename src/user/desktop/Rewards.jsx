@@ -3,16 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import useSettings from '../../hooks/useSettings'
 import useUser from '../../hooks/useUser'
 import useReferrals from '../../hooks/useReferrals'
+import useRewardRules from '../../hooks/useRewardRules'
+import useRewardTransactions from '../../hooks/useRewardTransactions'
+import { claimRewardTransaction } from '../../lib/rewardRules'
+import { useAlert } from '../../components/ui/Alert'
 import {
   Gift, Sparkles, TrendingUp, Crown, Star, ArrowUpRight, Zap,
   Users, ChevronRight, Coins, Lock, Check, Copy, Share2, UserPlus,
   Wallet, ShieldCheck, Send, MailPlus, Fingerprint,
 } from 'lucide-react'
 
-const EARN_STATIC = [
-  { id: 'swap',  label: 'Crypto swap',       desc: '5× points on every swap',      rate: '5× pts',  icon: TrendingUp },
-  { id: 'bills', label: 'Bills & utilities', desc: 'Cable, electricity, internet', rate: '2× pts',  icon: Zap },
-  { id: 'card',  label: 'Card spending',     desc: 'Tap your virtual card',        rate: '1.5×',    icon: Coins },
+const EARN_META = [
+  { id: 'swap',  sourceType: 'crypto_swap',    label: 'Crypto swap',       desc: 'Trade crypto for cash',      fallbackRate: 'Not set',  icon: TrendingUp },
+  { id: 'bills', sourceType: 'bills',          label: 'Bills & utilities', desc: 'Cable, electricity, internet', fallbackRate: 'Not set',  icon: Zap },
+  { id: 'gift_card_trade',  sourceType: 'gift_card_trade',  label: 'Gift Card Trade reward',     desc: 'Trade gift cards for cash',        fallbackRate: 'Not set',    icon: Coins },
 ]
 
 const PERKS = [
@@ -22,12 +26,15 @@ const PERKS = [
   { id: '4', label: 'VIP support line',      desc: 'Priority chat & call agents',   cost: 5000, icon: Crown,       unlocked: false },
 ]
 
-const RECENT_STATIC = [
-  { id: 'r1', title: 'DSTV bill payment', amount: 240, kind: 'pts', meta: 'Today · 14:20' },
-  { id: 'r2', title: 'USDT → NGN swap',   amount: 437, kind: 'pts', meta: 'Yesterday' },
-  { id: 'r4', title: 'Sign-up bonus',     amount: 500, kind: 'pts', meta: 'May 1' },
-  { id: 'r5', title: 'Spotify Premium',   amount: 19,  kind: 'pts', meta: 'May 1' },
-]
+const SOURCE_LABELS = {
+  bills:          'Bills payment',
+  bill_payment:   'Bills payment',
+  crypto_swap:    'Crypto swap',
+  card_spend:     'Card spending',
+  gift_card_trade:'Gift card trade',
+  signup_bonus:   'Sign-up bonus',
+  referral:       'Referral bonus',
+}
 
 const SHARE_CHANNELS = [
   { id: 'whatsapp', label: 'WhatsApp', icon: Send },
@@ -44,11 +51,26 @@ function formatName(name) {
   return parts.length > 1 ? `${cap(parts[0])} ${parts[1][0].toUpperCase()}.` : cap(parts[0])
 }
 
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const diff = Math.floor((Date.now() - d) / 1000)
+  if (diff < 60)     return 'Just now'
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 172800) return 'Yesterday'
+  return d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+}
+
 export default function DesktopRewards() {
-  const [copied, setCopied]   = useState(null)
+  const [copied, setCopied]     = useState(null)
+  const [claiming, setClaiming] = useState(null)
+  const { alert }             = useAlert()
   const { settings }          = useSettings()
   const { user }              = useUser()
-  const { referrals, total, pending, pendingPayout, totalEarned } = useReferrals()
+  const { referrals, total, pending, pendingPayout, totalEarned }  = useReferrals()
+  const { getRuleFor }                                             = useRewardRules()
+  const { transactions, earnedPoints, redeemedPoints, refresh }   = useRewardTransactions()
 
   const referralCode = user?.referral_code ?? ''
   const siteUrl      = settings?.site_url ? settings.site_url.replace(/\/$/, '') : 'https://yourwebsite.com'
@@ -58,10 +80,16 @@ export default function DesktopRewards() {
 
   const EARN = [
     { id: 'refer', label: 'Refer a friend', desc: 'Real cash for every signup', rate: '₦' + fmt(perReferral), icon: Users, cash: true },
-    ...EARN_STATIC,
+    ...EARN_META.map(({ id, sourceType, label, desc, fallbackRate, icon }) => {
+      const rule = getRuleFor(sourceType)
+      const rate = rule
+        ? rule.multiplier !== 1 ? `${rule.multiplier}× pts` : `${rule.points} pts`
+        : fallbackRate
+      return { id, label, desc, rate, icon }
+    }),
   ]
 
-  const points     = 2840
+  const points     = Math.max(0, earnedPoints - redeemedPoints)
   const nextTierAt = 5000
   const progress   = Math.min(100, (points / nextTierAt) * 100)
   const cashback   = Number(user?.referral_balance ?? 0)
@@ -69,19 +97,41 @@ export default function DesktopRewards() {
   const friends    = total
 
   const recentRows = [
-    ...referrals.slice(0, 4).map(r => ({
-      id:     r.id,
+    ...referrals.map(r => ({
+      id:     `ref-${r.id}`,
       title:  `Referral · ${formatName(r.full_name)}`,
       amount: r.reward,
       kind:   'cash',
-      status:     r.status,
-      is_claimed: r.is_claimed,
-      meta:   r.createdAt
-        ? new Date(r.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })
-        : '—',
+      status: r.status,
+      meta:   timeAgo(r.createdAt),
+      _date:  r.createdAt,
     })),
-    ...RECENT_STATIC,
-  ].slice(0, 6)
+    ...transactions.map(t => ({
+      id:     t.id,
+      title:  SOURCE_LABELS[t.sourceType] ?? t.sourceType ?? 'Transaction',
+      amount: t.points,
+      kind:   'pts',
+      type:   t.type,
+      meta:   timeAgo(t.createdAt),
+      _date:  t.createdAt,
+    })),
+  ]
+    .filter(r => r.kind === 'cash' ? r.amount > 0 : true)
+    .sort((a, b) => new Date(b._date) - new Date(a._date))
+    .slice(0, 6)
+
+  async function handleClaim(id) {
+    if (claiming === id) return
+    setClaiming(id)
+    const result = await claimRewardTransaction(id)
+    setClaiming(null)
+    if (result.success) {
+      refresh()
+      alert({ type: 'success', title: 'Reward claimed!', message: 'Your points have been claimed successfully.' })
+    } else {
+      alert({ type: 'error', title: 'Claim failed', message: result.message || 'Could not claim reward. Please try again.' })
+    }
+  }
 
   function handleCopy(key, value) {
     if (!value) return
@@ -151,7 +201,7 @@ export default function DesktopRewards() {
               <span className="text-[15px] font-bold text-white/40 tracking-[2px] mb-1">PTS</span>
             </div>
             <p className="text-[12px] text-white/50 m-0 mb-6">
-              ≈ ₦{fmt(Math.floor(points * 5))} in benefits ready to redeem
+           Benefits ready to redeem
             </p>
 
             {/* Progress */}
@@ -362,7 +412,7 @@ export default function DesktopRewards() {
           <Coins size={22} strokeWidth={2} />
         </span>
         <div className="relative flex-1 min-w-0">
-          <p className="text-[9.5px] uppercase tracking-[1.2px] text-brand-accent font-bold m-0">Cashback available</p>
+          <p className="text-[9.5px] uppercase tracking-[1.2px] text-brand-accent font-bold m-0">Referral balance</p>
           <p className="text-[26px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.6px] leading-tight">{fmtN(cashback)}</p>
           <p className="text-[11.5px] text-[var(--c-text-muted)] m-0 mt-1">Earned across bills, swaps and card spending this month</p>
         </div>
@@ -496,7 +546,8 @@ export default function DesktopRewards() {
                       >
                         {isCash ? `+₦${fmt(r.amount)}` : `+${fmt(r.amount)} pts`}
                       </span>
-                      {r.status && (
+                      {/* referral rows: status badge */}
+                      {isCash && r.status && (
                         <span
                           className="inline-flex items-center px-1.5 py-px rounded-full text-[9px] font-bold tracking-[0.5px]"
                           style={r.status === 'paid'
@@ -504,6 +555,35 @@ export default function DesktopRewards() {
                             : { background: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.25)' }}
                         >
                           {r.status === 'paid' ? 'Claimed' : 'Pending'}
+                        </span>
+                      )}
+                      {/* reward rows: Claim button, Claimed badge, or Expired badge */}
+                      {!isCash && r.type === 'earn' && (
+                        <button
+                          type="button"
+                          disabled={claiming === r.id}
+                          onClick={() => handleClaim(r.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition hover:-translate-y-px active:scale-95 disabled:opacity-60 whitespace-nowrap"
+                          style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.4)', boxShadow: '0 3px 10px rgba(201,162,39,0.2)' }}
+                        >
+                          <Check size={9} strokeWidth={3} />
+                          {claiming === r.id ? 'Claiming…' : 'Claim'}
+                        </button>
+                      )}
+                      {!isCash && r.type === 'redeem' && (
+                        <span
+                          className="inline-flex items-center px-1.5 py-px rounded-full text-[9px] font-bold tracking-[0.5px]"
+                          style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}
+                        >
+                          Claimed
+                        </span>
+                      )}
+                      {!isCash && r.type === 'expire' && (
+                        <span
+                          className="inline-flex items-center px-1.5 py-px rounded-full text-[9px] font-bold tracking-[0.5px]"
+                          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                        >
+                          Expired
                         </span>
                       )}
                     </div>

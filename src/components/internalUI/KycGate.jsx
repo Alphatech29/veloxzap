@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ShieldAlert, ArrowRight } from 'lucide-react'
-import { useTheme } from '../../context/ThemeContext'
+import { useTheme } from '../../hooks/useTheme'
 
 export default function KycGate({ verified, children }) {
   const navigate = useNavigate()

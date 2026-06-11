@@ -1,11 +1,11 @@
 import { Link, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Smartphone, Wifi, Receipt, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
-  CreditCard, Activity, Gift, Tag, Bitcoin, TrendingUp, User as UserIcon, LifeBuoy,
-  LogOut, X, ChevronRight, ShieldCheck, Crown, Settings,
+  CreditCard, Activity, Gift, Tag, Bitcoin, User as UserIcon, LifeBuoy,
+  LogOut, X, ChevronRight, ShieldCheck, Crown, Settings, PiggyBank, Target, Lock, Wallet,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
-import { useTheme } from '../../context/ThemeContext'
+import { useTheme } from '../../hooks/useTheme'
 import useSettings from '../../hooks/useSettings'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -33,9 +33,13 @@ const NAV_GROUPS = [
     items: [
       { to: '/user/deposit',     label: 'Deposit',      icon: ArrowDownLeft },
       { to: '/user/withdraw',    label: 'Withdraw',     icon: ArrowUpRight },
+      { to: '/user/savings',          label: 'Save & earn',    icon: PiggyBank,
+        badge: { label: 'Up to 18%', tone: 'gold' } },
+      { to: '/user/savings/target-savings',   label: 'Target goals',   icon: Target },
+      { to: '/user/savings/fixed-savings',    label: 'Fixed savings',  icon: Lock },
+      { to: '/user/savings/flexible-savings', label: 'Flexible savings', icon: Wallet },
       { to: '/user/convert',          label: 'Convert',        icon: ArrowLeftRight },
       { to: '/user/crypto-exchange',  label: 'Crypto Exchange', icon: Bitcoin },
-      { to: '/user/finance',          label: 'Finance',         icon: TrendingUp },
       { to: '/user/cards',            label: 'Virtual cards',  icon: CreditCard },
       { to: '/user/trade-cards',      label: 'Trade cards',    icon: Tag },
     ],
@@ -213,7 +217,7 @@ export default function UserSidebar({ open, onClose, onLogout }) {
       <div className="pt-3 mt-3 border-t border-[var(--c-border)] flex flex-col gap-2">
         <p className="inline-flex items-center justify-center gap-1 text-[9.5px] text-[var(--c-text-faint)] mt-1">
           <ShieldCheck size={9} className="text-brand-accent" />
-          v1.0.0 · Encrypted
+          v1.2.0 · Encrypted
         </p>
       </div>
     </aside>

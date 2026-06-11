@@ -1,58 +1,44 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCurrentUser,
   getWallet,
   getDedicatedAccount,
   updateAvatar as updateAvatarRequest,
 } from '../lib/user'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from './useAuth'
 import { subscribePush } from '../lib/push'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 export default function useUser({ auto = true } = {}) {
   const { isAuthenticated } = useAuth()
+  const queryClient = useQueryClient()
 
-  const [user,             setUser]             = useState(null)
-  const [wallet,           setWallet]           = useState(null)
-  const [dedicatedAccount, setDedicatedAccount] = useState(null)
-  const [loading,          setLoading]          = useState(false)
-  const [error,            setError]            = useState(null)
+  const userQuery = useQuery({
+    queryKey: queryKeys.user,
+    queryFn: () => unwrap(getCurrentUser()),
+    select: (data) => data.user,
+    enabled: auto && isAuthenticated,
+  })
 
-  const [updating,    setUpdating]    = useState(false)
-  const [updateError, setUpdateError] = useState(null)
+  const walletQuery = useQuery({
+    queryKey: queryKeys.wallet,
+    queryFn: () => unwrap(getWallet()),
+    select: (data) => data.wallet,
+    enabled: auto && isAuthenticated,
+  })
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    const [userResult, walletResult, accountResult] = await Promise.all([
-      getCurrentUser(),
-      getWallet(),
-      getDedicatedAccount(),
-    ])
-    setLoading(false)
-    if (userResult.success) setUser(userResult.user)
-    else setError({ message: userResult.message, code: userResult.code, status: userResult.status })
-
-    if (walletResult.success) setWallet(walletResult.wallet)
-    if (accountResult.success) setDedicatedAccount(accountResult.account)
-
-    return { user: userResult, wallet: walletResult, account: accountResult }
-  }, [])
-
-  const refreshWallet = useCallback(async () => {
-    const result = await getWallet()
-    if (result.success) setWallet(result.wallet)
-    return result
-  }, [])
+  const accountQuery = useQuery({
+    queryKey: queryKeys.dedicatedAccount,
+    queryFn: () => unwrap(getDedicatedAccount()),
+    select: (data) => data.account,
+    enabled: auto && isAuthenticated,
+  })
 
   useEffect(() => {
-    if (!auto) return
-    if (!isAuthenticated) {
-      setUser(null)
-      setWallet(null)
-      setDedicatedAccount(null)
-      return
-    }
-    fetchAll()
+    if (!auto || !isAuthenticated) return
+
     subscribePush()
 
     const API_BASE = import.meta.env.VITE_API_BASE_URL
@@ -61,7 +47,9 @@ export default function useUser({ auto = true } = {}) {
     es.addEventListener('wallet', e => {
       try {
         const data = JSON.parse(e.data)
-        setWallet(prev => prev ? { ...prev, ...data } : data)
+        queryClient.setQueryData(queryKeys.wallet, prev =>
+          prev ? { ...prev, wallet: { ...prev.wallet, ...data } } : prev
+        )
       } catch { /* malformed event */ }
     })
 
@@ -70,40 +58,52 @@ export default function useUser({ auto = true } = {}) {
     }
 
     return () => es.close()
-  }, [auto, isAuthenticated, fetchAll])
+  }, [auto, isAuthenticated, queryClient])
 
-  const updateAvatar = useCallback(async (file) => {
-    setUpdating(true)
-    setUpdateError(null)
-    try {
-      const result = await updateAvatarRequest(file)
-      if (result.success) {
-        setUser(prev => (prev ? { ...prev, avatar: result.avatar } : prev))
-      } else {
-        setUpdateError({ message: result.message, code: result.code })
-      }
-      return result
-    } finally {
-      setUpdating(false)
-    }
-  }, [])
+  const refresh = useCallback(async () => {
+    const [user, wallet, account] = await Promise.all([
+      userQuery.refetch(),
+      walletQuery.refetch(),
+      accountQuery.refetch(),
+    ])
+    return { user: user.data, wallet: wallet.data, account: account.data }
+  }, [userQuery, walletQuery, accountQuery])
+
+  const refreshWallet = useCallback(async () => {
+    const result = await walletQuery.refetch()
+    return result.data
+  }, [walletQuery])
+
+  const avatarMutation = useMutation({
+    mutationFn: (file) => unwrap(updateAvatarRequest(file)),
+    onSuccess: (result) => {
+      queryClient.setQueryData(queryKeys.user, prev =>
+        prev ? { ...prev, user: { ...prev.user, avatar: result.avatar } } : prev
+      )
+    },
+  })
+
+  const updateAvatar = useCallback((file) => avatarMutation.mutateAsync(file).catch(err => ({
+    success: false,
+    message: err.message,
+    code: err.code,
+  })), [avatarMutation])
 
   const reset = useCallback(() => {
-    setError(null)
-    setUpdateError(null)
-  }, [])
+    avatarMutation.reset()
+  }, [avatarMutation])
 
   return {
-    user,
-    wallet,
-    dedicatedAccount,
-    loading,
-    error,
+    user: userQuery.data ?? null,
+    wallet: walletQuery.data ?? null,
+    dedicatedAccount: accountQuery.data ?? null,
+    loading: userQuery.isLoading || walletQuery.isLoading || accountQuery.isLoading,
+    error: userQuery.error,
 
-    updating,
-    updateError,
+    updating: avatarMutation.isPending,
+    updateError: avatarMutation.error ? { message: avatarMutation.error.message, code: avatarMutation.error.code } : null,
 
-    refresh: fetchAll,
+    refresh,
     refreshWallet,
     updateAvatar,
     reset,

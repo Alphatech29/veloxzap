@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getDataVariations, purchaseData, getRecentDataNumbers } from '../lib/data'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 function parseVariation(v) {
   const name = v.name || ''
@@ -104,6 +107,23 @@ function parseVariation(v) {
   return { id: v.code, variationCode: v.code, type, hot, volume, bonus, validity, price, amount, name: v.name, tag: null }
 }
 
+function parseVariationList(rawList) {
+  const seen = new Set()
+  return rawList
+    .filter(v => {
+      if (seen.has(v.code)) return false
+      seen.add(v.code)
+      return /\d+(?:\.\d+)?\s*(?:MB|GB|TB)/i.test(v.name)
+    })
+    .map(parseVariation)
+}
+
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
+
 export const CASHBACK_RATE = 0.00
 
 export const TYPE_TABS = [
@@ -120,102 +140,82 @@ export const TYPE_TABS = [
 ]
 
 export default function useData({ autoRecent = true } = {}) {
-  const [recentNumbers,   setRecentNumbers]   = useState([])
-  const [recentLoading,   setRecentLoading]   = useState(false)
+  const queryClient = useQueryClient()
 
   const [tab, setTab] = useState('hot')
+  const [activeNetwork, setActiveNetwork] = useState(null)
+
+  // every network whose plans have been requested at least once
+  const [requestedNetworks, setRequestedNetworks] = useState([])
+
+  const recentQuery = useQuery({
+    queryKey: queryKeys.data.recent,
+    queryFn: () => unwrap(getRecentDataNumbers()),
+    select: (data) => data.numbers,
+    enabled: autoRecent,
+  })
+
+  const variationQueries = useQueries({
+    queries: requestedNetworks.map((network) => ({
+      queryKey: queryKeys.data.variations(network),
+      queryFn: () => unwrap(getDataVariations(network)),
+      select: (data) => parseVariationList(data.data),
+      staleTime: 30 * 60_000,
+    })),
+  })
 
   // variations cache: { mtn: [...], airtel: [...], ... }
-  const [variations,      setVariations]      = useState({})
-  const [variationsLoading, setVariationsLoading] = useState(false)
-  const [variationsError, setVariationsError] = useState(null)
+  const variations = useMemo(() => {
+    const map = {}
+    requestedNetworks.forEach((network, i) => {
+      if (variationQueries[i]?.data) map[network] = variationQueries[i].data
+    })
+    return map
+  }, [requestedNetworks, variationQueries])
 
-  const [buying,  setBuying]  = useState(false)
-  const [buyError, setBuyError] = useState(null)
+  const activeIndex = requestedNetworks.indexOf(activeNetwork)
+  const activeVariationsQuery = activeIndex !== -1 ? variationQueries[activeIndex] : null
 
-  // Prevent duplicate in-flight variations fetches
-  const fetchingRef = useRef({})
-
-  const fetchRecent = useCallback(async () => {
-    setRecentLoading(true)
-    const result = await getRecentDataNumbers()
-    setRecentLoading(false)
-    if (result.success) setRecentNumbers(result.numbers)
-    return result
+  const fetchVariations = useCallback((network) => {
+    if (!network) return
+    setActiveNetwork(network)
+    setRequestedNetworks(prev => prev.includes(network) ? prev : [...prev, network])
   }, [])
 
-  useEffect(() => {
-    if (autoRecent) fetchRecent()
-  }, [autoRecent, fetchRecent])
+  const buyMutation = useMutation({
+    mutationFn: (payload) => purchaseData(payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.data.recent })
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
+      }
+    },
+  })
 
-  const fetchVariations = useCallback(async (network) => {
-    if (variations[network] || fetchingRef.current[network]) return
-
-    fetchingRef.current[network] = true
-    setVariationsLoading(true)
-    setVariationsError(null)
-
-    const result = await getDataVariations(network)
-
-    fetchingRef.current[network] = false
-    setVariationsLoading(false)
-
-    if (result.success) {
-      const seen = new Set()
-      const parsed = result.data
-        .filter(v => {
-          if (seen.has(v.code)) return false
-          seen.add(v.code)
-          return /\d+(?:\.\d+)?\s*(?:MB|GB|TB)/i.test(v.name)
-        })
-        .map(parseVariation)
-      setVariations(prev => ({ ...prev, [network]: parsed }))
-    } else {
-      setVariationsError(result.message || 'Failed to load plans.')
-    }
-
-    return result
-  }, [variations])
-
-  const buy = useCallback(async ({ phone, network, variationCode, amount, pin }) => {
-    setBuying(true)
-    setBuyError(null)
-
-    const result = await purchaseData({ phone, network, variationCode, amount, pin })
-
-    setBuying(false)
-
-    if (!result.success) {
-      setBuyError(result.message || 'Data purchase failed.')
-    } else {
-      fetchRecent()
-    }
-
-    return result
-  }, [fetchRecent])
+  const buy = useCallback((payload) => buyMutation.mutateAsync(payload), [buyMutation])
 
   const reset = useCallback(() => {
-    setBuyError(null)
-    setVariationsError(null)
-  }, [])
+    buyMutation.reset()
+  }, [buyMutation])
 
   return {
-    recentNumbers,
-    recentLoading,
+    recentNumbers: recentQuery.data ?? [],
+    recentLoading: recentQuery.isLoading,
 
     variations,
-    variationsLoading,
-    variationsError,
+    variationsLoading: !!activeVariationsQuery?.isLoading,
+    variationsError: activeVariationsQuery?.isError ? 'Failed to load plans.' : null,
 
-    buying,
-    buyError,
+    buying: buyMutation.isPending,
+    buyError: mutationError(buyMutation, 'Data purchase failed.'),
 
     tab,
     setTab,
 
     fetchVariations,
     buy,
-    refreshRecent: fetchRecent,
+    refreshRecent: recentQuery.refetch,
     reset,
   }
 }

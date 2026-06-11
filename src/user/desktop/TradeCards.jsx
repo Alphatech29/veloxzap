@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Gift, Check, ShieldCheck, X, Loader2,
   Receipt, Clock, Plus, Trash2, AlertCircle,
-  Hash, ImageIcon, Upload, TrendingUp, ChevronDown, Search, Lock, Tag,
+  Hash, ImageIcon, Upload, TrendingUp, ChevronDown, Search, Lock, Tag, ChevronRight,
 } from 'lucide-react'
 import useGiftCards, { DENOMINATIONS, countryLabel, countryCode } from '../../hooks/useGiftCards'
 import { useAlert } from '../../components/ui/Alert'
+import TradeDetailModal from '../../components/internalUI/TradeDetailModal'
 
 function formatNGN(n) {
   return '₦' + n.toLocaleString('en-NG')
@@ -16,12 +17,13 @@ function StatusBadge({ status }) {
   const map = {
     pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
     processing: { label: 'Processing', cls: 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]' },
-    completed:  { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
+    paid:       { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
     failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-bg,#3a1a1a)] text-[var(--c-danger,#f87171)]' },
+    completed:  { label: 'Completed',  cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
   }
   const s = map[status] || map.pending
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-[0.8px] font-bold ${s.cls}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${s.cls}`}>
       {s.label}
     </span>
   )
@@ -56,7 +58,9 @@ function FieldLabel({ children, aside }) {
   )
 }
 
-function ImageSlot({ index, file, onFile, onRemove }) {
+const ALLOWED_IMG = /\.(png|jpe?g)$/i
+
+function ImageSlot({ index, file, onFiles, onRemove }) {
   const inputRef = useRef(null)
   const [drag, setDrag]       = useState(false)
   const [preview, setPreview] = useState(null)
@@ -70,14 +74,18 @@ function ImageSlot({ index, file, onFile, onRemove }) {
 
   function handleDrop(e) {
     e.preventDefault(); setDrag(false)
-    const f = e.dataTransfer.files[0]
-    if (f?.type.startsWith('image/')) onFile(f)
+    const files = Array.from(e.dataTransfer.files).filter(f => ALLOWED_IMG.test(f.name))
+    if (files.length) onFiles(files)
   }
 
   return (
     <div className="relative">
-      <input ref={inputRef} type="file" accept="image/*" className="hidden"
-        onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]) }} />
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg" multiple className="hidden"
+        onChange={e => {
+          const files = Array.from(e.target.files).filter(f => ALLOWED_IMG.test(f.name))
+          if (files.length) onFiles(files)
+          e.target.value = ''
+        }} />
       {file ? (
         <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[var(--c-accent-border)]">
           <img src={preview} alt="" className="w-full h-full object-cover" />
@@ -523,6 +531,7 @@ export default function DesktopTradeCards() {
   const [images, setImages]          = useState([null])
   const [brandModalOpen, setBrandModalOpen] = useState(false)
   const [ratesModalOpen, setRatesModalOpen] = useState(false)
+  const [selectedTrade, setSelectedTrade]   = useState(null)
 
   // ── Derived ───────────────────────────────────────────────────
   const selectedBrandData = brands.find(b => b.id === brand)
@@ -943,18 +952,47 @@ export default function DesktopTradeCards() {
                       {images.map((file, i) => (
                         <ImageSlot
                           key={i} index={i} file={file}
-                          onFile={f => setImage(i, f)}
+                          onFiles={files => setImages(prev => {
+                            const next = [...prev]
+                            next[i] = files[0]
+                            files.slice(1, 5 - next.length + 1).forEach(f => next.push(f))
+                            return next
+                          })}
                           onRemove={() => images.length > 1 ? removeImage(i) : setImage(i, null)}
                         />
                       ))}
                     </div>
                     {images.length < 5 && (
-                      <button type="button" onClick={addImage} className="mt-2.5 inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-brand-accent hover:opacity-80 transition">
-                        <Plus size={12} strokeWidth={2.5} /> Add another card
-                      </button>
+                      <>
+                        <input
+                          id="bulk-img-add-desktop"
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          multiple
+                          className="hidden"
+                          onChange={e => {
+                            if (!e.target.files.length) return
+                            const files = Array.from(e.target.files).filter(f => ALLOWED_IMG.test(f.name))
+                            if (!files.length) { e.target.value = ''; return }
+                            setImages(prev => {
+                              const next = [...prev]
+                              files.slice(0, 5 - next.length).forEach(f => next.push(f))
+                              return next
+                            })
+                            e.target.value = ''
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('bulk-img-add-desktop').click()}
+                          className="mt-2.5 inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-brand-accent hover:opacity-80 transition"
+                        >
+                          <Plus size={12} strokeWidth={2.5} /> Add more cards
+                        </button>
+                      </>
                     )}
                     <p className="mt-2 text-[10px] text-[var(--c-text-muted)] leading-snug">
-                      Upload a clear photo of the card face. JPG, PNG or WEBP accepted.
+                      Upload clear photos of each card face. You can select multiple at once or drag &amp; drop. PNG, JPG or JPEG only.
                     </p>
                   </>
                 )}
@@ -1053,7 +1091,12 @@ export default function DesktopTradeCards() {
               <h3 className="inline-flex items-center gap-1.5 text-[11.5px] font-bold m-0 text-[var(--c-text)]">
                 <Clock size={11} className="text-brand-accent" /> Recent trades
               </h3>
-              <span className="text-[9.5px] text-[var(--c-text-muted)]">Last 5</span>
+              {!recentLoading && recentTrades.length > 0 && (
+                <a href="/user/trade-history"
+                  className="text-[9.5px] font-bold text-brand-accent hover:underline transition">
+                  View all {recentTrades.length}
+                </a>
+              )}
             </header>
             {recentLoading ? (
               <div className="px-4 py-3 flex items-center gap-2">
@@ -1070,21 +1113,29 @@ export default function DesktopTradeCards() {
                   const b = brands.find(x => x.id === t.brandId)
                   const cLabel = countryLabel(t.countryId)
                   return (
-                    <li key={t.id ?? i} className={`flex items-center gap-2.5 px-4 py-2 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-0.5 shrink-0">
-                        {b?.logo ? <img src={b.logo} alt={b.name} className="w-full h-full object-contain" /> : <span className="text-[9px] font-black text-[var(--c-text-muted)]">?</span>}
-                      </span>
-                      <div className="flex-1 min-w-0 leading-tight">
-                        <p className="text-[11px] font-semibold text-[var(--c-text)] m-0 truncate">
-                          {b?.name || t.brandId} · {cLabel}
-                          {t.cardType === 'physical' && <span className="ml-1 text-[8.5px] uppercase tracking-[0.6px] text-[var(--c-text-muted)]">· physical</span>}
-                        </p>
-                        <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">{t.createdAt || '—'}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-[11px] font-bold text-brand-accent tabular-nums">{t.ngnAmount ? formatNGN(t.ngnAmount) : '—'}</span>
-                        <StatusBadge status={t.status} />
-                      </div>
+                    <li key={t.id ?? i} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+                      <button type="button" onClick={() => setSelectedTrade(t)}
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-[var(--c-surface-soft)] transition-colors group">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-1 shrink-0 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+                          {b?.logo ? <img src={b.logo} alt={b.name} className="w-full h-full object-contain" /> : <Gift size={13} className="text-[var(--c-text-muted)]" />}
+                        </span>
+                        <div className="flex-1 min-w-0 leading-tight">
+                          <p className="text-[11.5px] font-semibold text-[var(--c-text)] m-0 truncate">
+                            {t.brandName} <span className="text-[var(--c-text-muted)] font-normal">· {cLabel}</span>
+                          </p>
+                          <div className="flex items-center  mt-0.5">
+                            <span className="text-[var(--c-border-soft)] select-none">·</span>
+                            <span className="text-[9px] uppercase tracking-[0.4px] font-semibold text-[var(--c-text-faint)]">
+                              {t.cardType === 'physical' ? 'Physical' : 'E-code'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 shrink-0">
+                          <span className="text-[12px] font-black text-brand-accent tabular-nums"> {t.currency}{t.denomination}</span>
+                          <StatusBadge status={t.status} />
+                        </div>
+                        <ChevronRight size={13} className="text-[var(--c-text-faint)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </button>
                     </li>
                   )
                 })}
@@ -1114,6 +1165,17 @@ export default function DesktopTradeCards() {
             brands={brands}
             brandsLoading={brandsLoading}
             onClose={() => setRatesModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Trade detail modal */}
+      <AnimatePresence>
+        {selectedTrade && (
+          <TradeDetailModal
+            trade={selectedTrade}
+            brands={brands}
+            onClose={() => setSelectedTrade(null)}
           />
         )}
       </AnimatePresence>

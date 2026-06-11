@@ -7,7 +7,7 @@ import {
   Lock as LockIcon, Users, Sparkles, Unlock,
 } from 'lucide-react'
 import { FaGoogle } from "react-icons/fa";
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 
 const CHIPS = [
   { Icon: ShieldCheck, label: '247/7 Support',   pos: 'tl' },

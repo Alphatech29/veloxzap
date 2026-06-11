@@ -7,7 +7,7 @@ import {
   Building2, BriefcaseBusiness, Newspaper, Mail,
   LayoutDashboard,
 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../hooks/useAuth'
 
 const C = {
   gold:      'var(--color-brand-accent)',

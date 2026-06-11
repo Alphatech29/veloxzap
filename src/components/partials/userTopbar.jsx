@@ -5,7 +5,7 @@ import {
   Menu, Bell, Search, ChevronDown, Settings, LogOut, Sun, Moon,
   Plus, User, Gift, HelpCircle, Sparkles, CheckCircle2, Command,
 } from 'lucide-react'
-import { useTheme } from '../../context/ThemeContext'
+import { useTheme } from '../../hooks/useTheme'
 import useUser from '../../hooks/useUser'
 import useSettings from '../../hooks/useSettings'
 
@@ -23,7 +23,6 @@ function resolveAvatarUrl(value) {
 }
 
 const NOTIFICATIONS_UNREAD = 3
-const VELOX_POINTS = 3420
 const TIER = 'Gold'
 
 const ICON_BTN =
@@ -70,7 +69,7 @@ export default function UserTopbar({ onOpenDrawer, onLogout }) {
   }, [])
 
   return (
-    <header className="fixed top-0 left-0 right-0 min-[960px]:left-[260px] z-[9999] h-[68px] flex items-center gap-3 px-4 min-[960px]:px-[22px] backdrop-blur-xl bg-[var(--c-top-bg)] border-b border-[var(--c-side-border)] text-[var(--c-text)]">
+    <header className="fixed top-0 left-0 right-0 min-[960px]:left-[260px] z-[50] h-[68px] flex items-center gap-3 px-4 min-[960px]:px-[22px] backdrop-blur-xl bg-[var(--c-top-bg)] border-b border-[var(--c-side-border)] text-[var(--c-text)]">
       <span
         aria-hidden
         className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--color-brand-accent)_38%,transparent)] to-transparent pointer-events-none"
@@ -215,16 +214,7 @@ export default function UserTopbar({ onOpenDrawer, onLogout }) {
                     </div>
                   </div>
 
-                  <div className="relative mt-3 flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
-                    <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--c-text-muted)]">
-                      <Sparkles size={11} className="text-brand-accent" />
-                      <span className="font-semibold text-[var(--c-text)]">{VELOX_POINTS.toLocaleString()}</span>
-                      <span>pts</span>
-                    </div>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[10px] font-bold tracking-wide uppercase">
-                      {TIER}
-                    </span>
-                  </div>
+
                 </div>
 
                 <div className="p-1.5">

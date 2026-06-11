@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useSettings from '../../hooks/useSettings'
 import useUser from '../../hooks/useUser'
+import useReferrals from '../../hooks/useReferrals'
+import useRewardRules from '../../hooks/useRewardRules'
+import useRewardTransactions from '../../hooks/useRewardTransactions'
+import { claimRewardTransaction } from '../../lib/rewardRules'
+import { useAlert } from '../../components/ui/Alert'
 import {
   ChevronLeft, Gift, Sparkles, TrendingUp, Crown, Star,
   ArrowUpRight, Zap, Users, ChevronRight, Coins, Lock, Check,
@@ -10,25 +15,27 @@ import {
   Fingerprint,
 } from 'lucide-react'
 
-const EARN_STATIC = [
-  { id: 'swap',  label: 'Crypto swap',       rate: '5× pts',  icon: TrendingUp },
-  { id: 'bills', label: 'Bills & utilities', rate: '2× pts',  icon: Zap },
-  { id: 'card',  label: 'Card spending',     rate: '1.5×',    icon: Coins },
+const EARN_META = [
+  { id: 'swap',      label: 'Crypto swap',       sourceType: 'crypto_swap',     fallbackRate: '5× pts',  icon: TrendingUp },
+  { id: 'bills',     label: 'Bills & utilities', sourceType: 'bills',           fallbackRate: '2× pts',  icon: Zap },
+  { id: 'gift_card', label: 'Giftcard trades',  sourceType: 'giftcard_trade', fallbackRate: '3× pts',  icon: Coins },
 ]
+
+const SOURCE_LABELS = {
+  bills:          'Bills payment',
+  bill_payment:   'Bills payment',
+  crypto_swap:    'Crypto swap',
+  card_spend:     'Card spending',
+  giftcard_trade: 'Giftcard trade',
+  signup_bonus:   'Sign-up bonus',
+  referral:       'Referral bonus',
+}
 
 const PERKS = [
-  { id: '1', label: 'Free monthly transfer', cost: 250,  icon: Zap,         unlocked: true },
-  { id: '2', label: 'Premium card design',   cost: 1500, icon: Star,        unlocked: true },
-  { id: '3', label: 'Higher daily limits',   cost: 3000, icon: TrendingUp,  unlocked: false },
-  { id: '4', label: 'VIP support line',      cost: 5000, icon: Crown,       unlocked: false },
-]
-
-const RECENT = [
-  { id: 'r0', title: 'Referral · Sarah O.',  amount: 1000, kind: 'cash', meta: 'Today · 09:14' },
-  { id: 'r1', title: 'DSTV bill payment',    amount: 240,  kind: 'pts',  meta: 'Today · 14:20' },
-  { id: 'r2', title: 'USDT → NGN swap',      amount: 437,  kind: 'pts',  meta: 'Yesterday' },
-  { id: 'r3', title: 'Referral · Daniel A.', amount: 1000, kind: 'cash', meta: 'May 6' },
-  { id: 'r4', title: 'Sign-up bonus',        amount: 500,  kind: 'pts',  meta: 'May 1' },
+  { id: '1', label: 'Free monthly transfer', cost: 250,  icon: Zap,        unlocked: true },
+  { id: '2', label: 'Premium card design',   cost: 1500, icon: Star,       unlocked: true },
+  { id: '3', label: 'Higher daily limits',   cost: 3000, icon: TrendingUp, unlocked: false },
+  { id: '4', label: 'VIP support line',      cost: 5000, icon: Crown,      unlocked: false },
 ]
 
 const LIST = {
@@ -44,11 +51,35 @@ const ITEM = {
 function fmt(n) { return Number(n).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(n) }
 
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() }
+function formatName(name) {
+  if (!name) return 'Friend'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return cap(parts[0])
+  return `${cap(parts[0])} ${cap(parts[1]).charAt(0)}.`
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const diff = Math.floor((Date.now() - d) / 1000)
+  if (diff < 60)     return 'Just now'
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`
+  if (diff < 172800) return 'Yesterday'
+  return d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+}
+
 export default function MobileRewards() {
   const navigate = useNavigate()
-  const [copied, setCopied] = useState(null)
-  const { settings } = useSettings()
-  const { user } = useUser()
+  const [copied, setCopied]   = useState(null)
+  const [claiming, setClaiming] = useState(null)
+  const { settings }                                                         = useSettings()
+  const { user }                                                             = useUser()
+  const { alert }                                                            = useAlert()
+  const { referrals, total: friends, pending, pendingPayout, totalEarned }  = useReferrals()
+  const { getRuleFor }                                                       = useRewardRules()
+  const { transactions, earnedPoints, redeemedPoints, refresh }              = useRewardTransactions()
 
   const referralCode = user?.referral_code ?? ''
   const siteUrl      = settings?.site_url ? settings.site_url.replace(/\/$/, '') : 'https://yourwebsite.com'
@@ -56,17 +87,60 @@ export default function MobileRewards() {
   const perReferral  = settings?.referral_rewards ? Number(settings.referral_rewards) : 1000
   const friendBonus  = 500
 
-  const EARN = [
-    { id: 'refer', label: 'Refer a friend', rate: fmtN(perReferral), icon: Users, cash: true },
-    ...EARN_STATIC,
-  ]
-
-  const points     = 2840
+  const cashback   = Number(user?.referral_balance ?? 0)
+  const earned     = totalEarned
+  const points     = Math.max(0, earnedPoints - redeemedPoints)
   const nextTierAt = 5000
   const progress   = Math.min(100, (points / nextTierAt) * 100)
-  const cashback   = 12500
-  const earned     = 12000
-  const friends    = 12
+
+  const EARN = [
+    { id: 'refer', label: 'Refer a friend', rate: fmtN(perReferral), icon: Users, cash: true },
+    ...EARN_META.map(m => {
+      const rule = getRuleFor(m.sourceType)
+      const rate = rule
+        ? (rule.multiplier !== 1 ? `${rule.multiplier}× pts` : `${rule.points} pts`)
+        : m.fallbackRate
+      return { ...m, rate }
+    }),
+  ]
+
+  const recentRows = [
+    ...referrals.map(r => ({
+      id:        r.id,
+      title:     `Referral · ${formatName(r.full_name)}`,
+      amount:    r.reward,
+      kind:      'cash',
+      meta:      timeAgo(r.createdAt),
+      status:    r.status === 'paid' ? 'Claimed' : 'Pending',
+      claimed:   r.status === 'paid',
+      _date:     r.createdAt,
+    })),
+    ...transactions.map(t => ({
+      id:     t.id,
+      title:  SOURCE_LABELS[t.sourceType] ?? t.sourceType ?? 'Transaction',
+      amount: t.points,
+      kind:   'pts',
+      type:   t.type,
+      meta:   timeAgo(t.createdAt),
+      _date:  t.createdAt,
+    })),
+  ]
+    .filter(r => r.kind === 'cash' ? r.amount > 0 : true)
+    .sort((a, b) => new Date(b._date) - new Date(a._date))
+    .slice(0, 6)
+
+  async function handleClaim(id) {
+    if (claiming === id) return
+    setClaiming(id)
+    const result = await claimRewardTransaction(id)
+    setClaiming(null)
+    if (result.success) {
+      refresh()
+      alert({ type: 'success', title: 'Reward claimed!', message: 'Your points have been claimed successfully.' })
+    } else {
+      alert({ type: 'error', title: 'Claim failed', message: result.message || 'Could not claim reward. Please try again.' })
+    }
+  }
 
   function handleCopy(key, value) {
     if (!value) return
@@ -139,9 +213,7 @@ export default function MobileRewards() {
             </span>
             <span className="text-[11px] font-bold text-white/40 tracking-[1.5px]">PTS</span>
           </div>
-          <p className="text-[10px] m-0 mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            ≈ {fmtN(Math.floor(points * 5))} in benefits ready to redeem
-          </p>
+
 
           <div className="pt-3 border-t border-white/[0.07]">
             <div className="flex items-center justify-between mb-1.5 text-[9.5px]">
@@ -162,17 +234,17 @@ export default function MobileRewards() {
               />
             </div>
             <p className="text-[9px] m-0 mt-1 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              {fmt(nextTierAt - points)} pts away from Platinum
+              {fmt(Math.max(0, nextTierAt - points))} pts away from Platinum
             </p>
           </div>
 
           {/* 4-stat grid */}
           <div className="grid grid-cols-2 gap-1.5 mt-3">
             {[
-              { label: 'Cashback ready',  value: fmtN(cashback), accent: true },
-              { label: 'Cash earned',     value: fmtN(earned) },
-              { label: 'Friends joined',  value: fmt(friends) },
-              { label: 'Pending payout',  value: fmtN(2000), sub: '2 referrals' },
+              { label: 'Referral balance', value: fmtN(cashback),    accent: true },
+              { label: 'Cash earned',      value: fmtN(earned) },
+              { label: 'Friends joined',   value: fmt(friends) },
+              { label: 'Unclaimed',        value: fmtN(pendingPayout), sub: `${pending} referral${pending !== 1 ? 's' : ''}` },
             ].map(({ label, value, sub, accent }) => (
               <div
                 key={label}
@@ -357,7 +429,7 @@ export default function MobileRewards() {
           <Coins size={17} strokeWidth={2} />
         </span>
         <div className="relative flex-1 min-w-0">
-          <p className="text-[8.5px] uppercase tracking-[1px] text-brand-accent font-bold m-0">Cashback available</p>
+          <p className="text-[8.5px] uppercase tracking-[1px] text-brand-accent font-bold m-0">Referral balance</p>
           <p className="text-[18px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.5px] leading-tight">{fmtN(cashback)}</p>
           <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">Bills, swaps & card spending</p>
         </div>
@@ -477,7 +549,9 @@ export default function MobileRewards() {
           </button>
         </div>
         <ul className="list-none m-0 p-0 rounded-[16px] border border-[var(--c-border)] overflow-hidden" style={{ background: 'var(--c-surface)' }}>
-          {RECENT.map((r, i) => {
+          {recentRows.length === 0 ? (
+            <li className="px-3 py-4 text-center text-[10px] text-[var(--c-text-muted)]">No recent earnings yet</li>
+          ) : recentRows.map((r, i) => {
             const isCash = r.kind === 'cash'
             return (
               <li key={r.id} className={i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}>
@@ -494,12 +568,54 @@ export default function MobileRewards() {
                     <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">{r.title}</span>
                     <span className="text-[9px] text-[var(--c-text-muted)] mt-0.5">{r.meta}</span>
                   </div>
-                  <span
-                    className="text-[11.5px] font-bold tabular-nums whitespace-nowrap"
-                    style={{ color: isCash ? 'var(--c-success)' : '#C9A227' }}
-                  >
-                    {isCash ? `+₦${fmt(r.amount)}` : `+${fmt(r.amount)} pts`}
-                  </span>
+                  <div className="flex flex-col items-end shrink-0 gap-1">
+                    <span
+                      className="text-[11.5px] font-bold tabular-nums whitespace-nowrap"
+                      style={{ color: isCash ? 'var(--c-success)' : '#C9A227' }}
+                    >
+                      {isCash ? `+₦${fmt(r.amount)}` : `+${fmt(r.amount)} pts`}
+                    </span>
+                    {/* referral rows: status badge only */}
+                    {isCash && r.status && (
+                      <span
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={r.claimed
+                          ? { background: 'rgba(16,185,129,0.1)', color: '#10b981' }
+                          : { background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}
+                      >
+                        {r.status}
+                      </span>
+                    )}
+                    {/* reward rows: Claim button, Claimed badge, or Expired badge */}
+                    {!isCash && r.type === 'earn' && (
+                      <button
+                        type="button"
+                        disabled={claiming === r.id}
+                        onClick={() => handleClaim(r.id)}
+                        className="inline-flex items-center gap-0.5 px-2 py-1 rounded-[8px] text-[9px] font-bold transition active:scale-95 disabled:opacity-60 whitespace-nowrap"
+                        style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.4)' }}
+                      >
+                        <Check size={8} strokeWidth={3} />
+                        {claiming === r.id ? 'Claiming…' : 'Claim'}
+                      </button>
+                    )}
+                    {!isCash && r.type === 'redeem' && (
+                      <span
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                        style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}
+                      >
+                        Claimed
+                      </span>
+                    )}
+                    {!isCash && r.type === 'expire' && (
+                      <span
+                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+                      >
+                        Expired
+                      </span>
+                    )}
+                  </div>
                 </div>
               </li>
             )

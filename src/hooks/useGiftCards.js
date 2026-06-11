@@ -1,5 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getGiftCardBrands, submitGiftCardTrade, getRecentGiftCardTrades } from '../lib/giftcards'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 export const DENOMINATIONS = [5, 10, 15, 25, 50, 100, 200, 500]
 
@@ -15,65 +18,87 @@ export function countryCode(id) {
   return id.slice(0, 2).toUpperCase()
 }
 
+function normalizeTrade(t) {
+  const date = t.created_at ? new Date(t.created_at) : null
+  const createdAt = date
+    ? date.toLocaleString('en-NG', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+    : '—'
+  let cardImages = []
+  try { cardImages = t.card_image ? JSON.parse(t.card_image) : [] } catch { cardImages = [] }
+  return {
+    id:              t.id,
+    reference:       t.reference,
+    brandId:         t.brand_id,
+    brandName:       t.brand_name,
+    subCategoryId:   t.sub_category_id,
+    subCategoryName: t.sub_category_name,
+    cardType:        t.card_type,
+    countryId:       t.country,
+    denomination:    Number(t.amount),
+    currency:        t.currency,
+    rate:            Number(t.rate),
+    receiveAmount:   Number(t.receive_amount),
+    fee:             Number(t.fee),
+    finalAmount:     Number(t.final_amount),
+    cardEcode:       t.card_ecode || null,
+    cardImages,
+    status:          t.status,
+    createdAt,
+  }
+}
 
 export default function useGiftCards({ autoRecent = true } = {}) {
-  const [brands, setBrands]               = useState([])
-  const [brandsLoading, setBrandsLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    getGiftCardBrands().then(r => {
-      setBrandsLoading(false)
-      if (r.success) setBrands(r.brands)
-    })
-  }, [])
+  const brandsQuery = useQuery({
+    queryKey: queryKeys.giftcards.brands,
+    queryFn: () => unwrap(getGiftCardBrands()),
+    select: (data) => data.brands,
+    staleTime: 5 * 60_000,
+  })
 
-  const [recentTrades, setRecentTrades]   = useState([])
-  const [recentLoading, setRecentLoading] = useState(false)
+  const recentQuery = useQuery({
+    queryKey: queryKeys.giftcards.recent,
+    queryFn: () => unwrap(getRecentGiftCardTrades()),
+    select: (data) => data.trades.map(normalizeTrade),
+    enabled: autoRecent,
+  })
 
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitError, setSubmitError] = useState(null)
+  const submitMutation = useMutation({
+    mutationFn: ({ brandId, subCategoryId, denomination, cardType, codes, images }) =>
+      submitGiftCardTrade({ brandId, subCategoryId, denomination, cardType, codes, images }),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.giftcards.recent })
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+      }
+    },
+  })
 
-  const fetchRecent = useCallback(async () => {
-    setRecentLoading(true)
-    const result = await getRecentGiftCardTrades()
-    setRecentLoading(false)
-    if (result.success) setRecentTrades(result.trades)
-    return result
-  }, [])
+  const submit = useCallback((payload) => submitMutation.mutateAsync(payload), [submitMutation])
 
-  useEffect(() => {
-    if (autoRecent) fetchRecent()
-  }, [autoRecent, fetchRecent])
-
-  const submit = useCallback(async ({ brandId, subCategoryId, denomination, cardType, codes, images }) => {
-    setSubmitting(true)
-    setSubmitError(null)
-    const result = await submitGiftCardTrade({ brandId, subCategoryId, denomination, cardType, codes, images })
-    setSubmitting(false)
-    if (!result.success) {
-      setSubmitError(result.message || 'Trade submission failed.')
-    } else {
-      fetchRecent()
-    }
-    return result
-  }, [fetchRecent])
+  const refreshRecent = useCallback(() => recentQuery.refetch(), [recentQuery])
 
   const reset = useCallback(() => {
-    setSubmitError(null)
-  }, [])
+    submitMutation.reset()
+  }, [submitMutation])
+
+  const submitError = submitMutation.data && !submitMutation.data.success
+    ? (submitMutation.data.message || 'Trade submission failed.')
+    : null
 
   return {
-    brands,
-    brandsLoading,
+    brands: brandsQuery.data ?? [],
+    brandsLoading: brandsQuery.isLoading,
 
-    recentTrades,
-    recentLoading,
+    recentTrades: recentQuery.data ?? [],
+    recentLoading: recentQuery.isLoading,
 
-    submitting,
+    submitting: submitMutation.isPending,
     submitError,
 
     submit,
-    refreshRecent: fetchRecent,
+    refreshRecent,
     reset,
   }
 }

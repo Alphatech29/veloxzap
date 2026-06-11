@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import GeneralLayout from './layouts/GeneralLayout'
 import UserLayout from './layouts/UserLayout'
 import PrivateRoute from './components/PrivateRoute'
@@ -10,6 +9,10 @@ import Transactions from './user/Transactions'
 import UserContact from './user/Contact'
 import Convert from './user/Convert'
 import Rewards from './user/Rewards'
+import Saving from './user/Saving'
+import TargetSavings from './user/TargetSavings'
+import FixedSavings from './user/FixedSavings'
+import FlexibleSavings from './user/FlexibleSavings'
 import Cards from './user/Cards'
 import Deposit from './user/Deposit'
 import Withdraw from './user/Withdraw'
@@ -17,8 +20,8 @@ import Airtime from './user/Airtime'
 import Data from './user/Data'
 import Bills from './user/Bills'
 import TradeCards from './user/TradeCards'
+import TradeHistory from './user/TradeHistory'
 import CryptoExchange from './user/CryptoExchange'
-import Finance from './user/Finance'
 import Settings from './user/Settings'
 import ChangePassword from './user/ChangePassword'
 import TransactionPin from './user/TransactionPin'
@@ -43,62 +46,64 @@ import NotFound from './pages/NotFound'
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
+      <Routes>
 
-          <Route element={<GeneralLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/airtime" element={<AirtimeData />} />
-            <Route path="/gift-cards" element={<GiftCards />} />
-            <Route path="/bills" element={<PayBills />} />
-            <Route path="/virtual-card" element={<VirtualCard/>} />
-            <Route path="/crypto-swap" element={<CryptoSwap/>} />
-            <Route path="/spend-globally" element={<SpendGlobally/>} />
-            <Route path="/company/about" element={<About />} />
-            <Route path="/company/blog" element={<Blog />} />
-            <Route path="/company/blog/:id" element={<BlogPost />} />
-            <Route path="/company/contact" element={<Contact />} />
-            <Route path="/company" element={<Navigate to="/company/about" replace />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+        <Route element={<GeneralLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/airtime" element={<AirtimeData />} />
+          <Route path="/gift-cards" element={<GiftCards />} />
+          <Route path="/bills" element={<PayBills />} />
+          <Route path="/virtual-card" element={<VirtualCard/>} />
+          <Route path="/crypto-swap" element={<CryptoSwap/>} />
+          <Route path="/spend-globally" element={<SpendGlobally/>} />
+          <Route path="/company/about" element={<About />} />
+          <Route path="/company/blog" element={<Blog />} />
+          <Route path="/company/blog/:id" element={<BlogPost />} />
+          <Route path="/company/contact" element={<Contact />} />
+          <Route path="/company" element={<Navigate to="/company/about" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
 
-          <Route
-            path="/user"
-            element={
-              <PrivateRoute>
-                <UserLayout />
-              </PrivateRoute>
-            }
-          >
-            <Route index element={<Navigate to="/user/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="more" element={<More />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="transactions" element={<Transactions />} />
-            <Route path="contact" element={<UserContact />} />
-            <Route path="convert" element={<Convert />} />
-            <Route path="rewards" element={<Rewards />} />
-            <Route path="cards" element={<Cards />} />
-            <Route path="deposit"  element={<Deposit />} />
-            <Route path="withdraw" element={<Withdraw />} />
-            <Route path="airtime" element={<Airtime />} />
-            <Route path="data" element={<Data />} />
-            <Route path="bills" element={<Bills />} />
-            <Route path="trade-cards" element={<TradeCards />} />
-            <Route path="crypto-exchange" element={<CryptoExchange />} />
-            <Route path="finance" element={<Finance />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="change-password" element={<ChangePassword />} />
-            <Route path="transaction-pin" element={<TransactionPin />} />
-            <Route path="*" element={<UserNotFound />} />
-          </Route>
+        <Route
+          path="/user"
+          element={
+            <PrivateRoute>
+              <UserLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Navigate to="/user/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="more" element={<More />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="contact" element={<UserContact />} />
+          <Route path="convert" element={<Convert />} />
+          <Route path="rewards" element={<Rewards />} />
+          <Route path="savings" element={<Saving />} />
+          <Route path="savings/target-savings" element={<TargetSavings />} />
+          <Route path="savings/fixed-savings" element={<FixedSavings />} />
+          <Route path="savings/flexible-savings" element={<FlexibleSavings />} />
+          <Route path="cards" element={<Cards />} />
+          <Route path="deposit"  element={<Deposit />} />
+          <Route path="withdraw" element={<Withdraw />} />
+          <Route path="airtime" element={<Airtime />} />
+          <Route path="data" element={<Data />} />
+          <Route path="bills" element={<Bills />} />
+          <Route path="trade-cards" element={<TradeCards />} />
+          <Route path="trade-history" element={<TradeHistory />} />
+          <Route path="crypto-exchange" element={<CryptoExchange />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="change-password" element={<ChangePassword />} />
+          <Route path="transaction-pin" element={<TransactionPin />} />
+          <Route path="*" element={<UserNotFound />} />
+        </Route>
 
-          <Route path="/auth/login" element={<Login />} />
-          <Route path="/auth/register" element={<Register />} />
-          <Route path="/auth/forget-password" element={<ForgetPassword />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-        </Routes>
-      </AuthProvider>
+        <Route path="/auth/login" element={<Login />} />
+        <Route path="/auth/register" element={<Register />} />
+        <Route path="/auth/forget-password" element={<ForgetPassword />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
+      </Routes>
     </BrowserRouter>
   )
 }

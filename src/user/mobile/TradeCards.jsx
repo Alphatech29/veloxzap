@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, Sparkles, Gift, Check, ShieldCheck, X, Loader2,
   Plus, Trash2, AlertCircle, TrendingUp, Hash, ImageIcon, Upload, ChevronDown,
-  Search, Lock, Tag,
+  Search, Lock, Tag, History, ChevronRight,
 } from 'lucide-react'
 import useGiftCards, { DENOMINATIONS, countryLabel, countryCode } from '../../hooks/useGiftCards'
 import { useAlert } from '../../components/ui/Alert'
@@ -18,12 +18,13 @@ function StatusBadge({ status }) {
   const map = {
     pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
     processing: { label: 'Processing', cls: 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]' },
-    completed:  { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-    failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-bg,#3a1a1a)] text-[var(--c-danger,#f87171)]' },
+    paid:       { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
+    failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
+    completed:  { label: 'Completed',  cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
   }
   const s = map[status] || map.pending
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-[0.8px] font-bold ${s.cls}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${s.cls}`}>
       {s.label}
     </span>
   )
@@ -38,7 +39,7 @@ function FieldLabel({ children, aside }) {
   )
 }
 
-function ImageSlot({ index, file, onFile, onRemove }) {
+function ImageSlot({ index, file, onFiles, onRemove }) {
   const inputRef = useRef(null)
   const [preview, setPreview] = useState(null)
 
@@ -51,8 +52,12 @@ function ImageSlot({ index, file, onFile, onRemove }) {
 
   return (
     <div className="relative">
-      <input ref={inputRef} type="file" accept="image/*" className="hidden"
-        onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]) }} />
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg" multiple className="hidden"
+        onChange={e => {
+          const allowed = Array.from(e.target.files).filter(f => /\.(png|jpe?g)$/i.test(f.name))
+          if (allowed.length) onFiles(allowed)
+          e.target.value = ''
+        }} />
       {file ? (
         <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border border-[var(--c-accent-border)]">
           <img src={preview} alt="" className="w-full h-full object-cover" />
@@ -390,12 +395,92 @@ function BrandSheet({ open, brands, brandsLoading, selectedId, onSelect, onClose
   )
 }
 
+function DetailRow({ label, value, highlight }) {
+  return (
+    <div className={`flex items-center justify-between gap-2 px-3.5 py-2.5 ${highlight ? 'bg-[rgba(16,185,129,0.06)]' : ''}`}>
+      <span className="text-[10.5px] text-[var(--c-text-muted)]">{label}</span>
+      <span className={`text-right tabular-nums ${highlight ? 'text-[15px] font-black text-brand-accent' : 'text-[11.5px] font-semibold text-[var(--c-text)]'}`}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function TradeDetailSheet({ trade, brands, open, onClose }) {
+  const b = brands.find(x => x.id === trade?.brandId)
+  return (
+    <BottomSheet open={open} onClose={onClose} maxHeight="90vh">
+      {trade && (
+        <div className="px-5 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)' }}>
+          {/* Brand header */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] shrink-0">
+              {b?.logo ? <img src={b.logo} alt={trade.brandName} className="w-full h-full object-contain" /> : <Gift size={18} className="text-[var(--c-text-muted)]" />}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] uppercase tracking-[1.1px] font-bold text-brand-accent m-0">{trade.subCategoryName}</p>
+              <p className="text-[16px] font-bold text-[var(--c-text)] m-0 leading-tight truncate">{trade.brandName}</p>
+            </div>
+            <StatusBadge status={trade.status} />
+          </div>
+
+          {/* Reference */}
+          <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border)] mb-4">
+            <span className="text-[9px] uppercase tracking-[0.8px] font-bold text-[var(--c-text-muted)]">Reference</span>
+            <span className="text-[10.5px] font-mono font-semibold text-[var(--c-text)] tracking-tight select-all">{trade.reference}</span>
+          </div>
+
+          {/* Breakdown */}
+          <div className="rounded-xl overflow-hidden border border-[var(--c-border)] divide-y divide-[var(--c-border)] bg-[var(--c-surface-soft)]">
+            <DetailRow label="Card type"    value={trade.cardType === 'physical' ? 'Physical card' : 'E-code'} />
+            <DetailRow label="Country"      value={countryLabel(trade.countryId)} />
+            <DetailRow label="Denomination" value={`${trade.currency}${trade.denomination}`} />
+            <DetailRow label="Rate"         value={`${formatNGN(trade.rate)} / ${trade.currency}1`} />
+            <DetailRow label="Gross payout" value={formatNGN(trade.receiveAmount)} />
+            <DetailRow label="Fee deducted" value={`− ${formatNGN(trade.fee)}`} />
+            <DetailRow label="You receive"  value={formatNGN(trade.finalAmount)} highlight />
+          </div>
+
+          {/* Card content */}
+          {trade.cardType === 'physical' && trade.cardImages.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] mb-2 m-0">Card images</p>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {trade.cardImages.map((img, i) => (
+                  <div key={i} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-[var(--c-border)] bg-[var(--c-surface-soft)]">
+                    <img
+                      src={`${import.meta.env.VITE_API_BASE_URL}/uploads/images/${img}`}
+                      alt={`Card ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-1.5 left-1.5 inline-flex items-center justify-center w-5 h-5 rounded-md bg-black/55 text-white text-[9px] font-black">{i + 1}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {trade.cardType === 'ecode' && trade.cardEcode && (
+            <div className="mt-4">
+              <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] mb-2 m-0">E-code</p>
+              <div className="px-3.5 py-3 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)]">
+                <p className="text-[13px] font-mono font-semibold text-[var(--c-text)] m-0 break-all select-all">{trade.cardEcode}</p>
+              </div>
+            </div>
+          )}
+
+          <p className="text-[10px] text-[var(--c-text-muted)] text-center mt-4">{trade.createdAt}</p>
+        </div>
+      )}
+    </BottomSheet>
+  )
+}
+
 export default function MobileTradeCards() {
   const navigate = useNavigate()
   const { alert } = useAlert()
   const {
     brands, brandsLoading,
-    recentTrades,
+    recentTrades, recentLoading,
     submitting, submitError,
     submit, reset,
   } = useGiftCards()
@@ -410,6 +495,7 @@ export default function MobileTradeCards() {
   const [brandSheetOpen, setBrandSheetOpen] = useState(false)
   const [sheetOpen, setSheetOpen]           = useState(false)
   const [ratesSheetOpen, setRatesSheetOpen] = useState(false)
+  const [selectedTrade, setSelectedTrade]   = useState(null)
 
   // ── Derived ───────────────────────────────────────────────────
   const selectedBrandData = brands.find(b => b.id === brand)
@@ -781,7 +867,14 @@ export default function MobileTradeCards() {
                   {images.map((file, i) => (
                     <ImageSlot
                       key={i} index={i} file={file}
-                      onFile={f => setImages(p => p.map((img, idx) => idx === i ? f : img))}
+                      onFiles={files => setImages(prev => {
+                        const next = [...prev]
+                        next[i] = files[0]
+                        const extras = files.slice(1)
+                        const slotsAvail = 5 - next.length
+                        extras.slice(0, slotsAvail).forEach(f => next.push(f))
+                        return next
+                      })}
                       onRemove={() => images.length > 1
                         ? setImages(p => p.filter((_, idx) => idx !== i))
                         : setImages(p => p.map((img, idx) => idx === i ? null : img))}
@@ -789,49 +882,42 @@ export default function MobileTradeCards() {
                   ))}
                 </div>
                 {images.length < 5 && (
-                  <button type="button" onClick={() => setImages(p => [...p, null])} className="mt-2 inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-brand-accent active:scale-95 transition">
-                    <Plus size={12} strokeWidth={2.5} /> Add another card
-                  </button>
+                  <>
+                    <input
+                      id="bulk-img-add"
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      multiple
+                      className="hidden"
+                      onChange={e => {
+                        if (!e.target.files.length) return
+                        const files = Array.from(e.target.files).filter(f => /\.(png|jpe?g)$/i.test(f.name))
+                        if (!files.length) { e.target.value = ''; return }
+                        setImages(prev => {
+                          const next = [...prev]
+                          files.slice(0, 5 - next.length).forEach(f => next.push(f))
+                          return next
+                        })
+                        e.target.value = ''
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('bulk-img-add').click()}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[10.5px] font-semibold text-brand-accent active:scale-95 transition"
+                    >
+                      <Plus size={12} strokeWidth={2.5} /> Add more cards
+                    </button>
+                  </>
                 )}
                 <p className="mt-2 text-[10px] text-[var(--c-text-muted)] leading-snug">
-                  Upload a clear photo of the card face. JPG, PNG or WEBP accepted.
+                  Upload clear photos of each card face. You can select multiple at once. PNG, JPG or JPEG only.
                 </p>
               </>
             )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Recent trades */}
-      {recentTrades.length > 0 && (
-        <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
-          <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] px-3.5 pt-3 pb-2 m-0">Recent trades</p>
-          <ul className="list-none m-0 p-0">
-            {recentTrades.slice(0, 5).map((t, i) => {
-              const b = brands.find(x => x.id === t.brandId)
-              const cLabel = countryLabel(t.countryId)
-              return (
-                <li key={t.id ?? i} className={`flex items-center gap-2.5 px-3.5 py-2.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-white border border-[var(--c-border)] overflow-hidden p-1 shrink-0">
-                    {b?.logo ? <img src={b.logo} alt={b.name} className="w-full h-full object-contain" /> : <span className="text-[9px] font-black text-[var(--c-text-muted)]">?</span>}
-                  </span>
-                  <div className="flex-1 min-w-0 leading-tight">
-                    <p className="text-[11px] font-semibold text-[var(--c-text)] m-0 truncate">
-                      {b?.name || t.brandId} · {cLabel}
-                      {t.cardType === 'physical' && <span className="ml-1 text-[8.5px] uppercase tracking-[0.6px] text-[var(--c-text-muted)]">· physical</span>}
-                    </p>
-                    <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">{t.createdAt || '—'}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5 shrink-0">
-                    <span className="text-[11px] font-bold text-brand-accent tabular-nums">{t.ngnAmount ? formatNGN(t.ngnAmount) : '—'}</span>
-                    <StatusBadge status={t.status} />
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      )}
 
       {/* Bottom CTA */}
       <div className="px-4 pb-4 pt-2">
@@ -855,6 +941,88 @@ export default function MobileTradeCards() {
             : cardType === 'physical' && validImages.length === 0  ? 'Upload card image'
             : `Review trade${totalPayout ? ` · ${formatNGN(totalPayout)}` : ''}`}
         </button>
+      </div>
+
+      {/* Recent trades */}
+      <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3.5 pt-3 pb-2.5 border-b border-[var(--c-border)]">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
+              <History size={10} className="text-brand-accent" />
+            </span>
+            <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] m-0">Recent trades</p>
+          </div>
+          {!recentLoading && recentTrades.length > 0 && (
+            <button type="button" onClick={() => navigate('/user/trade-history')}
+              className="text-[9px] font-bold text-brand-accent bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] px-2 py-0.5 rounded-full tabular-nums active:scale-95 transition">
+              View all {recentTrades.length}
+            </button>
+          )}
+        </div>
+
+        {/* Loading skeleton */}
+        {recentLoading ? (
+          <ul className="list-none m-0 p-0">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li key={i} className={`flex items-center gap-2.5 px-3.5 py-3 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
+                <div className="w-8 h-8 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border)] animate-pulse shrink-0" />
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="h-2.5 w-28 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+                  <div className="h-2 w-16 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+                </div>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="h-3 w-14 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+                  <div className="h-3.5 w-12 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : recentTrades.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 px-4 gap-2">
+            <span className="inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)]">
+              <History size={18} />
+            </span>
+            <p className="text-[11px] text-[var(--c-text-muted)] m-0 text-center">No trades yet. Submit your first card above.</p>
+          </div>
+        ) : (
+          <ul className="list-none m-0 p-0">
+            {recentTrades.slice(0, 5).map((t, i) => {
+              const b = brands.find(x => x.id === t.brandId)
+              const cLabel = countryLabel(t.countryId)
+              return (
+                <li key={t.id ?? i} className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+                  <button type="button" onClick={() => setSelectedTrade(t)}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-3 text-left active:bg-[var(--c-surface-soft)] transition-colors">
+                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-[var(--c-border)] overflow-hidden p-1.5 shrink-0 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+                      {b?.logo
+                        ? <img src={b.logo} alt={b.name} className="w-full h-full object-contain" />
+                        : <Gift size={14} className="text-[var(--c-text-muted)]" />}
+                    </span>
+                    <div className="flex-1 min-w-0 leading-tight">
+                      <p className="text-[12px] font-semibold text-[var(--c-text)] m-0 truncate">
+                        {t.brandName} <span className="text-[var(--c-text-muted)] font-normal">· {cLabel}</span>
+                      </p>
+                      <div className="flex items-center mt-0.5">
+                        <span className="text-[var(--c-border-soft)] select-none">·</span>
+                        <span className="text-[9px] uppercase tracking-[0.4px] font-semibold text-[var(--c-text-faint)]">
+                          {t.cardType === 'physical' ? 'Physical' : 'E-code'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="text-[12.5px] font-black tabular-nums text-brand-accent">
+                        {t.currency}{t.denomination}
+                      </span>
+                      <StatusBadge status={t.status} />
+                    </div>
+
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
 
       {/* Rates sheet */}
@@ -931,6 +1099,14 @@ export default function MobileTradeCards() {
                 </p>
         </div>
       </BottomSheet>
+
+      {/* Trade detail sheet */}
+      <TradeDetailSheet
+        trade={selectedTrade}
+        brands={brands}
+        open={!!selectedTrade}
+        onClose={() => setSelectedTrade(null)}
+      />
 
     </div>
   )

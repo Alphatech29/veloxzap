@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { verifySmartcard, getTvVariations, changeBouquet, renewBouquet } from '../lib/cable'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
+
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
 
 export default function useCable() {
+  const queryClient = useQueryClient()
+
   // Smartcard verify
   const [verifyStatus, setVerifyStatus] = useState('idle')
   const [customerName, setCustomerName] = useState('')
@@ -10,15 +21,31 @@ export default function useCable() {
   const [renewalAmount, setRenewalAmount] = useState(null)
 
   // Variations
-  const [variationsLoading, setVariationsLoading] = useState(false)
-  const [variations, setVariations] = useState([])
+  const [serviceID, setServiceID] = useState(null)
 
   // Purchase
-  const [buying, setBuying] = useState(false)
-  const [buyError, setBuyError] = useState(null)
   const [reference, setReference] = useState('')
 
   const timerRef = useRef(null)
+
+  const verifyMutation = useMutation({
+    mutationFn: ({ billersCode, serviceID }) => verifySmartcard({ billersCode, serviceID }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setCustomerName(result.data?.customerName || '')
+        setCurrentBouquet(result.data?.currentBouquet || '')
+        setDueDate(result.data?.dueDate || '')
+        setRenewalAmount(result.data?.renewalAmount ?? null)
+        setVerifyStatus('found')
+      } else {
+        setCustomerName('')
+        setCurrentBouquet('')
+        setDueDate('')
+        setRenewalAmount(null)
+        setVerifyStatus('invalid')
+      }
+    },
+  })
 
   const verify = useCallback(({ billersCode, serviceID }) => {
     clearTimeout(timerRef.current)
@@ -33,83 +60,58 @@ export default function useCable() {
     }
 
     setVerifyStatus('loading')
-    timerRef.current = setTimeout(async () => {
-      const result = await verifySmartcard({ billersCode, serviceID })
-      if (result.success) {
-        setCustomerName(result.data?.customerName || '')
-        setCurrentBouquet(result.data?.currentBouquet || '')
-        setDueDate(result.data?.dueDate || '')
-        setRenewalAmount(result.data?.renewalAmount ?? null)
-        setVerifyStatus('found')
-      } else {
-        setCustomerName('')
-        setCurrentBouquet('')
-        setDueDate('')
-        setRenewalAmount(null)
-        setVerifyStatus('invalid')
-      }
+    timerRef.current = setTimeout(() => {
+      verifyMutation.mutate({ billersCode, serviceID })
     }, 700)
+  }, [verifyMutation])
+
+  const variationsQuery = useQuery({
+    queryKey: queryKeys.cable.variations(serviceID),
+    queryFn: () => unwrap(getTvVariations(serviceID)),
+    select: (data) => data.data || [],
+    enabled: !!serviceID,
+    staleTime: 30 * 60_000,
+  })
+
+  const loadVariations = useCallback((sid) => {
+    setServiceID(sid || null)
   }, [])
 
-  const loadVariations = useCallback(async (serviceID) => {
-    if (!serviceID) { setVariations([]); return }
-    setVariationsLoading(true)
-    const result = await getTvVariations(serviceID)
-    setVariationsLoading(false)
-    if (result.success) {
-      setVariations(result.data || [])
-    } else {
-      setVariations([])
-    }
-  }, [])
-
-  const buy = useCallback(async ({ billersCode, serviceID, variation_code, amount, phone, pin, action }) => {
-    setBuying(true)
-    setBuyError(null)
-
-    try {
-      const fn = action === 'renew' ? renewBouquet : changeBouquet
-      const result = await fn({ billersCode, serviceID, variation_code, amount, phone, pin })
-
-      setBuying(false)
-
-      if (!result?.success) {
-        const msg = result?.message || 'Payment failed. Please try again.'
-        setBuyError(msg)
-        return { success: false, message: msg }
+  const buyMutation = useMutation({
+    mutationFn: ({ action, ...payload }) => (action === 'renew' ? renewBouquet(payload) : changeBouquet(payload)),
+    onSuccess: (result) => {
+      if (result.success) {
+        setReference(result.data?.reference || '')
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
       }
+    },
+  })
 
-      setReference(result.data?.reference || '')
-      return result
-    } catch {
-      setBuying(false)
-      const msg = 'Network error. Please try again.'
-      setBuyError(msg)
-      return { success: false, message: msg }
-    }
-  }, [])
+  const buy = useCallback((payload) => buyMutation.mutateAsync(payload), [buyMutation])
 
   const resetVerify = useCallback(() => {
     clearTimeout(timerRef.current)
+    verifyMutation.reset()
     setVerifyStatus('idle')
     setCustomerName('')
     setCurrentBouquet('')
     setDueDate('')
     setRenewalAmount(null)
-  }, [])
+  }, [verifyMutation])
 
   const reset = useCallback(() => {
     clearTimeout(timerRef.current)
+    verifyMutation.reset()
+    buyMutation.reset()
     setVerifyStatus('idle')
     setCustomerName('')
     setCurrentBouquet('')
     setDueDate('')
     setRenewalAmount(null)
-    setVariations([])
-    setBuying(false)
-    setBuyError(null)
+    setServiceID(null)
     setReference('')
-  }, [])
+  }, [verifyMutation, buyMutation])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
@@ -122,12 +124,12 @@ export default function useCable() {
     verify,
     resetVerify,
 
-    variationsLoading,
-    variations,
+    variationsLoading: !!serviceID && variationsQuery.isLoading,
+    variations: variationsQuery.data ?? [],
     loadVariations,
 
-    buying,
-    buyError,
+    buying: buyMutation.isPending,
+    buyError: mutationError(buyMutation, 'Payment failed. Please try again.'),
     reference,
     buy,
     reset,

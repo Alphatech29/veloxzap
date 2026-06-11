@@ -1,60 +1,64 @@
 import { useCallback, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { purchaseBetting, validateBetting } from '../lib/betting'
+import { queryKeys } from '../lib/queryKeys'
+
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
 
 export default function useBetting() {
-  const [buying, setBuying] = useState(false)
-  const [buyError, setBuyError] = useState(null)
-  const [reference, setReference] = useState('')
-  const [validating, setValidating] = useState(false)
+  const queryClient = useQueryClient()
+
   const [customerName, setCustomerName] = useState(null)
-  const [validationError, setValidationError] = useState(null)
+  const [reference, setReference] = useState('')
 
-  const validate = useCallback(async ({ serviceID, betting_number }) => {
-    setValidating(true)
-    setCustomerName(null)
-    setValidationError(null)
-    const result = await validateBetting({ serviceID, betting_number })
-    setValidating(false)
-    if (result.success) {
-      setCustomerName(result.data?.customerName || 'Account verified')
-    } else {
-      setValidationError(result.message || 'Account not found')
-    }
-    return result
-  }, [])
+  const validateMutation = useMutation({
+    mutationFn: ({ serviceID, betting_number }) => validateBetting({ serviceID, betting_number }),
+    onMutate: () => {
+      setCustomerName(null)
+    },
+    onSuccess: (result) => {
+      if (result.success) setCustomerName(result.data?.customerName || 'Account verified')
+    },
+  })
 
-  const buy = useCallback(async ({ serviceID, billersCode, amount, pin }) => {
-    setBuying(true)
-    setBuyError(null)
-    const result = await purchaseBetting({ serviceID, billersCode, amount, pin })
-    setBuying(false)
-    if (!result.success) {
-      const msg = result.message || 'Payment failed. Please try again.'
-      setBuyError(msg)
-      return { success: false, message: msg }
-    }
-    setReference(result.data?.reference || '')
-    return result
-  }, [])
+  const validate = useCallback((payload) => validateMutation.mutateAsync(payload), [validateMutation])
+
+  const buyMutation = useMutation({
+    mutationFn: (payload) => purchaseBetting(payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        setReference(result.data?.reference || '')
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
+      }
+    },
+  })
+
+  const buy = useCallback((payload) => buyMutation.mutateAsync(payload), [buyMutation])
 
   const resetValidation = useCallback(() => {
-    setValidating(false)
+    validateMutation.reset()
     setCustomerName(null)
-    setValidationError(null)
-  }, [])
+  }, [validateMutation])
 
   const reset = useCallback(() => {
-    setBuying(false)
-    setBuyError(null)
-    setReference('')
-    setValidating(false)
+    validateMutation.reset()
+    buyMutation.reset()
     setCustomerName(null)
-    setValidationError(null)
-  }, [])
+    setReference('')
+  }, [validateMutation, buyMutation])
 
   return {
-    buying, buyError, reference,
-    validating, customerName, validationError,
+    buying: buyMutation.isPending,
+    buyError: buyMutation.isPending ? null : mutationError(buyMutation, 'Payment failed. Please try again.'),
+    reference,
+    validating: validateMutation.isPending,
+    customerName,
+    validationError: validateMutation.isPending ? null : mutationError(validateMutation, 'Account not found'),
     validate, buy, reset, resetValidation,
   }
 }

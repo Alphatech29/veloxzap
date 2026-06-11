@@ -1,59 +1,55 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { purchaseAirtime, getRecentAirtimeNumbers } from '../lib/airtime'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 export const PRESETS = [50, 100, 200, 500, 1000, 2000]
 
 export const CASHBACK_RATE = 0.00
 
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
+
 export default function useAirtime({ autoRecent = true } = {}) {
-  const [recentNumbers, setRecentNumbers] = useState([])
-  const [recentLoading, setRecentLoading] = useState(false)
+  const queryClient = useQueryClient()
 
-  const [buying,   setBuying]   = useState(false)
-  const [buyError, setBuyError] = useState(null)
+  const recentQuery = useQuery({
+    queryKey: queryKeys.airtime.recent,
+    queryFn: () => unwrap(getRecentAirtimeNumbers()),
+    select: (data) => data.numbers,
+    enabled: autoRecent,
+  })
 
-  const fetchRecent = useCallback(async () => {
-    setRecentLoading(true)
-    const result = await getRecentAirtimeNumbers()
-    setRecentLoading(false)
-    if (result.success) setRecentNumbers(result.numbers)
-    return result
-  }, [])
+  const buyMutation = useMutation({
+    mutationFn: (payload) => purchaseAirtime(payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.airtime.recent })
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
+      }
+    },
+  })
 
-  useEffect(() => {
-    if (autoRecent) fetchRecent()
-  }, [autoRecent, fetchRecent])
-
-  const buy = useCallback(async ({ phone, amount, network, pin }) => {
-    setBuying(true)
-    setBuyError(null)
-
-    const result = await purchaseAirtime({ phone, amount, network, pin })
-
-    setBuying(false)
-
-    if (!result.success) {
-      setBuyError(result.message || 'Airtime purchase failed.')
-    } else {
-      fetchRecent()
-    }
-
-    return result
-  }, [fetchRecent])
+  const buy = useCallback((payload) => buyMutation.mutateAsync(payload), [buyMutation])
 
   const reset = useCallback(() => {
-    setBuyError(null)
-  }, [])
+    buyMutation.reset()
+  }, [buyMutation])
 
   return {
-    recentNumbers,
-    recentLoading,
+    recentNumbers: recentQuery.data ?? [],
+    recentLoading: recentQuery.isLoading,
 
-    buying,
-    buyError,
+    buying: buyMutation.isPending,
+    buyError: mutationError(buyMutation, 'Airtime purchase failed.'),
 
     buy,
-    refreshRecent: fetchRecent,
+    refreshRecent: recentQuery.refetch,
     reset,
   }
 }

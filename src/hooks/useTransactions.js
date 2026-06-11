@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchHistory } from '../lib/transactions'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 function diffDays(dateStr) {
   const date = new Date(dateStr)
@@ -57,44 +59,32 @@ function normalize(row) {
 }
 
 export default function useTransactions({ autoFetch = true, recentLimit = 6 } = {}) {
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading]           = useState(false)
-  const [error, setError]               = useState(null)
+  const query = useQuery({
+    queryKey: queryKeys.transactions.recent,
+    queryFn: () => unwrap(fetchHistory()),
+    select: (data) => data.rows.slice(0, recentLimit).map(normalize),
+    enabled: autoFetch,
+  })
 
-  const fetchRecent = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    const result = await fetchHistory()
-    setLoading(false)
-    if (result.success) {
-      setTransactions(result.rows.slice(0, recentLimit).map(normalize))
-    } else {
-      setError(result.message || 'Failed to load transactions.')
-    }
-    return result
-  }, [recentLimit])
-
-  useEffect(() => {
-    if (autoFetch) fetchRecent()
-  }, [autoFetch, fetchRecent])
+  const transactions = query.data ?? []
 
   // Only status_type:"credit" + status:"successful" counts as inflow
   // Only status_type:"debit"  + status:"successful" counts as outflow
-  const inflow = useMemo(
-    () => transactions
-      .filter(t => t.kind === 'in' && t.status === 'completed')
-      .reduce((s, t) => s + t.total, 0),
-    [transactions]
-  )
+  const inflow = transactions
+    .filter(t => t.kind === 'in' && t.status === 'completed')
+    .reduce((s, t) => s + t.total, 0)
 
-  const outflow = useMemo(
-    () => transactions
-      .filter(t => t.kind === 'out' && t.status === 'completed')
-      .reduce((s, t) => s + t.total, 0),
-    [transactions]
-  )
+  const outflow = transactions
+    .filter(t => t.kind === 'out' && t.status === 'completed')
+    .reduce((s, t) => s + t.total, 0)
 
-  const refresh = useCallback(() => fetchRecent(), [fetchRecent])
-
-  return { transactions, loading, error, inflow, outflow, refresh, fetchRecent }
+  return {
+    transactions,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    inflow,
+    outflow,
+    refresh: query.refetch,
+    fetchRecent: query.refetch,
+  }
 }

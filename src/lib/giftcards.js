@@ -14,7 +14,7 @@ export async function submitGiftCardTrade({ brandId, subCategoryId, denomination
     body.append('sub_category_id', String(subCategoryId))
     body.append('amount', String(denomination))
     body.append('mode', 'physical')
-    if (images?.[0]) body.append('image', images[0])
+    images?.forEach(img => { if (img) body.append('image', img) })
   } else {
     body = {
       brand_id:        brandId,
@@ -32,5 +32,5 @@ export async function submitGiftCardTrade({ brandId, subCategoryId, denomination
 export async function getRecentGiftCardTrades() {
   const result = await apiFetch('/api/v1/users/giftcard-trades', { method: 'GET' })
   if (!result.success) return { success: false, trades: [] }
-  return { success: true, trades: result.data ?? [] }
+  return { success: true, trades: result.data?.trades ?? [] }
 }

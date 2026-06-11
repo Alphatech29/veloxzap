@@ -9,7 +9,7 @@ import {
   Check, AlertTriangle, BellRing, BellOff, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
-import { useTheme } from '../../context/ThemeContext'
+import { useTheme } from '../../hooks/useTheme'
 import { subscribePush, unsubscribePush } from '../../lib/push'
 
 const SECTIONS = [

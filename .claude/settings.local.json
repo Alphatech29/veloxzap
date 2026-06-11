@@ -39,7 +39,11 @@
       "Bash(curl -sL -o tipico.png \"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://tipico.com&size=256\")",
       "Bash(curl -sL -o betclic.png \"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://betclic.com&size=256\")",
       "Bash(curl -sL -o betfair.png \"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://betfair.com&size=256\")",
-      "Bash(curl -sL -o pinnacle.png \"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pinnacle.com&size=256\")"
+      "Bash(curl -sL -o pinnacle.png \"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://pinnacle.com&size=256\")",
+      "Bash(cp src/user/mobile/SavingsSection.jsx /tmp/mobile_savings_section.jsx)",
+      "Bash(cp src/user/desktop/SavingsSection.jsx /tmp/desktop_savings_section.jsx)",
+      "Read(//tmp/**)",
+      "Bash(node -e \"const {chromium} = require\\('playwright'\\); chromium.launch\\(\\).then\\(b=>{console.log\\('ok'\\); b.close\\(\\);}\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user",

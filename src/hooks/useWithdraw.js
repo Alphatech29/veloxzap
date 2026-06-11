@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getBanks, verifyBankAccount, submitWithdrawal } from '../lib/withdraw'
 import { buildCodeMap } from '../utils/bankLogos'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 export const MIN_TRANSFER = 100
 
@@ -12,73 +15,86 @@ export function getTransferFee(amount) {
   return 50
 }
 
+const PINNED = ['opay', 'zenith', 'guaranty trust', 'gtbank', 'palmpay', 'kuda', 'first bank', 'moniepoint']
+
+function sortBanks(banks) {
+  const pinIndex = name => {
+    const n = name.toLowerCase()
+    const i = PINNED.findIndex(p => n.includes(p))
+    return i === -1 ? Infinity : i
+  }
+  return [...banks].sort((a, b) => {
+    const pa = pinIndex(a.name), pb = pinIndex(b.name)
+    if (pa !== pb) return pa - pb
+    return a.name.localeCompare(b.name)
+  })
+}
+
+function mutationError(mutation, fallback) {
+  return mutation.data && !mutation.data.success
+    ? (mutation.data.message || fallback)
+    : null
+}
+
 export default function useWithdraw() {
-  const [banks, setBanks]               = useState([])
-  const [banksLoading, setBanksLoading] = useState(true)
+  const queryClient = useQueryClient()
+
+  const banksQuery = useQuery({
+    queryKey: queryKeys.withdraw.banks,
+    queryFn: () => unwrap(getBanks()),
+    select: (data) => sortBanks(data.banks),
+    staleTime: 10 * 60_000,
+  })
 
   useEffect(() => {
-    getBanks().then(r => {
-      setBanksLoading(false)
-      if (r.success) {
-        const PINNED = ['opay','zenith','guaranty trust','gtbank','palmpay','kuda','first bank','moniepoint']
-        const pinIndex = name => {
-          const n = name.toLowerCase()
-          const i = PINNED.findIndex(p => n.includes(p))
-          return i === -1 ? Infinity : i
-        }
-        const sorted = [...r.banks].sort((a, b) => {
-          const pa = pinIndex(a.name), pb = pinIndex(b.name)
-          if (pa !== pb) return pa - pb
-          return a.name.localeCompare(b.name)
-        })
-        setBanks(sorted)
-        buildCodeMap(sorted)
-      }
-    })
-  }, [])
+    if (banksQuery.data) buildCodeMap(banksQuery.data)
+  }, [banksQuery.data])
 
-  const [verifying, setVerifying]     = useState(false)
-  const [verifyError, setVerifyError] = useState(null)
   const [accountName, setAccountName] = useState('')
 
-  const verify = useCallback(async ({ bank_code, account_number }) => {
-    setVerifying(true)
-    setVerifyError(null)
+  const verifyMutation = useMutation({
+    mutationFn: (payload) => verifyBankAccount(payload),
+    onSuccess: (result) => {
+      if (result.success) setAccountName(result.account_name)
+    },
+  })
+
+  const verify = useCallback(async (payload) => {
     setAccountName('')
-    const result = await verifyBankAccount({ bank_code, account_number })
-    setVerifying(false)
-    if (result.success) setAccountName(result.account_name)
-    else setVerifyError(result.message)
-    return result
-  }, [])
+    return verifyMutation.mutateAsync(payload)
+  }, [verifyMutation])
 
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitError, setSubmitError] = useState(null)
+  const submitMutation = useMutation({
+    mutationFn: (payload) => submitWithdrawal(payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
+        queryClient.invalidateQueries({ queryKey: queryKeys.transactions.recent })
+      }
+    },
+  })
 
-  const submit = useCallback(async (payload) => {
-    setSubmitting(true)
-    setSubmitError(null)
-    const result = await submitWithdrawal(payload)
-    setSubmitting(false)
-    if (!result.success) setSubmitError(result.message)
-    return result
-  }, [])
+  const submit = useCallback((payload) => submitMutation.mutateAsync(payload), [submitMutation])
 
   const reset = useCallback(() => {
-    setVerifyError(null)
-    setSubmitError(null)
-  }, [])
+    verifyMutation.reset()
+    submitMutation.reset()
+  }, [verifyMutation, submitMutation])
 
   const clearRecipient = useCallback(() => {
-    setVerifyError(null)
+    verifyMutation.reset()
     setAccountName('')
-  }, [])
+  }, [verifyMutation])
 
   return {
-    banks, banksLoading,
-    verifying, verifyError, accountName, setAccountName,
+    banks: banksQuery.data ?? [],
+    banksLoading: banksQuery.isLoading,
+    verifying: verifyMutation.isPending,
+    verifyError: mutationError(verifyMutation, 'Verification failed.'),
+    accountName, setAccountName,
     verify,
-    submitting, submitError,
+    submitting: submitMutation.isPending,
+    submitError: mutationError(submitMutation, 'Withdrawal failed.'),
     submit,
     reset,
     clearRecipient,

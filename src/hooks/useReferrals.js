@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchReferrals } from '../lib/referrals'
+import { unwrap } from '../lib/queryClient'
+import { queryKeys } from '../lib/queryKeys'
 
 function normalize(row) {
   return {
@@ -14,28 +16,14 @@ function normalize(row) {
 }
 
 export default function useReferrals({ autoFetch = true } = {}) {
-  const [referrals, setReferrals] = useState([])
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState(null)
+  const query = useQuery({
+    queryKey: queryKeys.referrals,
+    queryFn: () => unwrap(fetchReferrals()),
+    select: (data) => data.rows.map(normalize),
+    enabled: autoFetch,
+  })
 
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    const result = await fetchReferrals()
-    setLoading(false)
-    if (result.success) {
-      setReferrals(result.rows.map(normalize))
-    } else {
-      setError(result.message || 'Failed to load referrals.')
-    }
-    return result
-  }, [])
-
-  useEffect(() => {
-    if (autoFetch) fetch()
-  }, [autoFetch, fetch])
-
-  const refresh = useCallback(() => fetch(), [fetch])
+  const referrals = query.data ?? []
 
   const total          = referrals.length
   const completed      = referrals.filter(r => r.status === 'paid').length
@@ -47,5 +35,11 @@ export default function useReferrals({ autoFetch = true } = {}) {
     .filter(r => r.status === 'pending')
     .reduce((s, r) => s + r.reward, 0)
 
-  return { referrals, loading, error, refresh, total, completed, pending, pendingPayout, totalEarned }
+  return {
+    referrals,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+    refresh: query.refetch,
+    total, completed, pending, pendingPayout, totalEarned,
+  }
 }

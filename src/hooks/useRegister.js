@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
 import useCountryPicker from './useCountryPicker'
 import { register } from '../lib/register'
 
@@ -29,8 +30,11 @@ export default function useRegister({ redirectTo = '/auth/login' } = {}) {
   const [referral, setReferral] = useState('')
   const [show,     setShow]     = useState(false)
   const [agree,    setAgree]    = useState(false)
-  const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
+
+  const registerMutation = useMutation({
+    mutationFn: (payload) => register(payload),
+  })
 
   const score = useMemo(() => scorePassword(password), [password])
   const strengthHint = password ? STRENGTH_LABEL[score] : STRENGTH_HINT
@@ -56,8 +60,7 @@ export default function useRegister({ redirectTo = '/auth/login' } = {}) {
     const nationalDigits = phone.replace(/\D/g, '').replace(/^0+/, '')
     const e164Phone = `${countryPicker.country.dial}${nationalDigits}`
 
-    setLoading(true)
-    const result = await register({
+    const result = await registerMutation.mutateAsync({
       fullName,
       email:    email.trim(),
       country:  countryPicker.country.name,
@@ -65,7 +68,6 @@ export default function useRegister({ redirectTo = '/auth/login' } = {}) {
       password,
       referral: referral.trim() || undefined,
     })
-    setLoading(false)
 
     if (!result.success) {
       setError(result.message)
@@ -87,7 +89,7 @@ export default function useRegister({ redirectTo = '/auth/login' } = {}) {
 
     score, strengthHint,
 
-    loading, error,
+    loading: registerMutation.isPending, error,
     handleSubmit,
 
     countryPicker,
