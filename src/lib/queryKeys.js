@@ -17,6 +17,7 @@ export const queryKeys = {
     plans: ['savings', 'plans'],
     account: (id) => ['savings', 'account', id],
     ledger: (id) => ['savings', 'ledger', id],
+    userLedger: (type) => ['savings', 'userLedger', type],
     withdrawals: (status) => ['savings', 'withdrawals', status],
   },
 

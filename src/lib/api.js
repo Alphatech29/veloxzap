@@ -16,21 +16,32 @@ export function setOnSessionExpired(cb) {
   onSessionExpired = typeof cb === 'function' ? cb : null
 }
 
+function postRefreshToken(token) {
+  return fetch(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-Token': token,
+    },
+  })
+}
+
 async function refreshSession() {
   if (refreshPromise) return refreshPromise
-  refreshPromise = getCsrfToken()
-    .then(token => fetch(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRF-Token': token,
-      },
-    }))
-    .then(r => r.ok)
-    .catch(() => false)
-    .finally(() => { refreshPromise = null })
+  refreshPromise = (async () => {
+    try {
+      let res = await postRefreshToken(await getCsrfToken())
+      if (res.status === 403) {
+        // cached CSRF token is stale (rotated by a prior mutating request) — refetch and retry
+        res = await postRefreshToken(await getCsrfToken({ force: true }))
+      }
+      return res.ok
+    } catch {
+      return false
+    }
+  })().finally(() => { refreshPromise = null })
   return refreshPromise
 }
 

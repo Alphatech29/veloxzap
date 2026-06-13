@@ -1,52 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAlert } from '../../../components/ui/Alert'
-import { useSavingsOverview, useSavingsAccount } from '../../../hooks/useSavings'
+import { useSavingsOverview, useSavingsAccount, useSavingsLedger, useSavingsWithdrawals } from '../../../hooks/useSavings'
 import { topUpAccount } from '../../../lib/savings'
+import { fmtDate, fmtDateOnly } from '../../../utils/format'
+import { DEBIT_TIME_OPTIONS, fmtDebitTime, FREQUENCY_OPTIONS } from '../../../utils/savingsSchedule'
 import {
   Wallet, Plus, Check, X, Loader2, ShieldCheck, TrendingUp,
-  ArrowUpRight, ArrowDownLeft, Coins, ChevronLeft,
+  ArrowUpRight, ArrowDownLeft, Coins, ChevronLeft, ChevronDown,
   Sparkles, AlertTriangle, Receipt, History,
-  Repeat, Pause, Play, Pencil,
+  Repeat, Pause, Play, Pencil, Clock, Settings,
 } from 'lucide-react'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-function fmtDateTime(d) {
-  return new Date(d).toLocaleString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-}
 
 const FLEX = '#60a5fa'
 const FLEX_BG = 'rgba(96,165,250,0.1)'
 const FLEX_BORDER = 'rgba(96,165,250,0.28)'
 
-const DEBIT_TIME_OPTIONS = [
-  { value: '06:00', label: '6:00 AM' },
-  { value: '08:00', label: '8:00 AM' },
-  { value: '09:00', label: '9:00 AM' },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '12:00', label: '12:00 PM' },
-  { value: '15:00', label: '3:00 PM' },
-  { value: '18:00', label: '6:00 PM' },
-  { value: '21:00', label: '9:00 PM' },
-  { value: '22:00', label: '10:00 PM' },
-]
-function fmtDebitTime(t) {
-  if (!t) return null
-  const [h, m] = t.split(':').map(Number)
-  const period = h >= 12 ? 'PM' : 'AM'
-  const h12 = h % 12 === 0 ? 12 : h % 12
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`
-}
-const FREQUENCY_OPTIONS = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
 const FREQUENCY_LABEL = Object.fromEntries(FREQUENCY_OPTIONS.map(o => [o.value, o.label]))
 
 /* ── Mapper ────────────────────────────────── */
@@ -54,6 +27,7 @@ const FREQUENCY_LABEL = Object.fromEntries(FREQUENCY_OPTIONS.map(o => [o.value, 
 function mapFlexible(a) {
   const principal = Number(a.principal || 0)
   const interestEarned = Number(a.total_interest_earned || 0)
+  const accruedInterest = Number(a.accrued_interest || 0)
   const apy = Number(a.apy_at_creation ?? 0)
   const dailyRate = apy > 0 ? (apy / 365).toFixed(4) : null
   const dailyEarning = principal > 0 && apy > 0 ? (principal * apy) / 100 / 365 : 0
@@ -62,10 +36,15 @@ function mapFlexible(a) {
     ? Math.max(0, Math.floor((Date.now() - new Date(a.created_at).getTime()) / 86400000))
     : null
 
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const nextWithdrawalDate = a.next_withdrawal_date || null
+  const withdrawalEligible = !nextWithdrawalDate || nextWithdrawalDate <= todayStr
+
   return {
     id: a.id,
     name: a.name || 'Flexible savings',
-    principal, interestEarned, apy, dailyRate, dailyEarning,
+    principal, interestEarned, accruedInterest, apy, dailyRate, dailyEarning,
     openedDate, daysActive,
     status: a.status,
     frequency: a.schedule_frequency || null,
@@ -73,7 +52,144 @@ function mapFlexible(a) {
     scheduleStatus: a.schedule_status || null,
     nextDebitDate: a.schedule_next_debit_date || null,
     topupAmount: a.schedule_contribution_amount != null ? Number(a.schedule_contribution_amount) : null,
+    nextWithdrawalDate,
+    withdrawalEligible,
   }
+}
+
+/* ── Time of day dropdown ──────────────────── */
+
+function TimeOfDaySelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [dropUp, setDropUp] = useState(false)
+  const ref = useRef(null)
+  const selected = DEBIT_TIME_OPTIONS.find(o => o.value === value) || DEBIT_TIME_OPTIONS[0]
+
+  useEffect(() => {
+    if (!open) return
+    function handleOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [open])
+
+  function toggle() {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect()
+      const panelHeight = Math.min(224, DEBIT_TIME_OPTIONS.length * 40) + 6
+      const spaceBelow = window.innerHeight - rect.bottom
+      setDropUp(spaceBelow < panelHeight && rect.top > spaceBelow)
+    }
+    setOpen(v => !v)
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="w-full h-[46px] pl-2 pr-4 rounded-xl text-[13px] font-bold text-[var(--c-text)] outline-none border transition flex items-center justify-between gap-2 active:scale-[0.99]"
+        style={{ background: 'var(--c-surface-soft)', borderColor: open ? 'var(--c-accent-border-strong)' : 'var(--c-border)' }}
+      >
+        <span className="inline-flex items-center gap-2.5">
+          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0" style={{ background: FLEX_BG, color: FLEX }}>
+            <Clock size={14} strokeWidth={2.2} />
+          </span>
+          {selected.label}
+        </span>
+        <ChevronDown
+          size={15} strokeWidth={2.4}
+          className="transition-transform duration-200 shrink-0"
+          style={{ color: FLEX, transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: dropUp ? 6 : -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: dropUp ? 6 : -6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            role="listbox"
+            className={`absolute left-0 right-0 z-30 rounded-xl border overflow-hidden max-h-[224px] overflow-y-auto ${dropUp ? 'bottom-[calc(100%+6px)]' : 'top-[calc(100%+6px)]'}`}
+            style={{ background: 'var(--c-surface)', borderColor: FLEX_BORDER, boxShadow: '0 16px 40px -12px rgba(2,7,23,0.45)' }}
+          >
+            {DEBIT_TIME_OPTIONS.map(opt => {
+              const active = opt.value === value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => { onChange(opt.value); setOpen(false) }}
+                  className="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-[12.5px] font-bold transition"
+                  style={active ? { background: FLEX_BG, color: FLEX } : { color: 'var(--c-text)' }}
+                >
+                  {opt.label}
+                  {active && <Check size={14} strokeWidth={2.6} style={{ color: FLEX }} />}
+                </button>
+              )
+            })}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ── Auto top-up details row ──────────────────────────── */
+
+function AutoTopupDetailsRow({ activePlan, scheduling, onPauseResume, onEdit }) {
+  return (
+    <div className="relative flex items-center justify-between gap-3 px-5 py-3.5 border-t border-white/[0.07] flex-wrap">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 border" style={{ background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }}>
+          <Repeat size={14} strokeWidth={2.2} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11.5px] font-bold text-white m-0 truncate">
+            {fmtN(activePlan.topupAmount)} · {FREQUENCY_LABEL[activePlan.frequency]} · {fmtDebitTime(activePlan.debitTime)}
+          </p>
+          <p className="text-[10px] text-white/50 m-0 mt-0.5">
+            {activePlan.scheduleStatus === 'active'
+              ? `Next top-up ${fmtDateOnly(activePlan.nextDebitDate)}`
+              : 'Auto top-up paused'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <span
+          className="px-2.5 py-1 rounded-full text-[9.5px] font-bold uppercase tracking-[0.6px] border"
+          style={activePlan.scheduleStatus === 'active'
+            ? { background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)', color: '#10b981' }
+            : { background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}
+        >
+          {activePlan.scheduleStatus === 'active' ? 'Active' : 'Paused'}
+        </span>
+        <button
+          type="button" onClick={onPauseResume} disabled={scheduling}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95 disabled:opacity-60"
+          title={activePlan.scheduleStatus === 'active' ? 'Pause auto top-up' : 'Resume auto top-up'}
+        >
+          {scheduling
+            ? <Loader2 size={12} className="animate-spin" />
+            : activePlan.scheduleStatus === 'active' ? <Pause size={12} strokeWidth={2.5} /> : <Play size={12} strokeWidth={2.5} />}
+        </button>
+        <button
+          type="button" onClick={onEdit}
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95"
+          title="Edit schedule"
+        >
+          <Pencil size={12} strokeWidth={2.5} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 /* ── Create modal ──────────────────────────── */
@@ -237,7 +353,7 @@ function CreateModal({ product, onClose, onSubmit, submitting, success }) {
                       >
                         <div className="flex flex-col gap-3 pt-3 mt-3 border-t border-[var(--c-border-soft)]">
                           <label className="flex flex-col gap-1.5">
-                            <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Top-up amount</span>
+                            <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Auto-Top-up amount</span>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--c-text-muted)]">₦</span>
                               <input
@@ -268,15 +384,7 @@ function CreateModal({ product, onClose, onSubmit, submitting, success }) {
 
                           <label className="flex flex-col gap-1.5">
                             <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Time of day</span>
-                            <select
-                              value={debitTime} onChange={e => setDebitTime(e.target.value)}
-                              className="w-full h-[44px] px-4 rounded-xl text-[13px] font-bold text-[var(--c-text)] outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition appearance-none"
-                              style={{ background: 'var(--c-surface)' }}
-                            >
-                              {DEBIT_TIME_OPTIONS.map(opt => (
-                                <option key={opt.value} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
+                            <TimeOfDaySelect value={debitTime} onChange={setDebitTime} />
                           </label>
                         </div>
                       </motion.div>
@@ -412,6 +520,7 @@ function TopUpModal({ plan, minDeposit, onClose, onSubmit, submitting }) {
 /* ── Edit schedule modal ───────────────────── */
 
 function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
+  const isNew = !plan?.scheduleStatus
   const [amount, setAmount] = useState(String(plan?.topupAmount || ''))
   const [frequency, setFrequency] = useState(plan?.frequency || 'monthly')
   const [debitTime, setDebitTime] = useState(plan?.debitTime ? plan.debitTime.slice(0, 5) : '08:00')
@@ -448,7 +557,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
                 <Repeat size={18} strokeWidth={2.2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">Edit schedule</p>
+                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">{isNew ? 'Set up auto top-up' : 'Edit schedule'}</p>
                 <h2 className="text-[16px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.3px]">{plan?.name}</h2>
               </div>
             </div>
@@ -492,15 +601,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
 
             <label className="flex flex-col gap-1.5">
               <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Time of day</span>
-              <select
-                value={debitTime} onChange={e => setDebitTime(e.target.value)}
-                className="w-full h-[46px] px-4 rounded-xl text-[13px] font-bold text-[var(--c-text)] outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition appearance-none"
-                style={{ background: 'var(--c-surface-soft)' }}
-              >
-                {DEBIT_TIME_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              <TimeOfDaySelect value={debitTime} onChange={setDebitTime} />
             </label>
 
             <button
@@ -510,7 +611,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
             >
               {submitting
                 ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
-                : <><Check size={15} strokeWidth={2.2} /> Save changes</>
+                : <><Check size={15} strokeWidth={2.2} /> {isNew ? 'Enable auto top-up' : 'Save changes'}</>
               }
             </button>
           </div>
@@ -524,7 +625,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
 
 const LEDGER_META = {
   deposit:         { label: 'Initial deposit',          icon: ArrowDownLeft, sign: '+' },
-  top_up:          { label: 'Manuel Top-up',                   icon: ArrowDownLeft, sign: '+' },
+  top_up:          { label: 'Manual Top-up',            icon: ArrowDownLeft, sign: '+' },
   interest_credit: { label: 'Interest credited',        icon: Sparkles,      sign: '+' },
   withdrawal:      { label: 'Withdrawal',               icon: ArrowUpRight,  sign: '-' },
   auto_topup:      { label: 'Auto top-up',              icon: ArrowDownLeft, sign: '+' },
@@ -550,7 +651,7 @@ function LedgerRow({ entry }) {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0 truncate">{entry.description || meta.label}</p>
-        <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">{fmtDateTime(entry.created_at)}</p>
+        <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">{fmtDate(entry.created_at)}</p>
       </div>
       <span className="text-[13px] font-black tabular-nums shrink-0" style={{ color: isCredit ? FLEX : 'var(--c-text)' }}>
         {meta.sign}{fmtN(entry.amount)}
@@ -563,14 +664,14 @@ function LedgerRow({ entry }) {
 
 export default function DesktopFlexibleSavings() {
   const { alert, confirm } = useAlert()
-  const { plans: rawProducts, investments, creating, create, withdraw, refresh } = useSavingsOverview()
+  const { plans: rawProducts, investments, creating, create, refresh } = useSavingsOverview()
 
   const [showModal, setShowModal]       = useState(false)
   const [success, setSuccess]           = useState(null)
-  const [withdrawingId, setWithdrawingId] = useState(null)
   const [topUpOpen, setTopUpOpen]       = useState(false)
   const [topping, setTopping]           = useState(false)
   const [editScheduleOpen, setEditScheduleOpen] = useState(false)
+  const [showAutoTopupInfo, setShowAutoTopupInfo] = useState(false)
 
   const flexPlans = useMemo(() =>
     investments.filter(a => (a.product_type || a.type) === 'flexible').map(mapFlexible),
@@ -584,12 +685,18 @@ export default function DesktopFlexibleSavings() {
   }, [rawProducts])
 
   const activePlan = flexPlans[0] || null
-  const { ledger, ledgerLoading, refreshLedger, pauseSchedule, resumeSchedule, updateSchedule, scheduling } = useSavingsAccount(activePlan?.id)
+  const { pauseSchedule, resumeSchedule, updateSchedule, createSchedule, scheduling, withdraw, withdrawing } = useSavingsAccount(activePlan?.id)
+  const { ledger, loading: ledgerLoading, refresh: refreshLedger } = useSavingsLedger('flexible')
+  const { withdrawals: pendingWithdrawals } = useSavingsWithdrawals('pending')
 
   const totalBalance  = useMemo(() => flexPlans.reduce((s, p) => s + p.principal, 0), [flexPlans])
-  const totalInterest = useMemo(() => flexPlans.reduce((s, p) => s + p.interestEarned, 0), [flexPlans])
-  const totalDaily    = useMemo(() => flexPlans.reduce((s, p) => s + p.dailyEarning, 0), [flexPlans])
-  const activeCount   = flexPlans.filter(p => p.status === 'active').length
+  const totalAccrued  = useMemo(() => flexPlans.reduce((s, p) => s + p.accruedInterest, 0), [flexPlans])
+
+  const hasPendingWithdrawal = useMemo(
+    () => pendingWithdrawals.some(w => w.plan_id === activePlan?.id),
+    [pendingWithdrawals, activePlan]
+  )
+  const withdrawDisabled = activePlan?.status === 'completed' || hasPendingWithdrawal
 
   async function handleCreate(payload) {
     if (!flexProduct) return
@@ -632,25 +739,33 @@ export default function DesktopFlexibleSavings() {
   }
 
   async function handleUpdateSchedule(payload) {
-    const r = await updateSchedule(payload)
+    const isNew = !activePlan?.scheduleStatus
+    const r = isNew ? await createSchedule(payload) : await updateSchedule(payload)
     if (r.success) {
-      alert({ type: 'success', title: 'Schedule updated', message: 'Your auto top-up schedule has been updated.' })
+      alert({
+        type: 'success',
+        title: isNew ? 'Auto top-up enabled' : 'Schedule updated',
+        message: isNew ? 'Your auto top-up schedule has been set up.' : 'Your auto top-up schedule has been updated.',
+      })
       setEditScheduleOpen(false)
       refresh()
     } else {
-      alert({ type: 'error', title: 'Update failed', message: r.message || 'Could not update schedule. Please try again.' })
+      alert({
+        type: 'error',
+        title: isNew ? 'Setup failed' : 'Update failed',
+        message: r.message || (isNew ? 'Could not set up auto top-up. Please try again.' : 'Could not update schedule. Please try again.'),
+      })
     }
   }
 
-  async function handleWithdraw(id) {
-    setWithdrawingId(id)
-    const r = await withdraw(id)
-    setWithdrawingId(null)
+  async function handleWithdraw() {
+    if (!activePlan) return
+    const r = await withdraw({ amount_requested: activePlan.principal + activePlan.interestEarned })
     if (r.success) {
-      alert({ type: 'success', title: 'Withdrawal requested', message: 'Your request is pending admin approval.' })
+      alert({ type: 'success', title: 'Withdrawal requested', message: 'Your withdrawal request is now being processed.' })
       refreshLedger()
     } else {
-      alert({ type: 'error', title: 'Withdrawal failed', message: 'Could not process withdrawal. Please try again.' })
+      alert({ type: 'error', title: 'Withdrawal failed', message: r.message || 'Could not process withdrawal. Please try again.' })
     }
   }
 
@@ -659,12 +774,12 @@ export default function DesktopFlexibleSavings() {
     const ok = await confirm({
       type: 'warning',
       title: 'Withdraw funds?',
-      message: `${fmtN(activePlan.principal)} will be withdrawn from "${activePlan.name}". This requires admin approval.`,
+      message: `${fmtN(activePlan.principal)} will be withdrawn from "${activePlan.name}". This requires approval.`,
       confirmLabel: 'Withdraw',
       danger: true,
     })
     if (!ok) return
-    handleWithdraw(activePlan.id)
+    handleWithdraw()
   }
 
   async function handleTopUp(amount) {
@@ -696,7 +811,7 @@ export default function DesktopFlexibleSavings() {
           <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[1.4px] text-brand-accent font-bold m-0">
             <Wallet size={10} /> Flexible savings
           </p>
-          <h1 className="text-[22px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-1">Your flexible plans</h1>
+          <h1 className="text-[22px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-1">Your {flexProduct?.name || 'Flexible'} plans</h1>
           <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-0.5">
             Earn {flexProduct ? `${flexProduct.apy}%` : 'daily'} interest · withdraw anytime · no lock-in
           </p>
@@ -716,13 +831,28 @@ export default function DesktopFlexibleSavings() {
         <div className="relative p-5 sm:p-6">
           <div className="flex items-start justify-between gap-3 mb-4">
             <span className="flex items-center gap-1.5 text-[9.5px] uppercase tracking-[1.5px] font-bold" style={{ color: FLEX }}>
-              <Wallet size={9} /> Total flexible balance
+              <Wallet size={9} /> `Total {flexProduct?.name || 'Flexible'} balance`
             </span>
-            {flexProduct && (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.6px]" style={{ background: FLEX_BG, border: `1px solid ${FLEX_BORDER}`, color: FLEX }}>
-                {flexProduct.apy}% APY
-              </span>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {flexProduct && (
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.6px]" style={{ background: FLEX_BG, border: `1px solid ${FLEX_BORDER}`, color: FLEX }}>
+                  {flexProduct.apy}% p.a
+                </span>
+              )}
+              {activePlan?.status === 'active' && (
+                <button
+                  type="button"
+                  onClick={() => activePlan.scheduleStatus ? setShowAutoTopupInfo(v => !v) : setEditScheduleOpen(true)}
+                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition active:scale-95"
+                  style={showAutoTopupInfo && activePlan.scheduleStatus
+                    ? { background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }
+                    : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#fff' }}
+                  title={activePlan.scheduleStatus ? 'Auto top-up details' : 'Set up auto top-up'}
+                >
+                  <Settings size={12} strokeWidth={2.5} className={`transition-transform duration-300 ${showAutoTopupInfo && activePlan.scheduleStatus ? 'rotate-90' : ''}`} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -730,84 +860,82 @@ export default function DesktopFlexibleSavings() {
               <p className="text-[11px] text-white/50 m-0">Total saved</p>
               <span className="text-[32px] font-black tracking-[-1.5px] text-white leading-none tabular-nums block mt-0.5">{fmtN(totalBalance)}</span>
             </div>
-            <div className="text-right pb-0.5">
-              <p className="text-[11px] text-white/50 m-0">Interest earned</p>
-              <span className="text-[18px] font-black tabular-nums block mt-0.5" style={{ color: FLEX }}>+{fmtN(totalInterest)}</span>
+            <div className="flex items-end gap-4">
+              <div className="text-right pb-0.5">
+                <p className="text-[11px] text-white/50 m-0">Interest</p>
+                <span className="text-[18px] font-black tabular-nums block mt-0.5" style={{ color: FLEX }}>+{fmtN(totalAccrued)}</span>
+              </div>
             </div>
           </div>
 
-          <p className="text-[11px] text-white/50 m-0 mt-3">
-            {activeCount} active plan{activeCount !== 1 ? 's' : ''} · earning ~{fmtN(totalDaily)} / day
-          </p>
+
         </div>
 
-        {activePlan?.scheduleStatus && (
+        {activePlan?.nextWithdrawalDate && activePlan?.status !== 'completed' && (
           <div className="relative flex items-center justify-between gap-3 px-5 py-3.5 border-t border-white/[0.07] flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 border" style={{ background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }}>
-                <Repeat size={14} strokeWidth={2.2} />
+              <span
+                className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 border"
+                style={activePlan.withdrawalEligible
+                  ? { background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)', color: '#10b981' }
+                  : { background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }}
+              >
+                {activePlan.withdrawalEligible ? <ShieldCheck size={14} strokeWidth={2.2} /> : <Clock size={14} strokeWidth={2.2} />}
               </span>
               <div className="min-w-0">
                 <p className="text-[11.5px] font-bold text-white m-0 truncate">
-                  {fmtN(activePlan.topupAmount)} · {FREQUENCY_LABEL[activePlan.frequency]} · {fmtDebitTime(activePlan.debitTime)}
+                  {activePlan.withdrawalEligible ? 'Fee-free withdrawal available' : 'Next fee-free withdrawal'}
                 </p>
                 <p className="text-[10px] text-white/50 m-0 mt-0.5">
-                  {activePlan.scheduleStatus === 'active'
-                    ? `Next top-up ${fmtDate(activePlan.nextDebitDate)}`
-                    : 'Auto top-up paused'}
+                  {activePlan.withdrawalEligible
+                    ? 'Withdraw now without an early fee'
+                    : `Early withdrawal fee applies until ${fmtDateOnly(activePlan.nextWithdrawalDate)}`}
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span
-                className="px-2.5 py-1 rounded-full text-[9.5px] font-bold uppercase tracking-[0.6px] border"
-                style={activePlan.scheduleStatus === 'active'
-                  ? { background: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.3)', color: '#10b981' }
-                  : { background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.6)' }}
-              >
-                {activePlan.scheduleStatus === 'active' ? 'Active' : 'Paused'}
-              </span>
-              <button
-                type="button" onClick={handlePauseResume} disabled={scheduling}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95 disabled:opacity-60"
-                title={activePlan.scheduleStatus === 'active' ? 'Pause auto top-up' : 'Resume auto top-up'}
-              >
-                {scheduling
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : activePlan.scheduleStatus === 'active' ? <Pause size={12} strokeWidth={2.5} /> : <Play size={12} strokeWidth={2.5} />}
-              </button>
-              <button
-                type="button" onClick={() => setEditScheduleOpen(true)}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95"
-                title="Edit schedule"
-              >
-                <Pencil size={12} strokeWidth={2.5} />
-              </button>
             </div>
           </div>
         )}
 
-        {activePlan && (
+        <AnimatePresence initial={false}>
+          {activePlan?.scheduleStatus && showAutoTopupInfo && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="overflow-hidden"
+            >
+              <AutoTopupDetailsRow
+                activePlan={activePlan}
+                scheduling={scheduling}
+                onPauseResume={handlePauseResume}
+                onEdit={() => setEditScheduleOpen(true)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {activePlan && activePlan.status !== 'completed' && (
           <div className="relative flex items-center gap-2.5 px-5 py-4 border-t border-white/[0.07]">
             <button
-              type="button" onClick={() => setTopUpOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-xl font-bold text-[11.5px] border transition active:scale-95"
+              type="button" onClick={() => setTopUpOpen(true)} disabled={hasPendingWithdrawal}
+              title={hasPendingWithdrawal ? 'A withdrawal request is already pending for this plan' : undefined}
+              className="inline-flex items-center gap-1.5 px-4 h-9 rounded-xl font-bold text-[11.5px] border transition active:scale-95 disabled:opacity-60"
               style={{ background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }}
             >
               <ArrowDownLeft size={12} strokeWidth={2.5} /> Top up
             </button>
             <button
-              type="button" onClick={handleWithdrawClick} disabled={withdrawingId === activePlan.id}
+              type="button" onClick={handleWithdrawClick} disabled={withdrawing || withdrawDisabled}
+              title={hasPendingWithdrawal ? 'A withdrawal request is already pending for this plan' : undefined}
               className="inline-flex items-center gap-1.5 px-4 h-9 rounded-xl font-bold text-[11.5px] border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95 disabled:opacity-60"
             >
-              {withdrawingId === activePlan.id ? <Loader2 size={12} className="animate-spin" /> : <><ArrowUpRight size={12} strokeWidth={2.5} /> Withdraw</>}
+              {withdrawing ? <Loader2 size={12} className="animate-spin" /> : <><ArrowUpRight size={12} strokeWidth={2.5} /> {hasPendingWithdrawal ? 'Withdrawal pending' : 'Withdraw'}</>}
             </button>
           </div>
         )}
       </article>
 
       {/* Get started */}
-      {flexPlans.length === 0 && (
+      {(flexPlans.length === 0 || activePlan?.status === 'completed') && (
         <section
           className="flex items-center justify-between gap-4 flex-wrap p-5 rounded-[20px] border border-[var(--c-border)]"
           style={{ background: 'var(--c-surface)' }}
@@ -817,9 +945,13 @@ export default function DesktopFlexibleSavings() {
               <Wallet size={20} strokeWidth={2} />
             </span>
             <div className="min-w-0">
-              <h3 className="text-[14px] font-black text-[var(--c-text)] m-0 tracking-[-0.2px]">Start your first flexible plan</h3>
+              <h3 className="text-[14px] font-black text-[var(--c-text)] m-0 tracking-[-0.2px]">
+                {flexPlans.length === 0 ? 'Start your first flexible plan' : 'Start a new flexible plan'}
+              </h3>
               <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-0.5">
-                No lock-in — top up or withdraw anytime, with daily interest.
+                {flexPlans.length === 0
+                  ? 'No lock-in — top up or withdraw anytime, with daily interest.'
+                  : 'Your plan has completed. Open a new one to keep earning daily interest.'}
               </p>
             </div>
           </div>
@@ -829,7 +961,7 @@ export default function DesktopFlexibleSavings() {
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-[12.5px] transition hover:-translate-y-px active:scale-[0.98] shrink-0"
             style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 8px 24px -6px rgba(201,162,39,0.5)' }}
           >
-            <Plus size={14} strokeWidth={2.6} /> New plan
+            <Plus size={14} strokeWidth={2.6} /> {flexPlans.length === 0 ? 'Start Now' : 'Create new plan'}
           </button>
         </section>
       )}
@@ -863,7 +995,7 @@ export default function DesktopFlexibleSavings() {
             </span>
             <h3 className="text-[14px] font-black text-[var(--c-text)] m-0">No activity yet</h3>
             <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-1.5 max-w-[280px] leading-relaxed">
-              Deposits, withdrawals and interest for {activePlan.name} will appear here.
+              Deposits, withdrawals and interest for your flexible plans will appear here.
             </p>
           </div>
         ) : (

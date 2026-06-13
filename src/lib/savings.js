@@ -42,6 +42,17 @@ export async function getSavingsLedger(id) {
   return { success: true, entries }
 }
 
+export async function getUserSavingsLedger(type) {
+  const qs = type ? `?type=${encodeURIComponent(type)}` : ''
+  const result = await apiFetch(`/api/v1/users/savings/ledger${qs}`, { method: 'GET' })
+
+  if (result.status === 404) return { success: true, entries: [] }
+  if (!result.success) return { success: false, message: result.message, entries: [] }
+
+  const entries = Array.isArray(result.data?.ledger) ? result.data.ledger : []
+  return { success: true, entries }
+}
+
 export async function topUpAccount(id, payload) {
   return apiFetch(`/api/v1/users/savings/${id}/top-up`, { method: 'POST', body: JSON.stringify(payload) })
 }
@@ -56,6 +67,10 @@ export async function setScheduleStatus(id, action) {
 
 export async function updateSchedule(id, payload) {
   return apiFetch(`/api/v1/users/savings/schedules/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+}
+
+export async function createSchedule(id, payload) {
+  return apiFetch(`/api/v1/users/savings/${id}/schedule`, { method: 'POST', body: JSON.stringify(payload) })
 }
 
 export async function getSavingsWithdrawals(params = {}) {

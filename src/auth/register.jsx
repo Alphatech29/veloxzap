@@ -17,7 +17,7 @@ const FLOATERS = [
 
 const STATS = [
   { num: '500K',   suffix: '+', label: 'Active users' },
-  { num: '₦12B',   suffix: '+', label: 'Processed' },
+  { num: '₦75M',   suffix: '+', label: 'Processed' },
   { num: '4.9',    suffix: '★', label: 'App rating' },
 ]
 

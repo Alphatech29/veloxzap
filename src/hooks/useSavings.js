@@ -6,10 +6,12 @@ import {
   getSavingsPlans,
   getSavingsAccount,
   getSavingsLedger,
+  getUserSavingsLedger,
   topUpAccount,
   withdrawAccount,
   setScheduleStatus,
   updateSchedule as updateScheduleApi,
+  createSchedule as createScheduleApi,
   getSavingsWithdrawals,
 } from '../lib/savings'
 import { unwrap } from '../lib/queryClient'
@@ -188,20 +190,36 @@ export function useSavingsAccount(id) {
     onSuccess: (r) => { if (r.success) invalidateAccount() },
   })
 
+  const createScheduleMutation = useMutation({
+    mutationFn: (payload) => createScheduleApi(id, payload),
+    onSuccess: (r) => { if (r.success) invalidateAccount() },
+  })
+
   return {
     account: accountQuery.data ?? null, loading: accountQuery.isLoading,
     ledger: ledgerQuery.data ?? [], ledgerLoading: ledgerQuery.isLoading,
     toppingUp: topUpMutation.isPending,
     withdrawing: withdrawMutation.isPending,
-    scheduling: pauseMutation.isPending || resumeMutation.isPending || updateScheduleMutation.isPending,
+    scheduling: pauseMutation.isPending || resumeMutation.isPending || updateScheduleMutation.isPending || createScheduleMutation.isPending,
     topUp: useCallback((amount) => topUpMutation.mutateAsync(amount), [topUpMutation]),
     withdraw: useCallback((amount_requested) => withdrawMutation.mutateAsync(amount_requested), [withdrawMutation]),
     pauseSchedule: useCallback(() => pauseMutation.mutateAsync(), [pauseMutation]),
     resumeSchedule: useCallback(() => resumeMutation.mutateAsync(), [resumeMutation]),
     updateSchedule: useCallback((payload) => updateScheduleMutation.mutateAsync(payload), [updateScheduleMutation]),
+    createSchedule: useCallback((payload) => createScheduleMutation.mutateAsync(payload), [createScheduleMutation]),
     refresh: accountQuery.refetch,
     refreshLedger: ledgerQuery.refetch,
   }
+}
+
+export function useSavingsLedger(type) {
+  const query = useQuery({
+    queryKey: queryKeys.savings.userLedger(type),
+    queryFn: () => unwrap(getUserSavingsLedger(type)),
+    select: (data) => data.entries,
+  })
+
+  return { ledger: query.data ?? [], loading: query.isLoading, refresh: query.refetch }
 }
 
 export function useSavingsWithdrawals(initialStatus = 'All') {

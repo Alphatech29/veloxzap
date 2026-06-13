@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview } from '../../../hooks/useSavings'
+import { fmtDate } from '../../../utils/format'
 import {
   Lock, Plus, Check, X, Loader2, ShieldCheck, TrendingUp,
   ArrowUpRight, Clock, Calendar, Percent, Coins, ChevronLeft,
@@ -11,9 +12,6 @@ import {
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 const LOCK = '#C9A227'
 const LOCK_BG = 'rgba(201,162,39,0.1)'
