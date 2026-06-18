@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview } from '../../../hooks/useSavings'
 import {
-  PiggyBank, TrendingUp, Lock, Wallet, Target, Sparkles,
+  PiggyBank, Lock, Wallet, Target, Sparkles,
   ShieldCheck, Clock, Check, ChevronRight, Percent,
-  Coins, Gauge,
 } from 'lucide-react'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
@@ -113,14 +112,10 @@ const TYPE_META = {
   target:   { label: 'Target',   icon: Target, color: '#34d399' },
 }
 
-const PROJECTION_MONTHS = [1, 3, 6, 12]
-
 /* ── Page ──────────────────────────────────────────────────── */
 
 export default function DesktopSaving() {
   const { plans: rawProducts, investments } = useSavingsOverview()
-
-  const [projMonths, setProjMonths] = useState(12)
 
   const products = useMemo(() => rawProducts.map(mapProductForUI), [rawProducts])
   const plans    = useMemo(() => investments.map(mapAccountForUI), [investments])
@@ -128,15 +123,9 @@ export default function DesktopSaving() {
   const totalSaved    = useMemo(() => plans.reduce((s, p) => s + p.principal, 0), [plans])
   const totalInterest = useMemo(() => plans.reduce((s, p) => s + p.interestEarned, 0), [plans])
   const avgApy        = useMemo(() => plans.length ? plans.reduce((s, p) => s + p.apy, 0) / plans.length : 0, [plans])
-  const activeCount   = plans.filter(p => p.status === 'active').length
+  const activePlans   = useMemo(() => plans.filter(p => p.status === 'active'), [plans])
+  const activeCount   = activePlans.length
   const bestProduct   = useMemo(() => products.reduce((best, p) => (!best || p.apy > best.apy) ? p : best, null), [products])
-
-  const projection = useMemo(() => {
-    const base = totalSaved || 100000
-    const monthlyRate = (avgApy || 9) / 100 / 12
-    return PROJECTION_MONTHS.map(m => ({ month: m, value: base * Math.pow(1 + monthlyRate, m) }))
-  }, [totalSaved, avgApy])
-  const maxProjection = projection[projection.length - 1]?.value || 1
 
   return (
     <div className="flex flex-col gap-5 max-w-[1240px] mx-auto pb-10">
@@ -162,100 +151,40 @@ export default function DesktopSaving() {
         style={{ background: 'linear-gradient(140deg,#0d2657 0%,#091a3a 55%,#040e24 100%)' }}
       >
         <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.2)' }} />
-        <div className="absolute -bottom-16 -left-16 w-52 h-52 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(232,197,71,0.12)' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-30" style={{ backgroundImage: 'radial-gradient(rgba(201,162,39,0.18) 1px,transparent 1px)', backgroundSize: '22px 22px' }} />
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,162,39,0.7),transparent)' }} />
 
-        <div className="relative grid grid-cols-1 min-[860px]:grid-cols-[1.3fr_1fr] gap-0 divide-y min-[860px]:divide-y-0 min-[860px]:divide-x divide-white/[0.07]">
-          {/* Left — total saved */}
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3.5">
-              <span className="inline-flex items-center gap-1.5 text-[9.5px] uppercase tracking-[1.5px] font-bold text-brand-accent">
-                <Sparkles size={9} /> Total saved balance
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-[1px] text-brand-accent" style={{ background: 'rgba(201,162,39,0.12)', border: '1px solid rgba(201,162,39,0.3)' }}>
-                <Gauge size={8} strokeWidth={3} /> {avgApy.toFixed(1)}% avg APY
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2.5 mb-1">
-              <span className="text-[32px] font-black tracking-[-1.5px] text-white leading-none tabular-nums">
-                {fmtN(totalSaved)}
-              </span>
-            </div>
-            <p className="text-[11px] text-white/50 m-0 mb-4">
-              Across {activeCount} active plan{activeCount !== 1 ? 's' : ''} · interest accrues daily
+        <div className="relative flex items-center justify-between gap-6 px-6 py-5">
+          {/* Balance */}
+          <div className="min-w-0">
+            <span className="flex items-center gap-1.5 text-[9.5px] uppercase tracking-[1.5px] font-bold text-brand-accent mb-2">
+              <Sparkles size={9} /> Total saved balance
+            </span>
+            <p className="text-[34px] font-black tracking-[-1.5px] text-white leading-none tabular-nums m-0">
+              {fmtN(totalSaved)}
             </p>
-
-            {/* Projection bars */}
-            <div>
-              <div className="flex items-center justify-between text-[10.5px] mb-2.5">
-                <span className="font-semibold text-white/70">Projected growth</span>
-                <span className="inline-flex items-center gap-1 text-brand-accent font-bold">
-                  <TrendingUp size={11} /> at {avgApy.toFixed(1)}% p.a.
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-2 items-end h-[60px]">
-                {projection.map(({ month, value }) => {
-                  const h = Math.max(18, (value / maxProjection) * 100)
-                  const active = month === projMonths
-                  return (
-                    <button
-                      key={month} type="button" onClick={() => setProjMonths(month)}
-                      className="relative h-full flex flex-col items-center justify-end group"
-                    >
-                      <span className="text-[9px] font-bold mb-1.5 transition" style={{ color: active ? '#C9A227' : 'rgba(255,255,255,0.35)' }}>
-                        {month} mo
-                      </span>
-                      <motion.span
-                        initial={{ height: 0 }} animate={{ height: `${h}%` }}
-                        transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94], delay: month * 0.05 }}
-                        className="w-full rounded-md"
-                        style={{
-                          background: active ? 'linear-gradient(180deg,#f0d060,#C9A227)' : 'rgba(255,255,255,0.1)',
-                          boxShadow: active ? '0 0 16px rgba(201,162,39,0.45)' : 'none',
-                        }}
-                      />
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="flex items-center justify-between mt-2.5 px-0.5">
-                <span className="text-[10px] text-white/35 font-medium">In {projMonths} month{projMonths !== 1 ? 's' : ''}, your savings could grow to</span>
-                <span className="text-[13px] font-black text-brand-accent tabular-nums">
-                  {fmtN(projection.find(p => p.month === projMonths)?.value || totalSaved)}
-                </span>
-              </div>
-            </div>
+            <p className="text-[11px] text-white/45 m-0 mt-1.5">
+              {activeCount} active plan{activeCount !== 1 ? 's' : ''} · {avgApy.toFixed(1)}% avg APY · interest accrues daily
+            </p>
           </div>
 
-          {/* Right — stats */}
-          <div className="grid grid-cols-2 gap-px p-5">
+          {/* Stats */}
+          <div className="flex items-center gap-3 shrink-0">
             {[
-              { label: 'Interest earned', value: fmtN(totalInterest), accent: true, icon: Coins },
-              { label: 'Active plans',    value: fmt(activeCount), icon: PiggyBank },
-              { label: 'Average APY',     value: `${avgApy.toFixed(1)}%`, icon: Percent },
-              { label: 'Best rate',       value: bestProduct ? `${bestProduct.apy}% p.a.` : '—', sub: bestProduct?.name, icon: TrendingUp },
-            ].map(({ label, value, sub, accent, icon: Icon }) => (
+              { label: 'Interest earned', value: fmtN(totalInterest), accent: true },
+              { label: 'Active plans',    value: fmt(activeCount) },
+              { label: 'Best rate',       value: bestProduct ? `${bestProduct.apy}% p.a.` : '—', sub: bestProduct?.name },
+            ].map(({ label, value, sub, accent }) => (
               <div
                 key={label}
-                className="flex flex-col justify-between p-3 rounded-xl"
+                className="flex flex-col gap-1 px-4 py-3 rounded-2xl min-w-[110px]"
                 style={{
-                  background: accent ? 'rgba(201,162,39,0.12)' : 'rgba(255,255,255,0.04)',
-                  border: accent ? '1px solid rgba(201,162,39,0.25)' : '1px solid rgba(255,255,255,0.07)',
+                  background: accent ? 'rgba(201,162,39,0.12)' : 'rgba(255,255,255,0.05)',
+                  border: accent ? '1px solid rgba(201,162,39,0.25)' : '1px solid rgba(255,255,255,0.08)',
                 }}
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold m-0" style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.4)' }}>
-                    {label}
-                  </p>
-                  <Icon size={12} style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.3)' }} />
-                </div>
-                <div>
-                  <p className="text-[16.5px] font-black tabular-nums tracking-[-0.4px] m-0 mt-1.5 leading-none" style={{ color: accent ? '#C9A227' : '#fff' }}>
-                    {value}
-                  </p>
-                  {sub && <p className="text-[9.5px] text-white/35 m-0 mt-1">{sub}</p>}
-                </div>
+                <span className="text-[9.5px] uppercase tracking-[1px] font-bold" style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.4)' }}>{label}</span>
+                <span className="text-[17px] font-black tabular-nums leading-none" style={{ color: accent ? '#C9A227' : '#fff' }}>{value}</span>
+                {sub && <span className="text-[9px] text-white/35 leading-none">{sub}</span>}
               </div>
             ))}
           </div>
@@ -320,10 +249,10 @@ export default function DesktopSaving() {
             <h3 className="inline-flex items-center gap-2 text-[13px] font-bold m-0 text-[var(--c-text)]">
               <PiggyBank size={13} className="text-brand-accent" /> Your savings plans
             </h3>
-            <span className="text-[10px] text-[var(--c-text-muted)] font-semibold">{plans.length} total</span>
+            <span className="text-[10px] text-[var(--c-text-muted)] font-semibold">{activePlans.length} active</span>
           </div>
           <ul className="list-none m-0 p-0">
-            {plans.map((p, i) => {
+            {activePlans.map((p, i) => {
               const meta = TYPE_META[p.type]
               const TIcon = meta.icon
               return (
@@ -392,7 +321,7 @@ export default function DesktopSaving() {
                 </li>
               )
             })}
-            {plans.length === 0 && (
+            {activePlans.length === 0 && (
               <li className="px-5 py-10 text-center">
                 <p className="text-[12px] text-[var(--c-text-muted)] m-0">No savings plans yet — choose a plan type above.</p>
               </li>

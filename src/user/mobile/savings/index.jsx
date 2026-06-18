@@ -6,8 +6,7 @@ import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview } from '../../../hooks/useSavings'
 import {
   ChevronLeft, PiggyBank, TrendingUp, Lock, Wallet, Target, Sparkles, Plus,
-  ShieldCheck, Clock, Check, ChevronRight, Percent,
-  Loader2, Gauge,
+  ShieldCheck, Clock, Check, ChevronRight, Percent, Loader2,
 } from 'lucide-react'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
@@ -114,8 +113,6 @@ const TYPE_META = {
   fixed:    { label: 'Fixed',    icon: Lock,   color: '#C9A227' },
   target:   { label: 'Target',   icon: Target, color: '#34d399' },
 }
-
-const PROJECTION_MONTHS = [1, 3, 6, 12]
 
 /* ── Create-plan sheet ─────────────────────────────────────── */
 
@@ -347,7 +344,6 @@ export default function MobileSaving() {
 
   const [product, setProduct] = useState(null)
   const [success, setSuccess] = useState(null)
-  const [projMonths, setProjMonths] = useState(12)
 
   const products   = useMemo(() => rawProducts.map(mapProductForUI), [rawProducts])
   const plans      = useMemo(() => investments.map(mapAccountForUI), [investments])
@@ -356,15 +352,9 @@ export default function MobileSaving() {
   const totalSaved    = useMemo(() => plans.reduce((s, p) => s + p.principal, 0), [plans])
   const totalInterest = useMemo(() => plans.reduce((s, p) => s + p.interestEarned, 0), [plans])
   const avgApy        = useMemo(() => plans.length ? plans.reduce((s, p) => s + p.apy, 0) / plans.length : 0, [plans])
-  const activeCount   = plans.filter(p => p.status === 'active').length
+  const activePlans   = useMemo(() => plans.filter(p => p.status === 'active'), [plans])
+  const activeCount   = activePlans.length
   const bestProduct   = useMemo(() => products.reduce((best, p) => (!best || p.apy > best.apy) ? p : best, null), [products])
-
-  const projection = useMemo(() => {
-    const base = totalSaved || 100000
-    const monthlyRate = (avgApy || 9) / 100 / 12
-    return PROJECTION_MONTHS.map(m => ({ month: m, value: base * Math.pow(1 + monthlyRate, m) }))
-  }, [totalSaved, avgApy])
-  const maxProjection = projection[projection.length - 1]?.value || 1
 
   function openProduct(p) { setProduct(p); setSuccess(null) }
   function closeSheet() { if (!submitting) { setProduct(null); setSuccess(null) } }
@@ -431,95 +421,34 @@ export default function MobileSaving() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative overflow-hidden rounded-[18px] border border-[rgba(201,162,39,0.28)] shadow-[0_14px_36px_-12px_rgba(2,7,23,0.55)]"
+        className="relative overflow-hidden rounded-2xl border border-[rgba(201,162,39,0.28)] shadow-[0_14px_36px_-12px_rgba(2,7,23,0.55)]"
         style={{ background: 'linear-gradient(140deg,#0d2657 0%,#091a3a 55%,#040e24 100%)' }}
       >
-        <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.22)' }} />
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(232,197,71,0.12)' }} />
-        <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'radial-gradient(rgba(201,162,39,0.18) 1px,transparent 1px)', backgroundSize: '18px 18px' }} />
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,162,39,0.7),transparent)' }} />
+        <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl pointer-events-none" style={{ background: 'rgba(201,162,39,0.2)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(201,162,39,0.6),transparent)' }} />
 
         <div className="relative p-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="inline-flex items-center gap-1 text-[8.5px] uppercase tracking-[1.4px] font-bold text-brand-accent">
-              <Sparkles size={8} /> Total saved balance
-            </span>
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-[0.8px] text-brand-accent" style={{ background: 'rgba(201,162,39,0.12)', border: '1px solid rgba(201,162,39,0.3)' }}>
-              <Gauge size={7} strokeWidth={3} /> {avgApy.toFixed(1)}% avg
-            </span>
-          </div>
-
-          <div className="flex items-baseline gap-1.5 mb-0.5">
-            <span className="text-[30px] font-black tracking-[-1.5px] text-white leading-none tabular-nums">
-              {fmtN(totalSaved)}
-            </span>
-          </div>
-          <p className="text-[10px] m-0 mb-3" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            Across {activeCount} active plan{activeCount !== 1 ? 's' : ''}
+          {/* Balance */}
+          <span className="flex items-center gap-1 text-[8.5px] uppercase tracking-[1.4px] font-bold text-brand-accent mb-1.5">
+            <Sparkles size={8} /> Total saved
+          </span>
+          <p className="text-[28px] font-black tracking-[-1.2px] text-white leading-none tabular-nums m-0">
+            {fmtN(totalSaved)}
+          </p>
+          <p className="text-[9.5px] mt-1 mb-0" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            {activeCount} active plan{activeCount !== 1 ? 's' : ''} · {avgApy.toFixed(1)}% avg APY
           </p>
 
-          {/* Projection bars */}
-          <div className="pt-3 border-t border-white/[0.07]">
-            <div className="flex items-center justify-between mb-2.5 text-[9.5px]">
-              <span className="font-semibold text-white/70">Projected growth</span>
-              <span className="inline-flex items-center gap-1 text-brand-accent font-bold">
-                <TrendingUp size={10} /> {avgApy.toFixed(1)}% p.a.
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-2 items-end h-[68px]">
-              {projection.map(({ month, value }) => {
-                const h = Math.max(20, (value / maxProjection) * 100)
-                const active = month === projMonths
-                return (
-                  <button
-                    key={month} type="button" onClick={() => setProjMonths(month)}
-                    className="relative h-full flex flex-col items-center justify-end"
-                  >
-                    <span className="text-[8px] font-bold mb-1 transition" style={{ color: active ? '#C9A227' : 'rgba(255,255,255,0.35)' }}>
-                      {month} mo
-                    </span>
-                    <motion.span
-                      initial={{ height: 0 }} animate={{ height: `${h}%` }}
-                      transition={{ duration: 0.9, ease: [0.25, 0.46, 0.45, 0.94], delay: month * 0.05 }}
-                      className="w-full rounded-md"
-                      style={{
-                        background: active ? 'linear-gradient(180deg,#f0d060,#C9A227)' : 'rgba(255,255,255,0.1)',
-                        boxShadow: active ? '0 0 12px rgba(201,162,39,0.45)' : 'none',
-                      }}
-                    />
-                  </button>
-                )
-              })}
-            </div>
-            <div className="flex items-center justify-between mt-2.5">
-              <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>In {projMonths} months, could grow to</span>
-              <span className="text-[12px] font-black text-brand-accent tabular-nums">
-                {fmtN(projection.find(p => p.month === projMonths)?.value || totalSaved)}
-              </span>
-            </div>
-          </div>
-
-          {/* stat grid */}
-          <div className="grid grid-cols-2 gap-1.5 mt-3">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-white/[0.07]">
             {[
-              { label: 'Interest earned', value: fmtN(totalInterest), accent: true },
-              { label: 'Active plans',    value: fmt(activeCount) },
-              { label: 'Average APY',     value: `${avgApy.toFixed(1)}%` },
-              { label: 'Best rate',       value: bestProduct ? `${bestProduct.apy}% p.a.` : '—', sub: bestProduct?.name },
-            ].map(({ label, value, sub, accent }) => (
-              <div
-                key={label}
-                className="flex flex-col justify-between p-2.5 rounded-[10px]"
-                style={{
-                  background: accent ? 'rgba(201,162,39,0.12)' : 'rgba(255,255,255,0.04)',
-                  border: accent ? '1px solid rgba(201,162,39,0.25)' : '1px solid rgba(255,255,255,0.07)',
-                }}
-              >
-                <p className="text-[8px] uppercase tracking-[0.8px] font-bold m-0" style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.4)' }}>{label}</p>
-                <div>
-                  <p className="text-[14px] font-black tabular-nums tracking-[-0.5px] m-0 mt-1 leading-none" style={{ color: accent ? '#C9A227' : '#fff' }}>{value}</p>
-                  {sub && <p className="text-[8px] m-0 mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{sub}</p>}
-                </div>
+              { label: 'Interest',     value: fmtN(totalInterest),                               accent: true },
+              { label: 'Active',       value: fmt(activeCount) },
+              { label: 'Best rate',    value: bestProduct ? `${bestProduct.apy}%` : '—' },
+            ].map(({ label, value, accent }) => (
+              <div key={label} className="flex flex-col gap-0.5">
+                <span className="text-[8px] uppercase tracking-[0.8px] font-bold" style={{ color: accent ? '#C9A227' : 'rgba(255,255,255,0.38)' }}>{label}</span>
+                <span className="text-[14px] font-black tabular-nums leading-none" style={{ color: accent ? '#C9A227' : '#fff' }}>{value}</span>
               </div>
             ))}
           </div>
@@ -567,11 +496,11 @@ export default function MobileSaving() {
         <h2 className="inline-flex items-center gap-1.5 text-[12.5px] font-black m-0 text-[var(--c-text)] tracking-[-0.2px]">
           <PiggyBank size={12} className="text-brand-accent" /> Your savings plans
         </h2>
-        <span className="text-[10px] text-[var(--c-text-muted)] font-semibold">{plans.length} total</span>
+        <span className="text-[10px] text-[var(--c-text-muted)] font-semibold">{activePlans.length} active</span>
       </div>
       <article className="rounded-[18px] border border-[var(--c-border)] overflow-hidden" style={{ background: 'var(--c-surface)' }}>
         <ul className="list-none m-0 p-0">
-          {plans.map((p, i) => {
+          {activePlans.map((p, i) => {
             const meta = TYPE_META[p.type]
             const TIcon = meta.icon
             return (
@@ -624,7 +553,7 @@ export default function MobileSaving() {
               </li>
             )
           })}
-          {plans.length === 0 && (
+          {activePlans.length === 0 && (
             <li className="px-5 pt-8 pb-7 flex flex-col items-center text-center">
               <div className="relative mb-4">
                 <div className="absolute inset-0 rounded-full blur-2xl scale-125 pointer-events-none" style={{ background: 'rgba(201,162,39,0.2)' }} />

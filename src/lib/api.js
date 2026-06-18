@@ -158,9 +158,13 @@ export async function apiFetch(path, options = {}) {
 
   if (!response.ok || !payload?.success) {
     const errField = payload?.error
+    let message = (typeof errField === 'string' ? errField : errField?.detail || errField?.message || null) || payload?.message || 'Request failed. Please try again.'
+    if (message === 'Invalid CSRF token') {
+      message = 'Something went wrong. Please refresh the page and try again.'
+    }
     return {
       success: false,
-      message: (typeof errField === 'string' ? errField : errField?.detail || errField?.message || null) || payload?.message || 'Request failed. Please try again.',
+      message,
       code: typeof errField === 'object' ? errField?.code : payload?.code,
       status: response.status,
       payload,

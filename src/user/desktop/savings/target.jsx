@@ -1,17 +1,28 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAlert } from '../../../components/ui/Alert'
-import { useSavingsOverview } from '../../../hooks/useSavings'
-import { setScheduleStatus } from '../../../lib/savings'
-import {
-  Target, Plus, Check, X, Loader2, TrendingUp, ShieldCheck,
-  ArrowUpRight, Pause, Play, Flag, Percent, Coins, Zap,
-  ChevronLeft,
-} from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAlert } from '../../../components/ui/Alert'
+import { useSavingsOverview, useSavingsPlanLedger } from '../../../hooks/useSavings'
+import { setScheduleStatus } from '../../../lib/savings'
+import CreateGoalModal from '../../../components/internalUI/CreateGoalModal'
+import {
+  Target, Plus, Check, Loader2,
+  ArrowUpRight, ArrowDownLeft, Pause, Play, Percent, Coins, Zap,
+  ChevronLeft, History, X, Receipt, Sparkles, AlertTriangle,
+} from 'lucide-react'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
+function fmtDate(d) {
+  if (!d) return null
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T00:00:00') : new Date(d)
+  return date.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+function fmtTime(d) {
+  if (!d) return null
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T00:00:00') : new Date(d)
+  return date.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
 
 const TEAL = '#34d399'
 const TEAL_BG = 'rgba(52,211,153,0.1)'
@@ -52,6 +63,120 @@ function CircleRing({ pct = 0, size = 96, stroke = 9 }) {
   )
 }
 
+/* ── History modal ───────────────────────────────────────── */
+
+const LEDGER_META = {
+  deposit:         { label: 'Deposit',                  icon: ArrowDownLeft, sign: '+' },
+  top_up:          { label: 'Top-up',                   icon: ArrowDownLeft, sign: '+' },
+  interest_credit: { label: 'Interest credited',        icon: Sparkles,      sign: '+' },
+  withdrawal:      { label: 'Withdrawal',               icon: ArrowUpRight,  sign: '-' },
+  penalty:         { label: 'Early withdrawal penalty', icon: AlertTriangle, sign: '-' },
+}
+
+function LedgerRow({ entry }) {
+  const meta = LEDGER_META[entry.type] || { label: entry.type, icon: Coins, sign: '' }
+  const Icon = meta.icon
+  const isCredit = meta.sign === '+'
+  return (
+    <div className="flex items-center gap-3 px-5 py-3.5">
+      <span
+        className="inline-flex items-center justify-center w-8 h-8 rounded-xl shrink-0 border"
+        style={{
+          background:   isCredit ? TEAL_BG    : 'var(--c-surface-soft)',
+          borderColor:  isCredit ? TEAL_BORDER : 'var(--c-border-soft)',
+          color:        isCredit ? TEAL        : 'var(--c-text-muted)',
+        }}
+      >
+        <Icon size={13} strokeWidth={2.2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11.5px] font-bold text-[var(--c-text)] m-0 truncate">{entry.description || meta.label}</p>
+        <p className="text-[10px] text-[var(--c-text-muted)] m-0 mt-0.5">
+          {fmtDate(entry.created_at)} · {fmtTime(entry.created_at)}
+        </p>
+      </div>
+      <span className="text-[12px] font-black tabular-nums shrink-0" style={{ color: isCredit ? TEAL : 'var(--c-text)' }}>
+        {meta.sign}{fmtN(entry.amount)}
+      </span>
+    </div>
+  )
+}
+
+function TargetHistoryModal({ goal, onClose }) {
+  const { ledger, loading } = useSavingsPlanLedger(goal?.id)
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[6px]"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 16, scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 30 }}
+          className="relative w-full max-w-xl h-[82vh] flex flex-col rounded-[24px] border border-[var(--c-border)] overflow-hidden pointer-events-auto"
+          style={{ background: 'var(--c-surface)', boxShadow: '0 32px 80px -16px rgba(2,7,23,0.5)' }}
+        >
+          {/* Header */}
+          <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-5 border-b border-[var(--c-border-soft)]">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                className="inline-flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 border"
+                style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+              >
+                <History size={18} strokeWidth={2.2} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[9.5px] uppercase tracking-[1.3px] font-bold m-0" style={{ color: TEAL }}>Transaction history</p>
+                <h2 className="text-[16px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.3px]">{goal.name}</h2>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)] active:scale-90 transition shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 size={22} className="animate-spin text-[var(--c-text-muted)]" />
+              </div>
+            ) : ledger.length === 0 ? (
+              <div className="flex flex-col items-center text-center py-16 px-4 gap-3">
+                <span
+                  className="inline-flex items-center justify-center w-14 h-14 rounded-2xl border"
+                  style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+                >
+                  <Receipt size={22} strokeWidth={1.8} />
+                </span>
+                <div>
+                  <h3 className="text-[14px] font-black text-[var(--c-text)] m-0">No transactions yet</h3>
+                  <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-1 leading-relaxed">
+                    Deposits and interest credits for this goal will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--c-border-soft)]">
+                {ledger.map(entry => <LedgerRow key={entry.id} entry={entry} />)}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </>
+  )
+}
+
 /* ── Mapper ───────────────────────────────────────────────── */
 
 function mapGoal(a) {
@@ -66,260 +191,29 @@ function mapGoal(a) {
     goal,
     progress,
     remaining,
-    interestEarned: Number(a.total_interest_earned || 0),
+    interestEarned: Number(a.accrued_interest || 0),
     apy: Number(a.apy_at_creation ?? 0),
     status: a.status,
-    isCompleted: a.status === 'completed' || progress >= 100,
-    frequency: a.frequency || null,
+    isCompleted: (a.status === 'completed' || progress >= 100) && a.status !== 'withdrawn',
+    isWithdrawn: a.status === 'withdrawn',
+    frequency: a.schedule_frequency || a.frequency || null,
     scheduleStatus: a.schedule_status || null,
+    startDate: a.start_date || null,
+    maturityDate: a.maturity_date || null,
+    penalty: Number(a.early_withdrawal_penalty || 0),
+    withdrawalStatus: a.withdrawal_status || null,
   }
-}
-
-/* ── Create goal modal ────────────────────────────────────── */
-
-function CreateGoalModal({ product, onClose, onSubmit, submitting, success }) {
-  const [name, setName] = useState('')
-  const [amount, setAmount] = useState('')
-  const [goalAmt, setGoalAmt] = useState('')
-  const [contrib, setContrib] = useState('')
-  const [frequency, setFrequency] = useState('weekly')
-
-  const n = s => Number(s.replace(/[^0-9.]/g, '')) || 0
-  const numAmount = n(amount)
-  const numGoal   = n(goalAmt)
-  const numContrib = n(contrib)
-  const apy = product?.apy || 0
-
-  const valid = numAmount >= 1000 && name.trim().length > 1 && numGoal > numAmount && numContrib > 0
-  const weeksToGoal = numContrib > 0 && numGoal > numAmount
-    ? Math.ceil((numGoal - numAmount) / numContrib)
-    : null
-
-  function submit() {
-    if (!valid || submitting) return
-    onSubmit({ name: name.trim(), amount: numAmount, goal: numGoal, contribution: numContrib, frequency, apy })
-  }
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[6px]"
-        onClick={() => !submitting && onClose()}
-      />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.97 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-          className="relative w-full max-w-[440px] max-h-[88vh] overflow-y-auto rounded-[24px] border border-[var(--c-border)] pointer-events-auto"
-          style={{ background: 'var(--c-surface)', boxShadow: '0 32px 80px -16px rgba(2,7,23,0.5)' }}
-        >
-          {/* Header */}
-          <div
-            className="sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-5 border-b border-[var(--c-border-soft)]"
-            style={{ background: 'var(--c-surface)' }}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span
-                className="inline-flex items-center justify-center w-11 h-11 rounded-2xl shrink-0 border"
-                style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
-              >
-                <Target size={18} strokeWidth={2.2} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">New goal</p>
-                <h2 className="text-[16px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.3px]">
-                  {product?.name || 'Target Savings'}
-                </h2>
-              </div>
-            </div>
-            {!submitting && (
-              <button
-                type="button" onClick={onClose}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border)] text-[var(--c-text-muted)] active:scale-90 transition shrink-0"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Body */}
-          <AnimatePresence mode="wait">
-            {success ? (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="flex flex-col items-center text-center px-6 py-10"
-              >
-                <motion.span
-                  initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 320, damping: 18 }}
-                  className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-5"
-                  style={{ background: 'var(--c-success-bg)', color: 'var(--c-success)' }}
-                >
-                  <Check size={28} strokeWidth={2.6} />
-                </motion.span>
-                <h3 className="text-[17px] font-black text-[var(--c-text)] m-0 tracking-[-0.3px]">Goal created</h3>
-                <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 max-w-[280px] leading-relaxed">
-                  {fmtN(success.principal)} invested in{' '}
-                  <span className="font-semibold text-[var(--c-text)]">{success.name}</span>
-                  {' '}· target {fmtN(success.goal)}
-                </p>
-
-                <div
-                  className="w-full mt-6 rounded-2xl border border-[var(--c-border-soft)] overflow-hidden"
-                  style={{ background: 'var(--c-surface-soft)' }}
-                >
-                  {[
-                    { label: 'Goal name',     value: success.name },
-                    { label: 'Starting with', value: fmtN(success.principal) },
-                    { label: 'Target',        value: fmtN(success.goal) },
-                    { label: 'Contribution',  value: success.contrib },
-                    { label: 'Rate',          value: `${success.apy}% p.a.` },
-                  ].map((r, i) => (
-                    <div
-                      key={r.label}
-                      className={`flex items-center justify-between px-4 py-3 ${i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}`}
-                    >
-                      <span className="text-[11px] text-[var(--c-text-muted)] font-medium">{r.label}</span>
-                      <span className="text-[12.5px] font-bold text-[var(--c-text)] tabular-nums">{r.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button" onClick={onClose}
-                  className="inline-flex items-center justify-center gap-2 w-full h-[46px] rounded-xl font-bold text-[13px] mt-6 transition hover:-translate-y-px active:scale-[0.99]"
-                  style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 8px 24px -6px rgba(201,162,39,0.5)' }}
-                >
-                  Done
-                </button>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="form"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="px-6 py-5 flex flex-col gap-4"
-              >
-                <p className="text-[12px] text-[var(--c-text-muted)] m-0 leading-relaxed">
-                  {product?.desc || 'Save consistently toward a specific goal with automated contributions.'}
-                </p>
-
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Goal name</span>
-                  <input
-                    type="text" value={name} onChange={e => setName(e.target.value)}
-                    placeholder="e.g. Dream Car, MacBook, Trip to Dubai"
-                    className="h-[46px] px-4 rounded-xl text-[13px] font-semibold text-[var(--c-text)] outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
-                    style={{ background: 'var(--c-surface-soft)' }}
-                  />
-                </label>
-
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Target amount</span>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--c-text-muted)]">₦</span>
-                    <input
-                      type="text" inputMode="decimal" value={goalAmt} onChange={e => setGoalAmt(e.target.value)}
-                      placeholder="1,000,000"
-                      className="w-full h-[46px] pl-8 pr-4 rounded-xl text-[14px] font-bold text-[var(--c-text)] tabular-nums outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
-                      style={{ background: 'var(--c-surface-soft)' }}
-                    />
-                  </div>
-                </label>
-
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Starting amount</span>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--c-text-muted)]">₦</span>
-                    <input
-                      type="text" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full h-[46px] pl-8 pr-4 rounded-xl text-[14px] font-bold text-[var(--c-text)] tabular-nums outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
-                      style={{ background: 'var(--c-surface-soft)' }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-[var(--c-text-faint)]">Minimum ₦1,000</span>
-                </label>
-
-                <div className="grid grid-cols-[1fr_120px] gap-3">
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Auto contribution</span>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--c-text-muted)]">₦</span>
-                      <input
-                        type="text" inputMode="decimal" value={contrib} onChange={e => setContrib(e.target.value)}
-                        placeholder="20,000"
-                        className="w-full h-[46px] pl-8 pr-4 rounded-xl text-[14px] font-bold text-[var(--c-text)] tabular-nums outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
-                        style={{ background: 'var(--c-surface-soft)' }}
-                      />
-                    </div>
-                  </label>
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Frequency</span>
-                    <select
-                      value={frequency} onChange={e => setFrequency(e.target.value)}
-                      className="h-[46px] px-3 rounded-xl text-[12.5px] font-semibold text-[var(--c-text)] outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition appearance-none"
-                      style={{ background: 'var(--c-surface-soft)' }}
-                    >
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  </label>
-                </div>
-
-                {weeksToGoal && (
-                  <div
-                    className="flex items-center gap-3 p-3.5 rounded-2xl border"
-                    style={{ background: TEAL_BG, borderColor: TEAL_BORDER }}
-                  >
-                    <span
-                      className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0"
-                      style={{ background: 'rgba(52,211,153,0.15)', color: TEAL }}
-                    >
-                      <Flag size={15} strokeWidth={2.2} />
-                    </span>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[1px] font-bold m-0" style={{ color: TEAL }}>
-                        Estimated time to goal
-                      </p>
-                      <p className="text-[14px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.3px]">
-                        {weeksToGoal} {frequency === 'weekly' ? 'week' : 'month'}{weeksToGoal !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="button" onClick={submit} disabled={!valid || submitting}
-                  className="inline-flex items-center justify-center gap-2 w-full h-[48px] rounded-xl font-bold text-[13.5px] mt-1 transition hover:-translate-y-px active:scale-[0.99] disabled:opacity-50 disabled:hover:translate-y-0"
-                  style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', border: '1px solid rgba(232,197,71,0.5)', boxShadow: '0 8px 24px -6px rgba(201,162,39,0.5)' }}
-                >
-                  {submitting
-                    ? <><Loader2 size={15} className="animate-spin" /> Creating goal…</>
-                    : <><Target size={15} strokeWidth={2.2} /> Create goal</>
-                  }
-                </button>
-                <p className="inline-flex items-center gap-1.5 text-[10px] text-[var(--c-text-faint)] justify-center m-0">
-                  <ShieldCheck size={11} className="text-brand-accent" /> Starting amount debited from your wallet balance
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </div>
-    </>
-  )
 }
 
 /* ── Goal card ────────────────────────────────────────────── */
 
-function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume }) {
+const WITHDRAWAL_BLOCKED = new Set(['pending', 'approved', 'completed'])
+
+function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume, onHistory }) {
   const isPaused = goal.scheduleStatus === 'paused'
-  const { isCompleted } = goal
+  const { isCompleted, isWithdrawn } = goal
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false)
+  const withdrawalBlocked = WITHDRAWAL_BLOCKED.has(goal.withdrawalStatus)
 
   return (
     <motion.article
@@ -331,65 +225,73 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
       <div
         className="h-1 w-full"
         style={{
-          background: isCompleted
-            ? 'linear-gradient(90deg,#C9A227,#f0d060)'
-            : `linear-gradient(90deg,${TEAL},rgba(52,211,153,0.35))`,
+          background: isWithdrawn
+            ? 'linear-gradient(90deg,rgba(148,163,184,0.5),rgba(148,163,184,0.18))'
+            : isCompleted
+              ? 'linear-gradient(90deg,#C9A227,#f0d060)'
+              : `linear-gradient(90deg,${TEAL},rgba(52,211,153,0.35))`,
         }}
       />
 
-      <div className="p-5">
+      <div className="p-4">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <h3 className="text-[14px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.2px] mb-1.5">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            {isWithdrawn ? (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px] shrink-0"
+                style={{ background: 'rgba(148,163,184,0.12)', color: '#94a3b8', border: '1px solid rgba(148,163,184,0.28)' }}
+              >
+                <ArrowUpRight size={8} strokeWidth={3} /> Withdrawn
+              </span>
+            ) : isCompleted ? (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px] shrink-0"
+                style={{ background: 'rgba(201,162,39,0.12)', color: '#C9A227', border: '1px solid rgba(201,162,39,0.3)' }}
+              >
+                <Check size={8} strokeWidth={3} /> Completed
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px] shrink-0"
+                style={{ background: TEAL_BG, color: TEAL, border: `1px solid ${TEAL_BORDER}` }}
+              >
+                <Zap size={8} strokeWidth={3} /> Active
+              </span>
+            )}
+            <h3 className="text-[13px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.2px]">
               {goal.name}
             </h3>
-            <div className="flex items-center gap-2 flex-wrap">
-              {isCompleted ? (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px]"
-                  style={{ background: 'rgba(201,162,39,0.12)', color: '#C9A227', border: '1px solid rgba(201,162,39,0.3)' }}
-                >
-                  <Check size={8} strokeWidth={3} /> Completed
-                </span>
-              ) : (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-[0.8px]"
-                  style={{ background: TEAL_BG, color: TEAL, border: `1px solid ${TEAL_BORDER}` }}
-                >
-                  <Zap size={8} strokeWidth={3} /> Active
-                </span>
-              )}
-              {goal.apy > 0 && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tabular-nums"
-                  style={{ background: 'var(--c-accent-soft)', color: 'var(--c-accent)', border: '1px solid var(--c-accent-border)' }}
-                >
-                  <Percent size={8} /> {goal.apy}% p.a.
-                </span>
-              )}
-            </div>
           </div>
-          {isPaused && !isCompleted && (
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-bold shrink-0"
-              style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.3)' }}
-            >
-              <Pause size={9} strokeWidth={2.5} /> Paused
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {goal.apy > 0 && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tabular-nums"
+                style={{ background: 'var(--c-accent-soft)', color: 'var(--c-accent)', border: '1px solid var(--c-accent-border)' }}
+              >
+                <Percent size={8} /> {goal.apy}%
+              </span>
+            )}
+            {isPaused && !isCompleted && !isWithdrawn && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold"
+                style={{ background: 'rgba(251,146,60,0.1)', color: '#fb923c', border: '1px solid rgba(251,146,60,0.3)' }}
+              >
+                <Pause size={8} strokeWidth={2.5} /> Paused
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Progress */}
-        <div className="flex items-center gap-5">
-          <CircleRing pct={goal.progress} />
+        <div className="flex items-center gap-4">
+          <CircleRing pct={goal.progress} size={76} stroke={7} />
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-[var(--c-text-muted)] m-0">Amount saved</p>
-            <p className="text-[20px] font-black text-[var(--c-text)] m-0 tabular-nums tracking-[-0.5px] leading-tight mb-2">
+            <p className="text-[17px] font-black text-[var(--c-text)] m-0 tabular-nums tracking-[-0.5px] leading-tight mb-1.5">
               {fmtN(goal.principal)}
             </p>
             <div
-              className="relative w-full h-1.5 rounded-full overflow-hidden mb-1.5"
+              className="relative w-full h-1 rounded-full overflow-hidden mb-1"
               style={{ background: 'var(--c-border-soft)' }}
             >
               <motion.div
@@ -397,9 +299,11 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
                 transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
                 className="absolute inset-y-0 left-0 rounded-full"
                 style={{
-                  background: isCompleted
-                    ? 'linear-gradient(90deg,#C9A227,#f0d060)'
-                    : `linear-gradient(90deg,${TEAL},rgba(52,211,153,0.7))`,
+                  background: isWithdrawn
+                    ? 'linear-gradient(90deg,rgba(148,163,184,0.5),rgba(148,163,184,0.25))'
+                    : isCompleted
+                      ? 'linear-gradient(90deg,#C9A227,#f0d060)'
+                      : `linear-gradient(90deg,${TEAL},rgba(52,211,153,0.7))`,
                 }}
               />
             </div>
@@ -415,60 +319,117 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 mt-4">
-          <div
-            className="flex flex-col gap-0.5 p-3 rounded-xl"
-            style={{ background: 'var(--c-surface-soft)', border: '1px solid var(--c-border-soft)' }}
-          >
-            <span className="text-[9.5px] uppercase tracking-[1px] font-bold text-[var(--c-text-faint)]">Interest earned</span>
-            <span className="text-[13px] font-black tabular-nums" style={{ color: TEAL }}>+{fmtN(goal.interestEarned)}</span>
+        <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[var(--c-border-soft)]">
+          <div className="flex-1 min-w-0">
+            <span className="text-[9px] uppercase tracking-[1px] font-bold text-[var(--c-text-faint)]">Interest</span>
+            <p className="text-[12px] font-black tabular-nums m-0" style={{ color: TEAL }}>+{fmtN(goal.interestEarned)}</p>
           </div>
-          <div
-            className="flex flex-col gap-0.5 p-3 rounded-xl"
-            style={{ background: 'var(--c-surface-soft)', border: '1px solid var(--c-border-soft)' }}
-          >
-            <span className="text-[9.5px] uppercase tracking-[1px] font-bold text-[var(--c-text-faint)]">Frequency</span>
-            <span className="text-[13px] font-black text-[var(--c-text)] capitalize">
-              {goal.frequency || '—'}
+          <div className="w-px h-7 bg-[var(--c-border-soft)]" />
+          <div className="flex-1 min-w-0">
+            <span className="text-[9px] uppercase tracking-[1px] font-bold text-[var(--c-text-faint)]">
+              {goal.maturityDate ? 'Matures' : 'Frequency'}
             </span>
+            <p className="text-[12px] font-black text-[var(--c-text)] m-0 capitalize truncate">
+              {goal.maturityDate ? fmtDate(goal.maturityDate) : (goal.frequency || '—')}
+            </p>
           </div>
         </div>
 
-        {/* Actions */}
-        {!isCompleted && (
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[var(--c-border-soft)]">
-            {goal.frequency && (
-              <button
-                type="button"
-                onClick={() => isPaused ? onResume(goal.id) : onPause(goal.id)}
-                disabled={scheduling}
-                className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl font-bold text-[11.5px] border transition active:scale-95 disabled:opacity-60"
-                style={isPaused
-                  ? { background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }
-                  : { background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }
-                }
+        {/* Bottom bar — always visible */}
+        <div className="mt-3 pt-3 border-t border-[var(--c-border-soft)]">
+          <AnimatePresence mode="wait">
+            {!isCompleted && !isWithdrawn && confirmWithdraw ? (
+              <motion.div
+                key="warn"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="rounded-xl p-3 flex flex-col gap-2"
+                style={{ background: 'rgba(251,146,60,0.07)', border: '1px solid rgba(251,146,60,0.22)' }}
               >
-                {scheduling
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : isPaused
-                    ? <><Play size={11} strokeWidth={2.5} /> Resume</>
-                    : <><Pause size={11} strokeWidth={2.5} /> Pause</>
-                }
-              </button>
+                <p className="text-[11px] font-semibold leading-relaxed m-0" style={{ color: '#fb923c' }}>
+                  Early withdrawal ends this goal.
+                  {goal.penalty > 0
+                    ? ` A ${goal.penalty}% penalty will be deducted from your balance before it is returned to your wallet.`
+                    : ' Your saved funds will be returned to your wallet.'}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmWithdraw(false)}
+                    className="inline-flex items-center px-3 h-7 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setConfirmWithdraw(false); onWithdraw(goal.id) }}
+                    disabled={withdrawing}
+                    className="inline-flex items-center gap-1.5 px-3 h-7 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-60"
+                    style={{ background: 'rgba(251,146,60,0.12)', borderColor: 'rgba(251,146,60,0.35)', color: '#fb923c' }}
+                  >
+                    {withdrawing
+                      ? <Loader2 size={11} className="animate-spin" />
+                      : <><ArrowUpRight size={11} strokeWidth={2.5} /> Yes, withdraw</>
+                    }
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="actions"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-2"
+              >
+                <button
+                  type="button"
+                  onClick={() => onHistory(goal)}
+                  className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition hover:text-[var(--c-text)] hover:border-[var(--c-border)] active:scale-95"
+                >
+                  <History size={11} strokeWidth={2.3} /> History
+                </button>
+                {!isCompleted && !isWithdrawn && goal.frequency && (
+                  <button
+                    type="button"
+                    onClick={() => isPaused ? onResume(goal.id) : onPause(goal.id)}
+                    disabled={scheduling}
+                    className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-60"
+                    style={isPaused
+                      ? { background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }
+                      : { background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }
+                    }
+                  >
+                    {scheduling
+                      ? <Loader2 size={11} className="animate-spin" />
+                      : isPaused
+                        ? <><Play size={11} strokeWidth={2.5} /> Resume</>
+                        : <><Pause size={11} strokeWidth={2.5} /> Pause</>
+                    }
+                  </button>
+                )}
+                {!isCompleted && !isWithdrawn && (
+                  withdrawalBlocked ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border ml-auto cursor-default select-none capitalize"
+                      style={{ background: 'rgba(251,146,60,0.07)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }}
+                    >
+                      Withdrawal {goal.withdrawalStatus}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmWithdraw(true)}
+                      disabled={withdrawing}
+                      className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition hover:border-[var(--c-border-strong)] active:scale-95 disabled:opacity-60 ml-auto"
+                    >
+                      <ArrowUpRight size={11} strokeWidth={2.5} /> Withdraw
+                    </button>
+                  )
+                )}
+              </motion.div>
             )}
-            <button
-              type="button"
-              onClick={() => onWithdraw(goal.id)}
-              disabled={withdrawing}
-              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-xl font-bold text-[11.5px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition hover:border-[var(--c-border-strong)] active:scale-95 disabled:opacity-60 ml-auto"
-            >
-              {withdrawing
-                ? <Loader2 size={12} className="animate-spin" />
-                : <><ArrowUpRight size={12} strokeWidth={2.5} /> Withdraw</>
-              }
-            </button>
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.article>
   )
@@ -484,6 +445,7 @@ export default function DesktopTargetSavings() {
   const [success, setSuccess]     = useState(null)
   const [schedulingId, setSchedulingId] = useState(null)
   const [withdrawingId, setWithdrawingId] = useState(null)
+  const [historyGoal, setHistoryGoal] = useState(null)
 
   const targetGoals = useMemo(() =>
     investments.filter(a => (a.product_type || a.type) === 'target').map(mapGoal),
@@ -500,8 +462,10 @@ export default function DesktopTargetSavings() {
   const totalGoal     = useMemo(() => targetGoals.reduce((s, g) => s + (g.goal || 0), 0), [targetGoals])
   const totalInterest = useMemo(() => targetGoals.reduce((s, g) => s + g.interestEarned, 0), [targetGoals])
   const overallPct    = totalGoal > 0 ? Math.min(100, Math.round((totalSaved / totalGoal) * 100)) : 0
-  const activeGoals   = targetGoals.filter(g => !g.isCompleted)
+  const activeGoals    = targetGoals.filter(g => !g.isCompleted && !g.isWithdrawn)
+  const withdrawnGoals = targetGoals.filter(g => g.isWithdrawn)
   const completedGoals = targetGoals.filter(g => g.isCompleted)
+  const allGoals       = useMemo(() => [...activeGoals, ...completedGoals, ...withdrawnGoals], [activeGoals, completedGoals, withdrawnGoals])
 
   async function handleCreate(payload) {
     if (!targetProduct) return
@@ -510,18 +474,22 @@ export default function DesktopTargetSavings() {
       name: payload.name,
       initial_amount: payload.amount,
       goal_amount: payload.goal,
-      contribution_amount: payload.contribution,
-      frequency: payload.frequency,
+      ...(payload.contribution ? { contribution_amount: payload.contribution, frequency: payload.frequency } : {}),
+      start_date: payload.startDate || null,
+      maturity_date: payload.maturityDate || null,
     })
     if (r.success) {
       setSuccess({
         name: payload.name,
+        category: payload.category || null,
         principal: payload.amount,
         goal: payload.goal,
         apy: payload.apy,
-        contrib: `${fmtN(payload.contribution)} ${payload.frequency}`,
+        frequency: payload.frequency || null,
+        startDate: fmtDate(payload.startDate),
+        maturityDate: fmtDate(payload.maturityDate),
       })
-      alert({ type: 'success', title: 'Goal created', message: `${payload.name} is now active — saving ${fmtN(payload.contribution)} ${payload.frequency}` })
+      alert({ type: 'success', title: 'Goal created', message: `${payload.name} is now active` })
     } else {
       alert({ type: 'error', title: 'Could not create goal', message: r.message || 'Something went wrong.' })
     }
@@ -542,7 +510,7 @@ export default function DesktopTargetSavings() {
     setSchedulingId(id)
     const r = await setScheduleStatus(id, 'pause')
     setSchedulingId(null)
-    if (r.success) { refresh(); alert({ type: 'success', title: 'Schedule paused', message: 'Auto-debit has been paused.' }) }
+    if (r.success) { refresh(); alert({ type: 'success', title: 'Schedule paused', message: 'Auto save has been paused.' }) }
     else alert({ type: 'error', title: 'Could not pause', message: r.message || 'Failed to pause schedule.' })
   }
 
@@ -550,7 +518,7 @@ export default function DesktopTargetSavings() {
     setSchedulingId(id)
     const r = await setScheduleStatus(id, 'resume')
     setSchedulingId(null)
-    if (r.success) { refresh(); alert({ type: 'success', title: 'Schedule resumed', message: 'Auto-debit has been resumed.' }) }
+    if (r.success) { refresh(); alert({ type: 'success', title: 'Schedule resumed', message: 'Auto save has been resumed.' }) }
     else alert({ type: 'error', title: 'Could not resume', message: r.message || 'Failed to resume schedule.' })
   }
 
@@ -650,17 +618,17 @@ export default function DesktopTargetSavings() {
         </div>
       </article>
 
-      {/* Active goals */}
-      {activeGoals.length > 0 && (
+      {/* All goals */}
+      {allGoals.length > 0 && (
         <section className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="inline-flex items-center gap-2 text-[14px] font-black m-0 text-[var(--c-text)] tracking-[-0.2px]">
-              <Zap size={14} style={{ color: TEAL }} /> Active goals
+              <Target size={14} style={{ color: TEAL }} /> All goals
             </h2>
-            <span className="text-[10.5px] font-semibold text-[var(--c-text-muted)]">{activeGoals.length}</span>
+            <span className="text-[10.5px] font-semibold text-[var(--c-text-muted)]">{allGoals.length}</span>
           </div>
-          <div className="grid grid-cols-1 min-[860px]:grid-cols-2 gap-4">
-            {activeGoals.map(goal => (
+          <div className="grid grid-cols-1 min-[860px]:grid-cols-2 min-[1200px]:grid-cols-3 gap-3">
+            {allGoals.map(goal => (
               <GoalCard
                 key={goal.id}
                 goal={goal}
@@ -669,31 +637,7 @@ export default function DesktopTargetSavings() {
                 scheduling={schedulingId === goal.id}
                 onPause={handlePause}
                 onResume={handleResume}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Completed goals */}
-      {completedGoals.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <h2 className="inline-flex items-center gap-2 text-[14px] font-black m-0 text-[var(--c-text)] tracking-[-0.2px]">
-              <Check size={14} style={{ color: '#C9A227' }} /> Completed goals
-            </h2>
-            <span className="text-[10.5px] font-semibold text-[var(--c-text-muted)]">{completedGoals.length}</span>
-          </div>
-          <div className="grid grid-cols-1 min-[860px]:grid-cols-2 gap-4">
-            {completedGoals.map(goal => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                onWithdraw={handleWithdraw}
-                withdrawing={withdrawingId === goal.id}
-                scheduling={schedulingId === goal.id}
-                onPause={handlePause}
-                onResume={handleResume}
+                onHistory={setHistoryGoal}
               />
             ))}
           </div>
@@ -724,7 +668,7 @@ export default function DesktopTargetSavings() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Create goal modal */}
       <AnimatePresence>
         {showModal && targetProduct && (
           <CreateGoalModal
@@ -733,6 +677,16 @@ export default function DesktopTargetSavings() {
             onSubmit={handleCreate}
             submitting={creating}
             success={success}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* History modal */}
+      <AnimatePresence>
+        {historyGoal && (
+          <TargetHistoryModal
+            goal={historyGoal}
+            onClose={() => setHistoryGoal(null)}
           />
         )}
       </AnimatePresence>

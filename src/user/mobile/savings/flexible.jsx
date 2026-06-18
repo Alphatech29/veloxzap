@@ -512,17 +512,19 @@ function EditScheduleSheet({ open, plan, onClose, onSubmit, submitting }) {
   const [frequency, setFrequency] = useState('monthly')
   const [debitTime, setDebitTime] = useState('08:00')
 
-  const n = s => Number(s.replace(/[^0-9.]/g, '')) || 0
-  const numAmount = n(amount)
-  const valid = numAmount > 0
-
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open) {
       setAmount(String(plan?.topupAmount || ''))
       setFrequency(plan?.frequency || 'monthly')
       setDebitTime(plan?.debitTime ? plan.debitTime.slice(0, 5) : '08:00')
     }
-  }, [open, plan])
+  }
+
+  const n = s => Number(s.replace(/[^0-9.]/g, '')) || 0
+  const numAmount = n(amount)
+  const valid = numAmount > 0
 
   function submit() {
     if (!valid || submitting) return
@@ -597,7 +599,7 @@ const LEDGER_META = {
   maturity_payout: { label: 'Maturity payout',          icon: Check,         sign: '+' },
   withdrawal:      { label: 'Withdrawal',               icon: ArrowUpRight,  sign: '-' },
   auto_debit:      { label: 'Auto-debit',               icon: ArrowUpRight,  sign: '-' },
-  auto_topup:      { label: 'Auto top-up',              icon: ArrowDownLeft, sign: '+' },
+  auto_topup:      { label: 'Auto save',              icon: ArrowDownLeft, sign: '+' },
   penalty:         { label: 'Early withdrawal penalty', icon: AlertTriangle, sign: '-' },
 }
 

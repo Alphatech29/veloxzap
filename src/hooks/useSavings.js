@@ -238,3 +238,13 @@ export function useSavingsWithdrawals(initialStatus = 'All') {
     refresh: query.refetch,
   }
 }
+
+export function useSavingsPlanLedger(planId) {
+  const query = useQuery({
+    queryKey: queryKeys.savings.ledger(planId),
+    queryFn: () => unwrap(getSavingsLedger(planId)),
+    select: (data) => data.entries,
+    enabled: !!planId,
+  })
+  return { ledger: query.data ?? [], loading: query.isLoading }
+}

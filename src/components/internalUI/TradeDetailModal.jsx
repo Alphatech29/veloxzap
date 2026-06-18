@@ -48,7 +48,7 @@ export default function TradeDetailModal({ trade, brands, onClose }) {
         className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none"
       >
         <div
-          className="pointer-events-auto w-full max-w-[420px] flex flex-col rounded-[20px] overflow-hidden shadow-[0_32px_100px_rgba(0,0,0,0.55),0_0_0_1px_rgba(201,162,39,0.15)]"
+          className="pointer-events-auto max-w-3xl h-[90vh] flex flex-col rounded-[20px] overflow-hidden shadow-[0_32px_100px_rgba(0,0,0,0.55),0_0_0_1px_rgba(201,162,39,0.15)]"
           style={{ background: 'var(--c-surface)' }}
           onClick={e => e.stopPropagation()}
         >

@@ -157,8 +157,8 @@ function AutoTopupDetailsRow({ activePlan, scheduling, onPauseResume, onEdit }) 
           </p>
           <p className="text-[10px] text-white/50 m-0 mt-0.5">
             {activePlan.scheduleStatus === 'active'
-              ? `Next top-up ${fmtDateOnly(activePlan.nextDebitDate)}`
-              : 'Auto top-up paused'}
+              ? `Next auto save ${fmtDateOnly(activePlan.nextDebitDate)}`
+              : 'Auto save paused'}
           </p>
         </div>
       </div>
@@ -174,7 +174,7 @@ function AutoTopupDetailsRow({ activePlan, scheduling, onPauseResume, onEdit }) 
         <button
           type="button" onClick={onPauseResume} disabled={scheduling}
           className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-white/15 text-white bg-white/5 transition hover:bg-white/10 active:scale-95 disabled:opacity-60"
-          title={activePlan.scheduleStatus === 'active' ? 'Pause auto top-up' : 'Resume auto top-up'}
+          title={activePlan.scheduleStatus === 'active' ? 'Pause auto save' : 'Resume auto save'}
         >
           {scheduling
             ? <Loader2 size={12} className="animate-spin" />
@@ -283,7 +283,7 @@ function CreateModal({ product, onClose, onSubmit, submitting, success }) {
                     { label: 'Rate',           value: `${success.apy}% p.a.` },
                     { label: 'Daily earnings', value: `~${fmtN(success.dailyEarning)}`, highlight: true },
                     ...(success.schedule
-                      ? [{ label: 'Auto top-up', value: `${fmtN(success.schedule.amount)} · ${FREQUENCY_LABEL[success.schedule.frequency]} · ${fmtDebitTime(success.schedule.debitTime)}` }]
+                      ? [{ label: 'Auto save', value: `${fmtN(success.schedule.amount)} · ${FREQUENCY_LABEL[success.schedule.frequency]} · ${fmtDebitTime(success.schedule.debitTime)}` }]
                       : []),
                   ].map((r, i) => (
                     <div key={r.label} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}`}>
@@ -557,7 +557,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
                 <Repeat size={18} strokeWidth={2.2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">{isNew ? 'Set up auto top-up' : 'Edit schedule'}</p>
+                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">{isNew ? 'Set up auto save' : 'Edit schedule'}</p>
                 <h2 className="text-[16px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.3px]">{plan?.name}</h2>
               </div>
             </div>
@@ -570,7 +570,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
 
           <div className="px-6 py-5 flex flex-col gap-4">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Top-up amount</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-[var(--c-text-muted)]">Auto save amount</span>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-[var(--c-text-muted)]">₦</span>
                 <input
@@ -611,7 +611,7 @@ function EditScheduleModal({ plan, onClose, onSubmit, submitting }) {
             >
               {submitting
                 ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
-                : <><Check size={15} strokeWidth={2.2} /> {isNew ? 'Enable auto top-up' : 'Save changes'}</>
+                : <><Check size={15} strokeWidth={2.2} /> {isNew ? 'Enable auto save' : 'Save changes'}</>
               }
             </button>
           </div>
@@ -628,7 +628,7 @@ const LEDGER_META = {
   top_up:          { label: 'Manual Top-up',            icon: ArrowDownLeft, sign: '+' },
   interest_credit: { label: 'Interest credited',        icon: Sparkles,      sign: '+' },
   withdrawal:      { label: 'Withdrawal',               icon: ArrowUpRight,  sign: '-' },
-  auto_topup:      { label: 'Auto top-up',              icon: ArrowDownLeft, sign: '+' },
+  auto_topup:      { label: 'Auto save',              icon: ArrowDownLeft, sign: '+' },
   penalty:         { label: 'Early withdrawal penalty', icon: AlertTriangle, sign: '-' },
 }
 
@@ -744,8 +744,8 @@ export default function DesktopFlexibleSavings() {
     if (r.success) {
       alert({
         type: 'success',
-        title: isNew ? 'Auto top-up enabled' : 'Schedule updated',
-        message: isNew ? 'Your auto top-up schedule has been set up.' : 'Your auto top-up schedule has been updated.',
+        title: isNew ? 'Auto save enabled' : 'Schedule updated',
+        message: isNew ? 'Your auto save schedule has been set up.' : 'Your auto save schedule has been updated.',
       })
       setEditScheduleOpen(false)
       refresh()
@@ -753,7 +753,7 @@ export default function DesktopFlexibleSavings() {
       alert({
         type: 'error',
         title: isNew ? 'Setup failed' : 'Update failed',
-        message: r.message || (isNew ? 'Could not set up auto top-up. Please try again.' : 'Could not update schedule. Please try again.'),
+        message: r.message || (isNew ? 'Could not set up auto save schedule. Please try again.' : 'Could not update schedule. Please try again.'),
       })
     }
   }
@@ -847,7 +847,7 @@ export default function DesktopFlexibleSavings() {
                   style={showAutoTopupInfo && activePlan.scheduleStatus
                     ? { background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }
                     : { background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.15)', color: '#fff' }}
-                  title={activePlan.scheduleStatus ? 'Auto top-up details' : 'Set up auto top-up'}
+                  title={activePlan.scheduleStatus ? 'Auto Save details' : 'Set up auto save'}
                 >
                   <Settings size={12} strokeWidth={2.5} className={`transition-transform duration-300 ${showAutoTopupInfo && activePlan.scheduleStatus ? 'rotate-90' : ''}`} />
                 </button>

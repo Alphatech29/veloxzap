@@ -110,7 +110,7 @@ function Body({ tx, onClose }) {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.96 }}
         transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-        className="relative w-full max-w-[440px] max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl bg-[var(--c-menu-bg)] border border-[var(--c-border)] shadow-[0_30px_60px_-20px_rgba(2,7,23,0.55)]"
+        className="relative max-w-3xl max-h-[calc(100vh-32px)] overflow-y-auto rounded-2xl bg-[var(--c-menu-bg)] border border-[var(--c-border)] shadow-[0_30px_60px_-20px_rgba(2,7,23,0.55)]"
       >
         <header
           className="relative overflow-hidden px-5 pt-5 pb-4 border-b border-[var(--c-border)]"
