@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -30,9 +31,9 @@ const SUGGESTIONS = [
   { icon: Smartphone, label: 'Airtime & Data',        desc: 'MTN, Airtel, Glo, 9mobile — instant top-up',          href: '/airtime' },
   { icon: Bitcoin,    label: 'Crypto Swap',           desc: 'Swap BTC, USDT, ETH at live market rates',            href: '/crypto-swap' },
   { icon: Globe2,     label: 'Spend Globally',        desc: 'Pay in 200+ countries with a naira-funded Visa',      href: '/spend-globally' },
-  { icon: BookOpen,   label: 'The VeloxZap Blog',     desc: 'Product launches, security deep-dives, market notes', href: '/company/blog' },
-  { icon: Building2,  label: 'About Us',              desc: 'Who we are, what we believe, and where we are going', href: '/company/about' },
-  { icon: LifeBuoy,   label: 'Get Support',           desc: 'Reach our team — typical reply in under 90 seconds',  href: '/company/contact' },
+  { icon: BookOpen,   label: 'The VeloxZap Blog',     desc: 'Product launches, security deep-dives, market notes', href: '/blog' },
+  { icon: Building2,  label: 'About Us',              desc: 'Who we are, what we believe, and where we are going', href: '/about' },
+  { icon: LifeBuoy,   label: 'Get Support',           desc: 'Reach our team — typical reply in under 90 seconds',  href: '/contact' },
 ]
 
 export default function NotFound() {
@@ -70,6 +71,12 @@ export default function NotFound() {
         overflow: 'hidden',
       }}
     >
+      <SEO
+        title="Page Not Found — VeloxZap 404"
+        description="The page you're looking for doesn't exist or has been moved. Head back to VeloxZap's home page and find what you need."
+        path="/404"
+        robots="noindex, nofollow"
+      />
 
       <div
         aria-hidden
@@ -331,7 +338,7 @@ export default function NotFound() {
           >
             Still stuck?{' '}
             <Link
-              to="/company/contact"
+              to="/contact"
               style={{ color: colors.gold, fontWeight: 700, textDecoration: 'none' }}
             >
               Contact our team →

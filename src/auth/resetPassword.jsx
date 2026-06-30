@@ -1,18 +1,29 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Lock, Eye, EyeOff, ArrowRight, ArrowLeft, Loader2,
   ShieldCheck, Lock as LockIcon, Sparkles, Users,
-  KeyRound, CheckCircle2, Activity,
+  KeyRound, CheckCircle2, Activity, AlertTriangle,
 } from 'lucide-react'
+import useResetPassword from '../hooks/useResetPassword'
 
 const CHIPS = [
-  { Icon: ShieldCheck, label: 'CBN Licensed',   pos: 'tl' },
+  { Icon: ShieldCheck, label: 'VeloxZap',   pos: 'tl' },
   { Icon: LockIcon,    label: '256-bit Vault',  pos: 'tr' },
   { Icon: Sparkles,    label: 'Instant Payout', pos: 'bl' },
   { Icon: Users,       label: '500K+ Users',    pos: 'br' },
 ]
+
+const STRONG_PASSWORD_RE = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/
+
+const TOKEN_DEAD_MESSAGES = new Set([
+  'Reset token has expired',
+  'Invalid reset token',
+  'Reset token has already been used',
+  'Valid reset token is required',
+  'Invalid token payload',
+])
 
 function scorePassword(pw) {
   if (!pw) return 0
@@ -40,28 +51,38 @@ function useLagosClock() {
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token')
   const lagos = useLagosClock()
 
-  const [password, setPassword] = useState('')
-  const [confirm,  setConfirm]  = useState('')
-  const [show,     setShow]     = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-  const [done,     setDone]     = useState(false)
+  const [password,  setPassword]  = useState('')
+  const [confirm,    setConfirm]  = useState('')
+  const [show,       setShow]     = useState(false)
+  const [formError,  setFormError] = useState('')
+  const [done,        setDone]    = useState(false)
+  const [tokenDead,  setTokenDead] = useState(false)
+  const { submit, submitting, submitError } = useResetPassword()
 
+  const error = formError || (tokenDead ? null : submitError)
   const score = useMemo(() => scorePassword(password), [password])
+  const linkDead = !token || tokenDead
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    if (!password || !confirm) { setError('Please fill in both password fields.'); return }
-    if (score < 2)             { setError('Choose a stronger password (8+ chars, mix of letters & numbers).'); return }
-    if (password !== confirm)  { setError('The two passwords do not match.'); return }
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1100))
-    setLoading(false)
-    setDone(true)
-    setTimeout(() => navigate('/auth/login'), 1800)
+    setFormError('')
+    if (!password || !confirm) { setFormError('Please fill in both password fields.'); return }
+    if (!STRONG_PASSWORD_RE.test(password)) {
+      setFormError('Password must be 8+ chars with uppercase, lowercase, number and a special character (@ $ ! % * ? &).')
+      return
+    }
+    if (password !== confirm) { setFormError('The two passwords do not match.'); return }
+    const result = await submit({ token, password })
+    if (result.success) {
+      setDone(true)
+      setTimeout(() => navigate('/auth/login'), 1800)
+    } else if (TOKEN_DEAD_MESSAGES.has(result.message)) {
+      setTokenDead(true)
+    }
   }
 
   return (
@@ -106,19 +127,51 @@ export default function ResetPassword() {
           >
             <span className="la-status">
               <KeyRound size={11} />
-              {done ? 'Password updated' : 'Set a new password'}
+              {linkDead ? 'Invalid link' : done ? 'Password updated' : 'Set a new password'}
             </span>
 
             <h1 className="la-title">
-              {done ? <>You're all <span className="la-title-accent">set</span></> : <>Reset your <span className="la-title-accent">password</span></>}
+              {linkDead
+                ? <>Link <span className="la-title-accent">expired</span></>
+                : done
+                  ? <>You're all <span className="la-title-accent">set</span></>
+                  : <>Reset your <span className="la-title-accent">password</span></>}
             </h1>
             <p className="la-sub">
-              {done
-                ? 'Redirecting you to the sign-in page…'
-                : 'Pick a strong password you have not used before. Aim for 12+ characters with numbers and symbols.'}
+              {linkDead
+                ? 'This reset link is invalid or has expired. Request a new one to continue.'
+                : done
+                  ? 'Redirecting you to the sign-in page…'
+                  : 'Pick a strong password you have not used before. Aim for 12+ characters with numbers and symbols.'}
             </p>
 
-            {done ? (
+            {linkDead ? (
+              <div className="la-form">
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '16px 18px', borderRadius: 14,
+                    background: 'color-mix(in srgb, #f87171 10%, transparent)',
+                    border: '1px solid color-mix(in srgb, #f87171 30%, transparent)',
+                  }}
+                >
+                  <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
+                      {submitError || 'No reset token found'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                      Request a new link from the forgot password page.
+                    </div>
+                  </div>
+                </div>
+
+                <Link to="/auth/forget-password" className="la-cta" style={{ textDecoration: 'none' }}>
+                  <span className="la-cta-text">Request new link</span>
+                  <span className="la-cta-arrow" aria-hidden><ArrowRight size={15} /></span>
+                </Link>
+              </div>
+            ) : done ? (
               <div className="la-form">
                 <div
                   style={{
@@ -198,12 +251,12 @@ export default function ResetPassword() {
 
                 {error && <div className="la-err" role="alert">{error}</div>}
 
-                <button type="submit" className="la-cta" disabled={loading}>
+                <button type="submit" className="la-cta" disabled={submitting}>
                   <span className="la-cta-text">
-                    {loading ? 'Updating…' : 'Update password'}
+                    {submitting ? 'Updating…' : 'Update password'}
                   </span>
                   <span className="la-cta-arrow" aria-hidden>
-                    {loading
+                    {submitting
                       ? <Loader2 size={15} className="la-spin" />
                       : <ArrowRight size={15} />}
                   </span>

@@ -6,6 +6,8 @@ import {
   AlertTriangle, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import useEmailVerification from '../../hooks/useEmailVerification'
+import { useToast } from '../../components/ui/Toast'
 
 const PROFILE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 
@@ -36,6 +38,11 @@ export default function MobileProfile() {
   const navigate = useNavigate()
   const initials = getInitials(user)
   const avatarUrl = user?.avatar
+  const isEmailVerified = user?.is_email_verified === 1
+
+  const { sendLink, sending } = useEmailVerification()
+  const { toast } = useToast()
+
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -43,9 +50,25 @@ export default function MobileProfile() {
     await updateAvatar(file)
   }
 
+  async function openVerifyEmail() {
+    const result = await sendLink()
+    toast({
+      type: result.success ? 'success' : 'error',
+      title: result.success ? 'Verification link sent' : 'Could not send link',
+      message: result.success
+        ? `Check ${user?.email} and click the link to confirm.`
+        : result.message,
+    })
+  }
+
   const personalInfo = [
     { icon: User,     label: 'Full name',     value: user?.full_name || 'Add name' },
-    { icon: Mail,     label: 'Email',         value: user?.email || '—',               meta: user?.is_email_verified === 1 ? 'Verified' : 'Unverified', metaTone: user?.is_email_verified === 1 ? 'success' : 'danger' },
+    {
+      icon: Mail, label: 'Email', value: user?.email || '—',
+      meta: isEmailVerified ? 'Verified' : 'Unverified',
+      metaTone: isEmailVerified ? 'success' : 'danger',
+      cta: isEmailVerified ? undefined : { label: 'Verify' },
+    },
     { icon: Phone,    label: 'Phone',         value: user?.phone_number || 'Add phone number' },
     { icon: Globe,    label: 'Country',       value: user?.country || 'Add country' },
     { icon: Calendar, label: 'Date of birth', value: user?.dob || 'Add date of birth' },
@@ -130,7 +153,13 @@ export default function MobileProfile() {
         </div>
       </motion.article>
 
-      <Section title="Personal info" items={personalInfo} />
+      <Section
+        title="Personal info"
+        items={personalInfo}
+        resolveCta={(item) => (item.label === 'Email' ? openVerifyEmail : undefined)}
+        ctaDisabled={sending}
+      />
+
       <Section title="Verification" items={verification} />
       <Section title="Account" items={accountInfo} />
 
@@ -141,7 +170,7 @@ export default function MobileProfile() {
   )
 }
 
-function Section({ title, items }) {
+function Section({ title, items, resolveCta, ctaDisabled }) {
   return (
     <section>
       <h3 className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-1.5 px-1">
@@ -159,7 +188,7 @@ function Section({ title, items }) {
             variants={ITEM}
             className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}
           >
-            <InfoRow {...item} />
+            <InfoRow {...item} onCta={resolveCta?.(item)} ctaDisabled={ctaDisabled} />
           </motion.li>
         ))}
       </motion.ul>
@@ -167,7 +196,7 @@ function Section({ title, items }) {
   )
 }
 
-function InfoRow({ icon: Icon, label, value, meta, metaTone, editable, copyable }) {
+function InfoRow({ icon: Icon, label, value, meta, metaTone, editable, copyable, cta, onCta, ctaDisabled }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <span className="relative inline-flex items-center justify-center w-9 h-9 rounded-[10px] bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent shrink-0">
@@ -194,6 +223,16 @@ function InfoRow({ icon: Icon, label, value, meta, metaTone, editable, copyable 
         >
           {meta}
         </span>
+      )}
+      {cta && (
+        <button
+          type="button"
+          onClick={onCta}
+          disabled={ctaDisabled}
+          className="inline-flex items-center px-2.5 py-1 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[10px] font-bold border border-[rgba(232,197,71,0.55)] shrink-0 active:scale-95 transition disabled:opacity-60 disabled:pointer-events-none"
+        >
+          {ctaDisabled ? <Loader2 size={10} className="animate-spin" /> : cta.label}
+        </button>
       )}
       {copyable && (
         <button

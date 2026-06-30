@@ -14,7 +14,7 @@ export default function ServicesSection() {
         <SectionHead
           pill="Services"
           title={<>Everything you need to <span style={gradientText(goldGradient)}>move money.</span></>}
-          sub="Four core services in one wallet — built for Nigerians, fast and CBN-licensed."
+          sub="Four core services in one wallet — built for Nigerians, fast and secure."
         />
 
         <div

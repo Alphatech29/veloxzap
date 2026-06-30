@@ -48,7 +48,8 @@
     "additionalDirectories": [
       "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user",
       "C:\\Users\\HP\\Desktop\\veloxzap-backend\\controllers\\users",
-      "C:\\Users\\HP\\Desktop\\veloxzap-backend\\utilities"
+      "C:\\Users\\HP\\Desktop\\veloxzap-backend\\utilities",
+      "C:\\Users\\HP\\Desktop\\veloxzap-backend\\routes"
     ]
   }
 }

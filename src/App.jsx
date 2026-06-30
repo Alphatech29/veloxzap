@@ -1,4 +1,5 @@
 ﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import ScrollToTop from './components/ScrollToTop'
 import GeneralLayout from './layouts/GeneralLayout'
 import UserLayout from './layouts/UserLayout'
 import PrivateRoute from './components/PrivateRoute'
@@ -34,18 +35,27 @@ import Login from './auth/login'
 import Register from './auth/register'
 import ForgetPassword from './auth/forgetPassword'
 import ResetPassword from './auth/resetPassword'
+import VerifyEmail from './auth/verifyEmail'
 import CryptoSwap from './pages/CryptoSwap'
 import SpendGlobally from './pages/SpendGlobally'
 import VirtualCard from './pages/VirtualCard'
 import About from './pages/About'
+import Security from './pages/Security'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
+import CookiePolicy from './pages/CookiePolicy'
+import Community from './pages/Community'
+import SystemStatus from './pages/SystemStatus'
 import Blog from './pages/Blog'
 import BlogPost from './pages/blog/BlogPost'
 import Contact from './pages/Contact'
+import Rates from './pages/Rates'
 import NotFound from './pages/NotFound'
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
 
         <Route element={<GeneralLayout />}>
@@ -56,11 +66,17 @@ function App() {
           <Route path="/virtual-card" element={<VirtualCard/>} />
           <Route path="/crypto-swap" element={<CryptoSwap/>} />
           <Route path="/spend-globally" element={<SpendGlobally/>} />
-          <Route path="/company/about" element={<About />} />
-          <Route path="/company/blog" element={<Blog />} />
-          <Route path="/company/blog/:id" element={<BlogPost />} />
-          <Route path="/company/contact" element={<Contact />} />
-          <Route path="/company" element={<Navigate to="/company/about" replace />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/status" element={<SystemStatus />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:id" element={<BlogPost />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/rates" element={<Rates />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
@@ -103,6 +119,7 @@ function App() {
         <Route path="/auth/register" element={<Register />} />
         <Route path="/auth/forget-password" element={<ForgetPassword />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/verify-email" element={<VerifyEmail />} />
       </Routes>
     </BrowserRouter>
   )

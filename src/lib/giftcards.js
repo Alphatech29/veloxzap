@@ -6,6 +6,12 @@ export async function getGiftCardBrands() {
   return { success: true, brands: result.data ?? [] }
 }
 
+export async function getPublicGiftCardBrands() {
+  const result = await apiFetch('/api/v1/general/giftcard-brands', { method: 'GET' })
+  if (!result.success) return { success: false, brands: [], message: result.message }
+  return { success: true, brands: result.data ?? [] }
+}
+
 export async function submitGiftCardTrade({ brandId, subCategoryId, denomination, cardType, codes, images }) {
   let body
   if (cardType === 'physical') {

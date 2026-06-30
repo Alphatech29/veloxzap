@@ -6,9 +6,10 @@ import {
   ShieldCheck, Lock as LockIcon, Sparkles, Users,
   KeyRound, MailCheck, Activity,
 } from 'lucide-react'
+import useForgotPassword from '../hooks/useForgotPassword'
 
 const CHIPS = [
-  { Icon: ShieldCheck, label: 'CBN Licensed',   pos: 'tl' },
+  { Icon: ShieldCheck, label: 'Veloxzap',   pos: 'tl' },
   { Icon: LockIcon,    label: '256-bit Vault',  pos: 'tr' },
   { Icon: Sparkles,    label: 'Instant Payout', pos: 'bl' },
   { Icon: Users,       label: '500K+ Users',    pos: 'br' },
@@ -29,20 +30,24 @@ function useLagosClock() {
 export default function ForgetPassword() {
   const lagos = useLagosClock()
 
-  const [email,   setEmail]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState('')
-  const [sent,    setSent]    = useState(false)
+  const [email,       setEmail]       = useState('')
+  const [formError,   setFormError]   = useState('')
+  const [sent,         setSent]       = useState(false)
+  const [sentMessage, setSentMessage] = useState('')
+  const { submit, submitting, submitError } = useForgotPassword()
+
+  const error = formError || submitError
 
   async function handleSubmit(e) {
     e.preventDefault()
-    setError('')
-    if (!email) { setError('Enter the email tied to your VeloxZap account.'); return }
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setError('That email address looks invalid.'); return }
-    setLoading(true)
-    await new Promise(r => setTimeout(r, 1100))
-    setLoading(false)
-    setSent(true)
+    setFormError('')
+    if (!email) { setFormError('Enter the email tied to your VeloxZap account.'); return }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setFormError('That email address looks invalid.'); return }
+    const result = await submit({ email })
+    if (result.success) {
+      setSentMessage(result.message || '')
+      setSent(true)
+    }
   }
 
   return (
@@ -95,7 +100,7 @@ export default function ForgetPassword() {
             </h1>
             <p className="la-sub">
               {sent
-                ? 'Check your inbox — we sent a one-time recovery link valid for 15 minutes.'
+                ? 'Check your inbox for a secure link to reset your password.'
                 : 'Enter the email on your account and we will send you a secure link to reset it.'}
             </p>
 
@@ -112,7 +117,7 @@ export default function ForgetPassword() {
                   <MailCheck size={20} style={{ color: 'var(--color-brand-accent)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>
-                      Recovery link sent
+                      {sentMessage || 'Recovery link sent'}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       Sent to <strong style={{ color: 'var(--color-text)' }}>{email}</strong>
@@ -122,7 +127,7 @@ export default function ForgetPassword() {
 
                 <button
                   type="button"
-                  onClick={() => { setSent(false); setEmail('') }}
+                  onClick={() => { setSent(false); setEmail(''); setSentMessage('') }}
                   className="la-cta"
                 >
                   <span className="la-cta-text">Send to a different email</span>
@@ -154,12 +159,12 @@ export default function ForgetPassword() {
 
                 {error && <div className="la-err" role="alert">{error}</div>}
 
-                <button type="submit" className="la-cta" disabled={loading}>
+                <button type="submit" className="la-cta" disabled={submitting}>
                   <span className="la-cta-text">
-                    {loading ? 'Sending link…' : 'Send recovery link'}
+                    {submitting ? 'Sending link…' : 'Send recovery link'}
                   </span>
                   <span className="la-cta-arrow" aria-hidden>
-                    {loading
+                    {submitting
                       ? <Loader2 size={15} className="la-spin" />
                       : <ArrowRight size={15} />}
                   </span>

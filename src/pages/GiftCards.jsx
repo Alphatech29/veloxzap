@@ -8,39 +8,38 @@ import {
   Clock, ShieldCheck, Sparkles, TrendingUp, Search, Wallet,
   Camera, Banknote, Zap, BadgeCheck, Globe2,
 } from 'lucide-react'
+import SEO from '../components/SEO'
+import usePublicGiftCardBrands from '../hooks/usePublicGiftCardBrands'
 import './css/GiftCards.css'
 
-const brands = [
-  { name: 'Amazon',       color: '#FF9900', initials: 'A',  rate: '₦945' },
-  { name: 'iTunes',       color: '#A2AAAD', initials: 'iT', rate: '₦930' },
-  { name: 'Steam',        color: '#1B2838', initials: 'S',  rate: '₦904' },
-  { name: 'Google Play',  color: '#34A853', initials: 'GP', rate: '₦910' },
-  { name: 'Xbox',         color: '#107C10', initials: 'X',  rate: '₦885' },
-  { name: 'PlayStation',  color: '#0070D1', initials: 'PS', rate: '₦890' },
-  { name: 'Netflix',      color: '#E50914', initials: 'N',  rate: '₦920' },
-  { name: 'Spotify',      color: '#1DB954', initials: 'Sp', rate: '₦915' },
-  { name: 'Nike',         color: '#111111', initials: 'Nk', rate: '₦880' },
-  { name: 'Sephora',      color: '#000000', initials: 'Se', rate: '₦875' },
-  { name: 'Walmart',      color: '#0071CE', initials: 'W',  rate: '₦870' },
-  { name: 'eBay',         color: '#E53238', initials: 'eB', rate: '₦895' },
-  { name: 'Best Buy',     color: '#0046BE', initials: 'BB', rate: '₦865' },
-  { name: 'Target',       color: '#CC0000', initials: 'T',  rate: '₦870' },
-  { name: 'Starbucks',    color: '#006241', initials: 'St', rate: '₦905' },
-  { name: 'Visa GC',      color: '#1A1F71', initials: 'V',  rate: '₦940' },
-]
+const BRAND_TILE_LIMIT = 16
 
-const topRates = [
-  { name: 'Amazon',  amount: '$100', payout: '₦94,500', delta: '+0.8%', up: true,  color: '#FF9900' },
-  { name: 'iTunes',  amount: '$100', payout: '₦93,000', delta: '+0.5%', up: true,  color: '#A2AAAD' },
-  { name: 'Steam',   amount: '$100', payout: '₦90,400', delta: '+0.3%', up: true,  color: '#66C0F4' },
-  { name: 'Netflix', amount: '$50',  payout: '₦46,000', delta: '−0.2%', up: false, color: '#E50914' },
-]
+function brandColor(name) {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  return `hsl(${hash % 360}, 65%, 50%)`
+}
+
+function brandInitials(name) {
+  const words = name.trim().split(/\s+/)
+  return words.length > 1
+    ? (words[0][0] + words[1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase()
+}
+
+function brandHeadlineRate(brand) {
+  const active = (brand.sub_categories || []).filter(s => s.status === 1)
+  if (!active.length) return null
+  return active.reduce((best, s) => (Number(s.rate) > Number(best.rate) ? s : best), active[0])
+}
+
+const TOP_RATE_LIMIT = 4
 
 const features = [
   { icon: TrendingUp,  title: 'Best naira rates',     desc: 'Live rates aggregated from 50+ sources so you always trade at the top of the market.' },
   { icon: Zap,         title: 'Verified in seconds',  desc: 'Our scanners check every card in 15–30 seconds — no human gatekeeping.'                  },
   { icon: Wallet,      title: 'Instant naira payout', desc: 'Cash hits your wallet the moment the card is verified. Withdraw anytime, any bank.'      },
-  { icon: ShieldCheck, title: 'Bank-grade security',  desc: 'CBN licensed, PCI DSS compliant, end-to-end encrypted on every trade.'                   },
+  { icon: ShieldCheck, title: 'Enterprise security',  desc: 'PCI DSS compliant, end-to-end encrypted on every trade.'                                 },
 ]
 
 const sellSteps = [
@@ -61,9 +60,34 @@ const buySteps = [
 export default function GiftCards() {
   const [tab, setTab] = useState('sell')
 
+  const { brands, loading: brandsLoading } = usePublicGiftCardBrands()
+
+  const shownBrands = brands.slice(0, BRAND_TILE_LIMIT)
+  const moreBrandsCount = Math.max(brands.length - shownBrands.length, 0)
+
+  const topRates = brands
+    .map(b => ({ brand: b, headline: brandHeadlineRate(b) }))
+    .filter(x => x.headline)
+    .sort((a, c) => Number(c.headline.rate) - Number(a.headline.rate))
+    .slice(0, TOP_RATE_LIMIT)
+
   return (
     <main className="gc-stage main-offset">
-      
+      <SEO
+        title="Buy & Sell Gift Cards in Nigeria at the Best Rates"
+        description="Trade Amazon, iTunes, Steam, Google Play and 200+ gift card brands for naira instantly. Best rates, 15-second verification, zero fees. VeloxZap."
+        path="/gift-cards"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Gift Card Trading",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Buy and sell gift cards for naira at the best rates in Nigeria. Supports 200+ brands including Amazon, iTunes, Steam, and Google Play.",
+          "areaServed": "NG",
+          "serviceType": "Gift Card Exchange"
+        }}
+      />
+
       <div className="gc-aurora gc-aurora-a" />
       <div className="gc-aurora gc-aurora-b" />
       <div className="gc-grain" />
@@ -101,7 +125,7 @@ export default function GiftCards() {
 
             <div className="gc-trust-row">
               {[
-                { icon: ShieldCheck, label: 'CBN Licensed' },
+                { icon: ShieldCheck, label: 'Enterprise Security' },
                 { icon: Clock,       label: '15s verification' },
                 { icon: TrendingUp,  label: '₦945/$ Amazon' },
               ].map(({ icon: Ic, label }) => (
@@ -177,26 +201,46 @@ export default function GiftCards() {
           />
 
           <div className="gc-rate-grid">
-            {topRates.map(r => (
-              <article
-                key={r.name}
-                className="gc-rate"
-                style={{ '--brand': r.color }}
-              >
-                <span className="gc-rate-glow" />
-                <div className="gc-rate-top">
-                  <span className="gc-rate-name">{r.name}</span>
-                  <span className={`gc-rate-delta ${r.up ? 'is-up' : 'is-down'}`}>
-                    {r.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                    {r.delta}
-                  </span>
-                </div>
-                <div className="gc-rate-amt">{r.amount}</div>
-                <div className="gc-rate-arrow">→</div>
-                <div className="gc-rate-payout">{r.payout}</div>
-                <div className="gc-rate-foot">Estimated payout</div>
-              </article>
-            ))}
+            {brandsLoading ? (
+              Array.from({ length: TOP_RATE_LIMIT }).map((_, i) => (
+                <article key={i} className="gc-rate gc-rate-skel animate-pulse">
+                  <div className="gc-rate-top">
+                    <span className="gc-rate-name-skel" />
+                  </div>
+                  <div className="gc-rate-amt-skel" />
+                  <div className="gc-rate-arrow">→</div>
+                  <div className="gc-rate-payout-skel" />
+                </article>
+              ))
+            ) : topRates.length > 0 ? (
+              topRates.map(({ brand, headline }) => (
+                <article
+                  key={brand.id}
+                  className="gc-rate"
+                  style={{ '--brand': brandColor(brand.name) }}
+                >
+                  <span className="gc-rate-glow" />
+                  <div className="gc-rate-top">
+                    <span className="gc-rate-name">{brand.name}</span>
+                    <span className="gc-rate-live">
+                      <span className="gc-rate-live-dot" />
+                      Live
+                    </span>
+                  </div>
+                  <div className="gc-rate-amt">{headline.currency}100</div>
+                  <div className="gc-rate-arrow">→</div>
+                  <div className="gc-rate-payout">₦{(Number(headline.rate) * 100).toLocaleString('en-NG')}</div>
+                  <div className="gc-rate-foot">Estimated payout</div>
+                </article>
+              ))
+            ) : (
+              <div className="gc-brand-empty">
+                <span className="gc-brand-empty-ic">
+                  <TrendingUp size={18} />
+                </span>
+                <p>Live rates are being updated. Check back shortly.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -261,25 +305,53 @@ export default function GiftCards() {
           />
 
           <div className="gc-brand-grid">
-            {brands.map(b => (
-              <div
-                key={b.name}
-                className="gc-brand"
-                style={{ '--brand': b.color }}
-              >
-                <span className="gc-brand-mark">{b.initials}</span>
-                <div className="gc-brand-meta">
-                  <span className="gc-brand-name">{b.name}</span>
-                  <span className="gc-brand-rate">{b.rate}/$</span>
+            {brandsLoading ? (
+              Array.from({ length: BRAND_TILE_LIMIT }).map((_, i) => (
+                <div key={i} className="gc-brand gc-brand-skel animate-pulse">
+                  <span className="gc-brand-mark" />
+                  <div className="gc-brand-meta">
+                    <span className="gc-brand-name-skel" />
+                    <span className="gc-brand-rate-skel" />
+                  </div>
                 </div>
+              ))
+            ) : shownBrands.length > 0 ? (
+              shownBrands.map(b => {
+                const headline = brandHeadlineRate(b)
+                return (
+                  <div
+                    key={b.id}
+                    className="gc-brand"
+                    style={{ '--brand': brandColor(b.name) }}
+                  >
+                    <BrandMark name={b.name} logo={b.logo} />
+                    <div className="gc-brand-meta">
+                      <span className="gc-brand-name">{b.name}</span>
+                      <span className="gc-brand-rate">
+                        {headline ? `₦${Number(headline.rate).toLocaleString('en-NG')}/${headline.currency}1` : 'Coming soon'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="gc-brand-empty">
+                <span className="gc-brand-empty-ic">
+                  <Gift size={18} />
+                </span>
+                <p>Brand catalog is being updated. Check back shortly.</p>
               </div>
-            ))}
+            )}
           </div>
 
-          <p className="gc-brand-foot">
-            <Sparkles size={12} />
-            …plus 180+ more brands inside the app, with new ones added weekly.
-          </p>
+          {!brandsLoading && shownBrands.length > 0 && (
+            <p className="gc-brand-foot">
+              <Sparkles size={12} />
+              {moreBrandsCount > 0
+                ? `…plus ${moreBrandsCount}+ more brands inside the app, with new ones added weekly.`
+                : 'Full catalog lives inside the app, with new brands added weekly.'}
+            </p>
+          )}
         </div>
       </section>
 
@@ -405,4 +477,17 @@ function SectionHead({ pill, title, sub }) {
       <p className="gc-head-sub">{sub}</p>
     </header>
   )
+}
+
+function BrandMark({ name, logo }) {
+  const [imgError, setImgError] = useState(false)
+
+  if (logo && !imgError) {
+    return (
+      <span className="gc-brand-mark gc-brand-mark-logo">
+        <img src={logo} alt={name} onError={() => setImgError(true)} />
+      </span>
+    )
+  }
+  return <span className="gc-brand-mark">{brandInitials(name)}</span>
 }

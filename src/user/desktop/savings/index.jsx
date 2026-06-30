@@ -122,9 +122,11 @@ export default function DesktopSaving() {
 
   const totalSaved    = useMemo(() => plans.reduce((s, p) => s + p.principal, 0), [plans])
   const totalInterest = useMemo(() => plans.reduce((s, p) => s + p.interestEarned, 0), [plans])
+  const totalPayout   = totalSaved + totalInterest
   const avgApy        = useMemo(() => plans.length ? plans.reduce((s, p) => s + p.apy, 0) / plans.length : 0, [plans])
-  const activePlans   = useMemo(() => plans.filter(p => p.status === 'active'), [plans])
-  const activeCount   = activePlans.length
+  const activePlans        = useMemo(() => plans.filter(p => p.status === 'active'), [plans])
+  const activeCount        = activePlans.length
+  const activeTotalSaved   = useMemo(() => activePlans.reduce((s, p) => s + p.principal, 0), [activePlans])
   const bestProduct   = useMemo(() => products.reduce((best, p) => (!best || p.apy > best.apy) ? p : best, null), [products])
 
   return (
@@ -160,7 +162,7 @@ export default function DesktopSaving() {
               <Sparkles size={9} /> Total saved balance
             </span>
             <p className="text-[34px] font-black tracking-[-1.5px] text-white leading-none tabular-nums m-0">
-              {fmtN(totalSaved)}
+              {fmtN(activeTotalSaved)}
             </p>
             <p className="text-[11px] text-white/45 m-0 mt-1.5">
               {activeCount} active plan{activeCount !== 1 ? 's' : ''} · {avgApy.toFixed(1)}% avg APY · interest accrues daily
@@ -171,7 +173,7 @@ export default function DesktopSaving() {
           <div className="flex items-center gap-3 shrink-0">
             {[
               { label: 'Interest earned', value: fmtN(totalInterest), accent: true },
-              { label: 'Active plans',    value: fmt(activeCount) },
+              { label: 'Total payout',    value: fmtN(totalPayout) },
               { label: 'Best rate',       value: bestProduct ? `${bestProduct.apy}% p.a.` : '—', sub: bestProduct?.name },
             ].map(({ label, value, sub, accent }) => (
               <div

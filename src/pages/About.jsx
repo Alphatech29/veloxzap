@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -19,7 +20,7 @@ const STATS = [
 
 const VALUES = [
   { icon: Zap,         title: 'Speed obsessed',       desc: 'Every transaction, every screen, every support ticket. We measure ourselves in seconds, not days.' },
-  { icon: ShieldCheck, title: 'Security first',       desc: 'Bank-grade encryption, biometric auth, and 24/7 fraud monitoring. Your money is safer with us than under the mattress.' },
+  { icon: ShieldCheck, title: 'Security first',       desc: 'Enterprise-grade encryption, biometric auth, and 24/7 fraud monitoring. Your money is safer with us than under the mattress.' },
   { icon: Heart,       title: 'Customer obsessed',    desc: 'Real humans, real answers. Our support team responds in under 90 seconds — no chatbots, no scripts.' },
   { icon: Target,      title: 'Radically transparent',desc: 'No hidden fees. No fine print. The rate you see is the rate you get — every single time.' },
   { icon: Rocket,      title: 'Built for Africa',     desc: 'We understand the realities — slow banks, FX crunches, dollar squeeze. We build solutions for here.' },
@@ -42,7 +43,7 @@ const LEADERS = [
 ]
 
 const RECOGNITION = [
-  { icon: BadgeCheck,  label: 'CBN Licensed',       sub: 'Full regulatory compliance'   },
+  { icon: BadgeCheck,  label: 'Enterprise Security',  sub: 'End-to-end encrypted platform' },
   { icon: Lock,        label: 'PCI DSS Level 1',    sub: 'Highest security certification'},
   { icon: Award,       label: 'Y Combinator W23',   sub: 'Top fintech cohort'           },
   { icon: Building2,   label: 'TechCabal Top 30',   sub: 'African startups to watch'    },
@@ -76,6 +77,19 @@ export default function About() {
         overflow: 'hidden',
       }}
     >
+      <SEO
+        title="About VeloxZap — Nigeria's Fintech for Every Transaction"
+        description="Learn about VeloxZap's mission to simplify naira-powered payments — airtime, data, bills, gift cards, crypto swaps and virtual dollar cards for Nigerians everywhere."
+        path="/about"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "AboutPage",
+          "name": "About VeloxZap",
+          "url": "https://veloxzap.com/about",
+          "description": "VeloxZap is a Nigerian fintech platform providing airtime, data, bill payments, gift cards, crypto exchange and virtual dollar cards.",
+          "publisher": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" }
+        }}
+      />
 
       <div
         aria-hidden
@@ -145,7 +159,7 @@ export default function About() {
             <Link to="/auth/register" className="cta-gold">
               Join VeloxZap <ArrowRight size={16} />
             </Link>
-            <Link to="/company/careers" className="cta-ghost">
+            <Link to="/careers" className="cta-ghost">
               See open roles
             </Link>
           </motion.div>
@@ -628,7 +642,7 @@ export default function About() {
                 color: colors.text,
               }}
             >
-              Trusted, licensed,{' '}
+              Trusted, secure,{' '}
               <span style={gradientText(goldGrad)}>and certified.</span>
             </h2>
           </div>
@@ -748,7 +762,7 @@ export default function About() {
                 <Link to="/auth/register" className="cta-gold">
                   Create free account <ArrowRight size={16} />
                 </Link>
-                <Link to="/company/careers" className="cta-ghost">
+                <Link to="/careers" className="cta-ghost">
                   Work with us
                 </Link>
               </div>

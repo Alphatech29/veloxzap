@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -200,6 +201,20 @@ export default function CryptoSwap() {
 
   return (
     <main className="main-offset relative isolate min-h-screen overflow-hidden text-text" style={{background:STAGE_BG}}>
+      <SEO
+        title="Swap Crypto to Naira — BTC, USDT, ETH Exchange"
+        description="Exchange Bitcoin, USDT, Ethereum and more to naira at live market rates. Instant settlement to your VeloxZap wallet. No KYC delays."
+        path="/crypto-swap"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Crypto Exchange",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Exchange BTC, USDT, ETH and other cryptocurrencies to Nigerian naira at live market rates.",
+          "areaServed": "NG",
+          "serviceType": "Cryptocurrency Exchange"
+        }}
+      />
       <div className="pointer-events-none absolute inset-0 z-0" style={{ backgroundImage: HEX_GRID, backgroundSize: '56px 64px', maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)' }}/>
       <MeshNetwork/>
       <div className="pointer-events-none absolute top-[5%] -right-[130px] z-0 h-[480px] w-[480px] rounded-full opacity-45 blur-[80px]" style={{background:'radial-gradient(circle, var(--color-brand-accent) 0%, transparent 70%)'}}/>

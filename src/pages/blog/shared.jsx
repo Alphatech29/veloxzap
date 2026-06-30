@@ -1,10 +1,8 @@
 import {
   ShieldCheck, TrendingUp, Lightbulb, Megaphone, BookOpen,
-  Sparkles, Zap,
+  Sparkles,
 } from 'lucide-react'
 import { colors, tint } from '../../components/landing/theme'
-
-const goldGrad = `linear-gradient(135deg, ${colors.gold}, ${colors.champagne})`
 
 export const CATEGORIES = [
   { key: 'all',         label: 'All posts',       icon: BookOpen   },
@@ -47,7 +45,7 @@ export function Avatar({ initials, size = 32, accent = colors.gold }) {
   )
 }
 
-export function CoverArt({ accent, large = false, hero = false }) {
+export function CoverArt({ accent, large = false, hero = false, image = null }) {
   const ratio = hero ? '21 / 9' : large ? '16 / 9' : '16 / 10'
   return (
     <div
@@ -56,50 +54,47 @@ export function CoverArt({ accent, large = false, hero = false }) {
         width: '100%',
         aspectRatio: ratio,
         borderRadius: hero ? 22 : large ? 18 : 14,
-        background: `linear-gradient(135deg, ${tint(accent, 22)}, ${tint(colors.navyMid, 80)})`,
+        background: image ? colors.navyMid : `linear-gradient(135deg, ${tint(accent, 22)}, ${tint(colors.navyMid, 80)})`,
         border: `1px solid ${tint(accent, 24)}`,
         overflow: 'hidden',
       }}
     >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute', inset: 0,
-          background:
-            `radial-gradient(circle at 80% 20%, ${tint(accent, 32)} 0%, transparent 55%),` +
-            `radial-gradient(circle at 15% 80%, ${tint(colors.champagne, 18)} 0%, transparent 55%)`,
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute', inset: 0, opacity: 0.18,
-          backgroundImage: `radial-gradient(${tint('white', 100)} 1px, transparent 1px)`,
-          backgroundSize: '20px 20px',
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute', top: 0, left: '15%', right: '15%', height: 1,
-          background: `linear-gradient(90deg, transparent, ${tint(accent, 80)}, transparent)`,
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: hero ? 36 : large ? 28 : 18,
-          right:  hero ? 36 : large ? 28 : 18,
-          width:  hero ? 88 : large ? 72 : 52,
-          height: hero ? 88 : large ? 72 : 52,
-          borderRadius: hero ? 22 : large ? 18 : 13,
-          background: goldGrad,
-          display: 'grid', placeItems: 'center',
-          boxShadow: `0 12px 28px ${tint(accent, 40)}, inset 0 1px 0 ${tint('white', 35)}`,
-        }}
-      >
-        <Zap size={hero ? 40 : large ? 32 : 22} color={colors.navy} fill={colors.navy} />
-      </div>
+      {image && (
+        <img
+          src={image}
+          alt=""
+          aria-hidden
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      )}
+      {!image && (
+        <>
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', inset: 0,
+              background:
+                `radial-gradient(circle at 80% 20%, ${tint(accent, 32)} 0%, transparent 55%),` +
+                `radial-gradient(circle at 15% 80%, ${tint(colors.champagne, 18)} 0%, transparent 55%)`,
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', inset: 0, opacity: 0.18,
+              backgroundImage: `radial-gradient(${tint('white', 100)} 1px, transparent 1px)`,
+              backgroundSize: '20px 20px',
+            }}
+          />
+          <div
+            aria-hidden
+            style={{
+              position: 'absolute', top: 0, left: '15%', right: '15%', height: 1,
+              background: `linear-gradient(90deg, transparent, ${tint(accent, 80)}, transparent)`,
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }

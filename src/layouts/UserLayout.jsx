@@ -9,6 +9,7 @@ import UserMobileHeader from '../components/partials/userMobileHeader'
 import UserMobileTabs from '../components/partials/userMobileTabs'
 import useIsMobile from '../hooks/useIsMobile'
 import { AlertProvider } from '../components/ui/Alert'
+import { ToastProvider } from '../components/ui/Toast'
 import './css/UserLayout.css'
 
 function UserShell() {
@@ -38,17 +39,19 @@ function UserShell() {
     return (
       <div className="ul-shell min-h-screen" data-theme={theme}>
         <AlertProvider>
-          <UserMobileHeader />
-          <main
-            className="px-4 pt-[72px] pb-[88px]"
-            style={{
-              paddingTop: 'calc(60px + env(safe-area-inset-top) + 16px)',
-              paddingBottom: 'calc(88px + env(safe-area-inset-bottom) + 16px)',
-            }}
-          >
-            <Outlet />
-          </main>
-          <UserMobileTabs />
+          <ToastProvider>
+            <UserMobileHeader />
+            <main
+              className="px-4 pt-[72px] pb-[88px]"
+              style={{
+                paddingTop: 'calc(60px + env(safe-area-inset-top) + 16px)',
+                paddingBottom: 'calc(88px + env(safe-area-inset-bottom) + 16px)',
+              }}
+            >
+              <Outlet />
+            </main>
+            <UserMobileTabs />
+          </ToastProvider>
         </AlertProvider>
       </div>
     )
@@ -57,33 +60,35 @@ function UserShell() {
   return (
     <div className="ul-shell min-h-screen" data-theme={theme}>
       <AlertProvider>
-        <UserSidebar
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onLogout={handleLogout}
-        />
-
-        {drawerOpen && (
-          <button
-            type="button"
-            className="hidden max-[959px]:block fixed inset-0 z-[35] bg-[var(--c-scrim)] border-0"
-            aria-label="Close menu"
-            onClick={() => setDrawerOpen(false)}
-          />
-        )}
-
-        <div className="flex flex-col min-h-screen min-w-0 pt-[68px] min-[960px]:ml-[260px]">
-          <UserTopbar
-            onOpenDrawer={() => setDrawerOpen(true)}
+        <ToastProvider>
+          <UserSidebar
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
             onLogout={handleLogout}
           />
 
-          <main className="flex-1 px-4 py-5 min-[960px]:px-[30px] min-[960px]:pt-[26px] min-[960px]:pb-10">
-            <Outlet />
-          </main>
+          {drawerOpen && (
+            <button
+              type="button"
+              className="hidden max-[959px]:block fixed inset-0 z-[35] bg-[var(--c-scrim)] border-0"
+              aria-label="Close menu"
+              onClick={() => setDrawerOpen(false)}
+            />
+          )}
 
-          <UserFooter />
-        </div>
+          <div className="flex flex-col min-h-screen min-w-0 pt-[68px] min-[960px]:ml-[260px]">
+            <UserTopbar
+              onOpenDrawer={() => setDrawerOpen(true)}
+              onLogout={handleLogout}
+            />
+
+            <main className="flex-1 px-4 py-5 min-[960px]:px-[30px] min-[960px]:pt-[26px] min-[960px]:pb-10">
+              <Outlet />
+            </main>
+
+            <UserFooter />
+          </div>
+        </ToastProvider>
       </AlertProvider>
     </div>
   )

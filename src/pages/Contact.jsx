@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -7,6 +8,11 @@ import {
   Building2, ShieldCheck, HelpCircle, LifeBuoy,
 } from 'lucide-react'
 import { colors, tint, gradientText } from '../components/landing/theme'
+import useContact from '../hooks/useContact'
+import useSettings from '../hooks/useSettings'
+import RichTextEditor from '../components/RichTextEditor'
+
+const stripHtml = (html) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
 const goldGrad = `linear-gradient(135deg, ${colors.gold}, ${colors.champagne})`
 
@@ -40,39 +46,41 @@ const PILL = (gold = false) => ({
   border: `1px solid ${gold ? tint(colors.gold, 28) : tint(colors.text, 10)}`,
 })
 
-const CHANNELS = [
-  {
-    icon: MessageCircle,
-    label: 'Live chat',
-    value: 'Tap the bubble in-app',
-    eta: 'Avg. 90s response',
-    sub: '24 / 7',
-  },
-  {
-    icon: Mail,
-    label: 'Email us',
-    value: 'hello@veloxzap.com',
-    eta: 'Reply within 4 hours',
-    sub: 'Mon–Sun',
-    href: 'mailto:hello@veloxzap.com',
-  },
-  {
-    icon: Phone,
-    label: 'Call us',
-    value: '+234 (0) 1 700 9000',
-    eta: 'Lagos time, 9am–9pm',
-    sub: 'Toll free',
-    href: 'tel:+23417009000',
-  },
-  {
-    icon: MessageSquare,
-    label: 'WhatsApp',
-    value: '+234 802 555 9000',
-    eta: 'Reply within 10 min',
-    sub: 'Verified business',
-    href: 'https://wa.me/2348025559000',
-  },
-]
+function getChannels(settings) {
+  return [
+    {
+      icon: MessageCircle,
+      label: 'Live chat',
+      value: 'Tap the bubble in-app',
+      eta: 'Avg. 90s response',
+      sub: '24 / 7',
+    },
+    {
+      icon: Mail,
+      label: 'Email us',
+      value: settings?.support_email || 'hello@veloxzap.com',
+      eta: 'Reply within 4 hours',
+      sub: 'Mon–Sun',
+      href: `mailto:${settings?.support_email || 'hello@veloxzap.com'}`,
+    },
+    {
+      icon: Phone,
+      label: 'Call us',
+      value: settings?.support_phone || '+234 (0) 1 700 9000',
+      eta: 'Lagos time, 9am–9pm',
+      sub: 'Toll free',
+      href: `tel:${(settings?.support_phone || '+23417009000').replace(/[^\d+]/g, '')}`,
+    },
+    {
+      icon: MessageSquare,
+      label: 'WhatsApp',
+      value: settings?.whatsApp_number || '+234 802 555 9000',
+      eta: 'Reply within 10 min',
+      sub: 'Verified business',
+      href: settings?.whatsapp_url || 'https://wa.me/2348025559000',
+    },
+  ]
+}
 
 const TOPICS = [
   'General enquiry',
@@ -83,55 +91,60 @@ const TOPICS = [
   'Careers',
 ]
 
-const FAQS = [
-  {
-    q: 'How quickly will someone get back to me?',
-    a: 'Live chat replies in under 90 seconds. Email is answered within 4 hours during weekdays and within a day on weekends. Anything urgent — use chat or WhatsApp.',
-  },
-  {
-    q: 'I’m locked out of my account. What do I do?',
-    a: 'Use the password reset flow on the login screen first. If that fails or your number changed, message support from a previously verified email and we’ll walk you through identity recovery.',
-  },
-  {
-    q: 'Where are you physically based?',
-    a: 'Headquarters in Victoria Island, Lagos with a satellite team in Abuja. We’re happy to host investors, partners, and journalists by appointment — book a slot below.',
-  },
-  {
-    q: 'Do you offer phone support in local languages?',
-    a: 'Yes. Our voice team supports English, Yoruba, Igbo, Hausa, and Pidgin. Live chat additionally supports French for our West-African corridor.',
-  },
-  {
-    q: 'How do I report a security issue or vulnerability?',
-    a: 'Email security@veloxzap.com directly. We have a structured bug-bounty programme and respond to confirmed reports with bounty offers within 48 hours.',
-  },
-  {
-    q: 'Can I partner with VeloxZap or pitch a product idea?',
-    a: 'Absolutely. Pick "Sales / partnerships" in the form below — partnerships read every submission and reply within two business days.',
-  },
-]
+function getFaqs(settings) {
+  const securityEmail = settings?.security_email || `security@veloxzap.com`
+  return [
+    {
+      q: "How quickly will someone get back to me?",
+      a: "Live chat replies in under 90 seconds. Email is answered within 4 hours during weekdays and within a day on weekends. Anything urgent — use chat or WhatsApp.",
+    },
+    {
+      q: "I’m locked out of my account. What do I do?",
+      a: "Use the password reset flow on the login screen first. If that fails or your number changed, message support from a previously verified email and we’ll walk you through identity recovery.",
+    },
+    {
+      q: "Where are you physically based?",
+      a: "Headquarters in Victoria Island, Lagos with a satellite team in Abuja. We’re happy to host investors, partners, and journalists by appointment — book a slot below.",
+    },
+    {
+      q: "Do you offer phone support in local languages?",
+      a: "Yes. Our voice team supports English, Yoruba, Igbo, Hausa, and Pidgin. Live chat additionally supports French for our West-African corridor.",
+    },
+    {
+      q: "How do I report a security issue or vulnerability?",
+      a: `Email ${securityEmail} directly. We have a structured bug-bounty programme and respond to confirmed reports with bounty offers within 48 hours.`,
+    },
+    {
+      q: "Can I partner with VeloxZap or pitch a product idea?",
+      a: `Absolutely. Pick "Sales / partnerships" in the form below — partnerships read every submission and reply within two business days.`,
+    },
+  ]
+}
 
-const OFFICES = [
-  {
-    city: 'Lagos',
-    role: 'Headquarters',
-    address: 'Plot 14, Adeola Odeku Street, Victoria Island, Lagos 101241',
-    hours: 'Mon–Fri · 9:00am – 6:00pm WAT',
-    accent: colors.gold,
-  },
-  {
-    city: 'Abuja',
-    role: 'Satellite office',
-    address: '3rd Floor, Bukar Dipcharima House, Central Business District, Abuja 900103',
-    hours: 'Mon–Fri · 10:00am – 5:00pm WAT',
-    accent: colors.champagne,
-  },
-]
+function getOffices(settings) {
+  return [
+    {
+      role: 'Headquarters',
+      address: settings?.office_address || '-',
+      hours: 'Mon–Fri · 9:00am – 6:00pm WAT',
+      accent: colors.gold,
+    },
+    {
+      role: 'Satellite office',
+      address: settings?.satellite_address || '-',
+      hours: 'Mon–Fri · 10:00am – 5:00pm WAT',
+      accent: colors.champagne,
+    },
+  ]
+}
 
-const SOCIAL = [
-  { icon: TwitterIcon,   label: 'X / Twitter', href: 'https://x.com/veloxzap' },
-  { icon: LinkedinIcon,  label: 'LinkedIn',    href: 'https://linkedin.com/company/veloxzap' },
-  { icon: InstagramIcon, label: 'Instagram',   href: 'https://instagram.com/veloxzap' },
-]
+function getSocial(settings) {
+  return [
+    { icon: TwitterIcon,   label: 'X / Twitter', href: settings?.twitter_url || 'https://x.com/veloxzap' },
+    { icon: LinkedinIcon,  label: 'LinkedIn',    href: settings?.linkedin_url || 'https://linkedin.com/company/veloxzap' },
+    { icon: InstagramIcon, label: 'Instagram',   href: settings?.instagram_url || 'https://instagram.com/veloxzap' },
+  ]
+}
 
 function FaqItem({ item, open, onToggle }) {
   return (
@@ -210,19 +223,27 @@ function FaqItem({ item, open, onToggle }) {
 }
 
 export default function Contact() {
+  const { settings } = useSettings()
+  const offices = getOffices(settings)
+  const social = getSocial(settings)
+  const channels = getChannels(settings)
+  const faqs = getFaqs(settings)
+  const whatsappUrl = settings?.whatsapp_url || 'https://wa.me/2348025559000'
   const [form, setForm] = useState({
     name: '', email: '', topic: TOPICS[0], message: '',
   })
-  const [status, setStatus] = useState('idle')
+  const [sent, setSent] = useState(false)
+  const [resetKey, setResetKey] = useState(0)
   const [openFaq, setOpenFaq] = useState(0)
+  const { submit: submitContact, submitting, submitError, reset: resetContact } = useContact()
 
   const change = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return
-    setStatus('sending')
-    setTimeout(() => setStatus('sent'), 900)
+    if (!form.name.trim() || !form.email.trim() || !stripHtml(form.message)) return
+    const result = await submitContact(form)
+    if (result.success) setSent(true)
   }
 
   const inputBase = {
@@ -272,6 +293,19 @@ export default function Contact() {
         overflow: 'hidden',
       }}
     >
+      <SEO
+        title="Contact VeloxZap — Support, Partnerships & Enquiries"
+        description="Reach the VeloxZap team for support, business partnerships, or general enquiries. We typically respond within 24 hours on business days."
+        path="/contact"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          "name": "Contact VeloxZap",
+          "url": "https://veloxzap.com/contact",
+          "description": "Contact VeloxZap for customer support, partnership opportunities or general enquiries.",
+          "publisher": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" }
+        }}
+      />
       <div
         aria-hidden
         style={{
@@ -347,7 +381,7 @@ export default function Contact() {
               gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
             }}
           >
-            {CHANNELS.map(({ icon: Icon, label, value, eta, sub, href }) => {
+            {channels.map(({ icon: Icon, label, value, eta, sub, href }) => {
               const inner = (
                 <>
                   <div
@@ -514,7 +548,7 @@ export default function Contact() {
                 </p>
 
                 <AnimatePresence mode="wait" initial={false}>
-                  {status === 'sent' ? (
+                  {sent ? (
                     <motion.div
                       key="sent"
                       initial={{ opacity: 0, y: 12 }}
@@ -552,14 +586,16 @@ export default function Contact() {
                         Message received.
                       </h3>
                       <p style={{ margin: '0 0 18px', fontSize: 14.5, color: colors.textMuted, lineHeight: 1.65 }}>
-                        Thanks {form.name.split(' ')[0] || 'there'} — a real teammate will reply to
-                        <strong style={{ color: colors.text }}> {form.email}</strong> within 4 hours.
+                        Thanks {form.name.split(' ')[0] || 'there'} — a real teammate will reach out to
+                        <strong style={{ color: colors.text }}> {form.email}</strong> soon.
                       </p>
                       <button
                         type="button"
                         onClick={() => {
-                          setStatus('idle')
+                          setSent(false)
+                          resetContact()
                           setForm({ name: '', email: '', topic: TOPICS[0], message: '' })
+                          setResetKey((k) => k + 1)
                         }}
                         className="cta-ghost"
                         style={{ cursor: 'pointer' }}
@@ -645,18 +681,33 @@ export default function Contact() {
 
                       <div>
                         <label htmlFor="cf-msg" style={labelStyle}>Message</label>
-                        <textarea
-                          id="cf-msg"
-                          required
-                          rows={5}
+                        <RichTextEditor
+                          key={resetKey}
                           value={form.message}
-                          onChange={change('message')}
-                          onFocus={focusOn}
-                          onBlur={focusOff}
+                          onChange={(html) => setForm((f) => ({ ...f, message: html }))}
                           placeholder="Tell us as much as you can — links, screenshots, transaction IDs all help us help you faster."
-                          style={{ ...inputBase, resize: 'vertical', minHeight: 130, lineHeight: 1.6 }}
+                          minHeight={130}
+                          maxHeight={280}
+                          showToolbar={false}
                         />
                       </div>
+
+                      {submitError && (
+                        <p
+                          role="alert"
+                          style={{
+                            margin: 0,
+                            padding: '10px 14px',
+                            borderRadius: 10,
+                            background: 'rgba(248, 113, 113, 0.10)',
+                            borderLeft: '3px solid #f87171',
+                            color: '#fca5a5',
+                            fontSize: 13,
+                          }}
+                        >
+                          {submitError}
+                        </p>
+                      )}
 
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                         <p style={{ margin: 0, fontSize: 12.5, color: colors.textMuted, display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -665,15 +716,15 @@ export default function Contact() {
                         </p>
                         <button
                           type="submit"
-                          disabled={status === 'sending'}
+                          disabled={submitting}
                           className="cta-gold"
                           style={{
-                            cursor: status === 'sending' ? 'progress' : 'pointer',
-                            opacity: status === 'sending' ? 0.85 : 1,
+                            cursor: submitting ? 'progress' : 'pointer',
+                            opacity: submitting ? 0.85 : 1,
                             border: 'none',
                           }}
                         >
-                          {status === 'sending' ? 'Sending…' : 'Send message'}
+                          {submitting ? 'Sending…' : 'Send message'}
                           <Send size={15} />
                         </button>
                       </div>
@@ -777,10 +828,9 @@ export default function Contact() {
                 </div>
                 <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 12 }}>
                   {[
-                    { k: 'Customer support', v: 'support@veloxzap.com' },
-                    { k: 'Press & media',    v: 'press@veloxzap.com'   },
-                    { k: 'Partnerships',     v: 'partners@veloxzap.com'},
-                    { k: 'Security reports', v: 'security@veloxzap.com'},
+                    { k: 'Customer support', v: settings?.support_email || 'support@veloxzap.com' },
+                    { k: 'Partnerships',     v: settings?.partners_email || 'partners@veloxzap.com'},
+                    { k: 'Security reports', v: settings?.security_email || 'security@veloxzap.com'},
                   ].map(({ k, v }) => (
                     <li key={k}>
                       <p
@@ -825,7 +875,7 @@ export default function Contact() {
                   Follow along
                 </p>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {SOCIAL.map(({ icon: Icon, label, href }) => (
+                  {social.map(({ icon: Icon, label, href }) => (
                     <a
                       key={label}
                       href={href}
@@ -897,9 +947,9 @@ export default function Contact() {
               gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
             }}
           >
-            {OFFICES.map(({ city, role, address, hours, accent }, i) => (
+            {offices.map(({ role, address, hours, accent }, i) => (
               <motion.div
-                key={city}
+                key={role}
                 initial={{ opacity: 0, y: 22 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
@@ -932,27 +982,16 @@ export default function Contact() {
                     >
                       <Building2 size={20} color={accent} />
                     </div>
-                    <div>
-                      <p
-                        className="f-mono"
-                        style={{
-                          margin: 0, fontSize: 10.5, fontWeight: 700, letterSpacing: '0.16em',
-                          color: accent, textTransform: 'uppercase',
-                        }}
-                      >
-                        {role}
-                      </p>
-                      <h3
-                        className="f-head"
-                        style={{
-                          margin: '2px 0 0',
-                          fontSize: 22, fontWeight: 800,
-                          color: colors.text, letterSpacing: '-0.02em',
-                        }}
-                      >
-                        {city}
-                      </h3>
-                    </div>
+                    <h3
+                      className="f-head"
+                      style={{
+                        margin: 0,
+                        fontSize: 22, fontWeight: 800,
+                        color: colors.text, letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {role}
+                    </h3>
                   </div>
 
                   <div style={{ display: 'grid', gap: 12 }}>
@@ -1008,7 +1047,7 @@ export default function Contact() {
                 save yourself a step.
               </p>
               <Link
-                to="/company/about"
+                to="/about"
                 className="cta-ghost"
                 style={{ textDecoration: 'none' }}
               >
@@ -1017,7 +1056,7 @@ export default function Contact() {
             </motion.div>
 
             <div style={{ display: 'grid', gap: 12 }}>
-              {FAQS.map((item, i) => (
+              {faqs.map((item, i) => (
                 <motion.div
                   key={item.q}
                   initial={{ opacity: 0, y: 16 }}
@@ -1097,7 +1136,7 @@ export default function Contact() {
             </div>
 
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-              <a href="https://wa.me/2348025559000" target="_blank" rel="noopener noreferrer" className="cta-gold">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="cta-gold">
                 Chat on WhatsApp <ArrowRight size={16} />
               </a>
               <Link to="/auth/login" className="cta-ghost">

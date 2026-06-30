@@ -7,6 +7,7 @@ import {
   Clock, ShieldCheck, Sparkles, ChevronDown,
   Database, Star, Globe2, BadgePercent, Repeat,
 } from 'lucide-react'
+import SEO from '../components/SEO'
 import './css/AirtimeData.css'
 
 const networks = [
@@ -83,7 +84,21 @@ export default function AirtimeData() {
 
   return (
     <main className="ad-stage main-offset">
-      
+      <SEO
+        title="Buy Airtime & Data Online — MTN, Airtel, Glo, 9mobile"
+        description="Instant airtime and data top-up for MTN, Airtel, Glo, and 9mobile. Fund from your VeloxZap wallet in seconds — no queues, no banking apps needed."
+        path="/airtime"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Airtime & Data Top-Up",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Instant airtime and data purchase for all Nigerian networks — MTN, Airtel, Glo, and 9mobile.",
+          "areaServed": "NG",
+          "serviceType": "Airtime & Data Recharge"
+        }}
+      />
+
       <div className="ad-aurora ad-aurora-a" />
       <div className="ad-aurora ad-aurora-b" />
       <div className="ad-grain" />
@@ -121,7 +136,7 @@ export default function AirtimeData() {
 
             <div className="ad-trust-row">
               {[
-                { icon: ShieldCheck, label: 'CBN Licensed' },
+                { icon: ShieldCheck, label: 'Enterprise Security' },
                 { icon: Clock,       label: 'Sub-5s delivery' },
                 { icon: Star,        label: '4.9★ rating' },
               ].map(({ icon: Ic, label }) => (

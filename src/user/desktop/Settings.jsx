@@ -1,22 +1,20 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Settings as SettingsIcon, Palette, Shield, Bell, Eye, Info,
+  Settings as SettingsIcon, Palette, Shield, Eye, Info,
   Sparkles, ChevronRight, Globe, Coins, Clock, Sun, Moon, Monitor,
-  KeyRound, Lock, Smartphone, Mail, MessageCircle,
+  KeyRound, Lock, Smartphone,
   FileText, ShieldCheck, HelpCircle,
-  Check, AlertTriangle, BellRing, BellOff, Loader2,
+  Check, AlertTriangle,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import { useTheme } from '../../hooks/useTheme'
-import { subscribePush, unsubscribePush } from '../../lib/push'
 
 const SECTIONS = [
   { id: 'preferences',   label: 'Preferences',   icon: SettingsIcon },
   { id: 'appearance',    label: 'Appearance',    icon: Palette },
   { id: 'security',      label: 'Security',      icon: Shield },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'about',         label: 'About',         icon: Info },
 ]
 
@@ -43,48 +41,6 @@ export default function DesktopSettings() {
   )
   const [density, setDensity]         = useState('comfortable')
 
-  const [emailLogin, setEmailLogin]   = useState(true)
-  const [emailTx, setEmailTx]         = useState(true)
-  const [smsLogin, setSmsLogin]       = useState(false)
-  const [smsTx, setSmsTx]             = useState(true)
-  const [emailPromos, setEmailPromos] = useState(false)
-  const [newsletter, setNewsletter]   = useState(true)
-
-  const pushSupported = 'Notification' in window && 'serviceWorker' in navigator
-  const [pushPermission, setPushPermission] = useState(() =>
-    pushSupported ? Notification.permission : 'unsupported'
-  )
-  const [pushSubscribed, setPushSubscribed] = useState(false)
-  const [pushLoading, setPushLoading]       = useState(false)
-
-  useEffect(() => {
-    if (!pushSupported) return
-    navigator.serviceWorker.ready
-      .then(reg => reg.pushManager.getSubscription())
-      .then(sub => { if (sub) { setPushSubscribed(true); setPushPermission('granted') } })
-      .catch(() => {})
-  }, [pushSupported])
-
-  async function handlePushToggle() {
-    if (pushLoading) return
-    setPushLoading(true)
-    try {
-      if (pushSubscribed) {
-        await unsubscribePush()
-        setPushSubscribed(false)
-        setPushPermission(Notification.permission)
-      } else {
-        await subscribePush()
-        const reg = await navigator.serviceWorker.ready
-        const sub = await reg.pushManager.getSubscription()
-        setPushSubscribed(!!sub)
-        setPushPermission(Notification.permission)
-      }
-    } finally {
-      setPushLoading(false)
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4 max-w-[1240px] mx-auto pb-10">
 
@@ -97,7 +53,7 @@ export default function DesktopSettings() {
             Settings
           </h1>
           <p className="text-[13px] text-[var(--c-text-muted)] m-0 mt-1">
-            Tune your preferences, security, and notifications. Changes save instantly.
+            Tune your preferences, appearance, and security. Changes save instantly.
           </p>
         </div>
         <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
@@ -182,88 +138,6 @@ export default function DesktopSettings() {
             <SettingRow icon={Smartphone} label="Transaction PIN"   sub={user?.is_pin_created === 1 ? '4-digit PIN active' : 'Not set — tap to create'} meta={user?.is_pin_created === 1 ? 'Active' : undefined} metaTone="success" cta={user?.is_pin_created === 1 ? 'Update' : 'Set PIN'} onClick={() => navigate('/user/transaction-pin')} />
 
           </Section>
-
-          <Section id="notifications" title="Notifications" subtitle="Choose how we reach you." setRef={setRef}>
-
-            {/* Push notification banner */}
-            {pushSupported && (
-              <div className="px-4 pt-4 pb-3 border-b border-[var(--c-border)]">
-                {pushPermission === 'denied' ? (
-                  <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[color-mix(in_srgb,#ef4444_8%,transparent)] border border-[color-mix(in_srgb,#ef4444_25%,transparent)]">
-                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-[color-mix(in_srgb,#ef4444_12%,transparent)] border border-[color-mix(in_srgb,#ef4444_25%,transparent)] text-[#ef4444]">
-                      <BellOff size={15} />
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12.5px] font-bold text-[#ef4444] m-0">Push blocked by browser</p>
-                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">
-                        Go to your browser site settings and allow notifications for this site, then refresh.
-                      </p>
-                    </div>
-                  </div>
-                ) : pushSubscribed ? (
-                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[var(--c-success-bg)] border border-[var(--c-success)]">
-                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-[var(--c-success-bg)] border border-[var(--c-success)] text-[var(--c-success)]">
-                      <BellRing size={15} />
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0">Push notifications active</p>
-                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">Credit alerts will appear even when the app is closed.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handlePushToggle}
-                      disabled={pushLoading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold border transition shrink-0 text-[#ef4444] border-[color-mix(in_srgb,#ef4444_30%,transparent)] bg-[color-mix(in_srgb,#ef4444_8%,transparent)] hover:bg-[color-mix(in_srgb,#ef4444_15%,transparent)]"
-                    >
-                      {pushLoading ? <Loader2 size={12} className="animate-spin" /> : <BellOff size={12} />}
-                      Disable
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 p-3.5 rounded-xl bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)]">
-                    <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl shrink-0 bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border-[rgba(232,197,71,0.55)]">
-                      <BellRing size={15} />
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-[12.5px] font-bold text-[var(--c-text)] m-0">Enable push notifications</p>
-                      <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">Get instant credit alerts even when VeloxZap is closed.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handlePushToggle}
-                      disabled={pushLoading}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition shrink-0 bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] hover:opacity-90 shadow-[0_4px_12px_-4px_rgba(201,162,39,0.5)]"
-                    >
-                      {pushLoading ? <Loader2 size={12} className="animate-spin" /> : <BellRing size={12} />}
-                      Enable
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <NotificationMatrix
-              rows={[
-                { id: 'login', label: 'Login alerts',        sub: 'New sign-ins on your account' },
-                { id: 'tx',    label: 'Transaction alerts',  sub: 'Deposits, transfers, card spend' },
-                { id: 'promo', label: 'Promos & rewards',    sub: 'Cashback, gift card deals' },
-                { id: 'news',  label: 'Newsletter',          sub: 'Monthly product roundup' },
-              ]}
-              values={{
-                login: { email: emailLogin, push: pushSubscribed, sms: smsLogin },
-                tx:    { email: emailTx,    push: pushSubscribed, sms: smsTx },
-                promo: { email: emailPromos, push: false, sms: false },
-                news:  { email: newsletter,  push: false, sms: false },
-              }}
-              setters={{
-                login: { email: setEmailLogin, push: handlePushToggle, sms: setSmsLogin },
-                tx:    { email: setEmailTx,    push: handlePushToggle, sms: setSmsTx },
-                promo: { email: setEmailPromos, push: () => {}, sms: () => {} },
-                news:  { email: setNewsletter,  push: () => {}, sms: () => {} },
-              }}
-            />
-          </Section>
-
 
           <Section id="about" title="About" subtitle="Legal & support." setRef={setRef}>
             <SettingRow icon={FileText}    label="Terms of service" link="/terms" />
@@ -502,55 +376,6 @@ function DensityToggle({ value, onChange }) {
           </button>
         )
       })}
-    </div>
-  )
-}
-
-function NotificationMatrix({ rows, values, setters }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="text-left">
-            <th className="px-4 py-2.5 text-[10px] uppercase tracking-[1px] font-bold text-[var(--c-text-muted)]">
-              Notification
-            </th>
-            <th className="px-3 py-2.5 text-[10px] uppercase tracking-[1px] font-bold text-[var(--c-text-muted)] text-center w-[80px]">
-              <span className="inline-flex items-center gap-1"><Mail size={10} /> Email</span>
-            </th>
-            <th className="px-3 py-2.5 text-[10px] uppercase tracking-[1px] font-bold text-[var(--c-text-muted)] text-center w-[80px]">
-              <span className="inline-flex items-center gap-1"><Bell size={10} /> Push</span>
-            </th>
-            <th className="px-3 py-2.5 text-[10px] uppercase tracking-[1px] font-bold text-[var(--c-text-muted)] text-center w-[80px]">
-              <span className="inline-flex items-center gap-1"><MessageCircle size={10} /> SMS</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr
-              key={row.id}
-              className={i > 0 ? 'border-t border-[var(--c-border)]' : 'border-t border-[var(--c-border)]'}
-            >
-              <td className="px-4 py-3 leading-tight">
-                <p className="text-[12.5px] font-semibold text-[var(--c-text)] m-0">{row.label}</p>
-                <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-0.5">{row.sub}</p>
-              </td>
-              {['email', 'push', 'sms'].map(channel => (
-                <td key={channel} className="px-3 py-3 text-center">
-                  <Toggle
-                    on={values[row.id][channel]}
-                    onClick={() => {
-                      const setter = setters[row.id][channel]
-                      channel === 'push' ? setter() : setter(v => !v)
-                    }}
-                  />
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }

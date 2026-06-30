@@ -471,7 +471,7 @@ function TopUpModal({ plan, minDeposit, onClose, onSubmit, submitting }) {
                 <ArrowDownLeft size={18} strokeWidth={2.2} />
               </span>
               <div className="min-w-0">
-                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">Top up</p>
+                <p className="text-[9.5px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">Quick Save</p>
                 <h2 className="text-[16px] font-black text-[var(--c-text)] m-0 truncate tracking-[-0.3px]">{plan?.name}</h2>
               </div>
             </div>
@@ -921,7 +921,7 @@ export default function DesktopFlexibleSavings() {
               className="inline-flex items-center gap-1.5 px-4 h-9 rounded-xl font-bold text-[11.5px] border transition active:scale-95 disabled:opacity-60"
               style={{ background: FLEX_BG, borderColor: FLEX_BORDER, color: FLEX }}
             >
-              <ArrowDownLeft size={12} strokeWidth={2.5} /> Top up
+              <ArrowDownLeft size={12} strokeWidth={2.5} /> Qucik Save
             </button>
             <button
               type="button" onClick={handleWithdrawClick} disabled={withdrawing || withdrawDisabled}
@@ -950,7 +950,7 @@ export default function DesktopFlexibleSavings() {
               </h3>
               <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-0.5">
                 {flexPlans.length === 0
-                  ? 'No lock-in — top up or withdraw anytime, with daily interest.'
+                  ? 'No lock-in — quick save or withdraw anytime, with daily interest.'
                   : 'Your plan has completed. Open a new one to keep earning daily interest.'}
               </p>
             </div>

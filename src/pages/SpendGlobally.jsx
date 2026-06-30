@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -235,6 +236,20 @@ export default function SpendGlobally() {
 
   return (
     <main className="main-offset relative isolate min-h-screen overflow-hidden text-text" style={{ background: STAGE_BG }}>
+      <SEO
+        title="Spend Globally With Your Naira — Virtual Visa Card"
+        description="Fund in naira and spend in 200+ countries with your VeloxZap virtual Visa card. No FX stress, no dollar shortage, instant top-up."
+        path="/spend-globally"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Global Spending",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Spend in 200+ countries using your VeloxZap virtual Visa card funded in Nigerian naira.",
+          "areaServed": "Worldwide",
+          "serviceType": "International Payments"
+        }}
+      />
       <div className="pointer-events-none absolute inset-0 z-0" style={{ backgroundImage: DOT_GRID, backgroundSize: '28px 28px', maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)' }}/>
       <GlobeLines/>
       <div className="pointer-events-none absolute top-[5%] -right-[130px] z-0 h-[480px] w-[480px] rounded-full opacity-45 blur-[80px]" style={{ background: 'radial-gradient(circle, var(--color-brand-accent) 0%, transparent 70%)' }}/>

@@ -42,7 +42,7 @@ export const floatingChips = [
 ]
 
 export const trustItems = [
-  { icon: ShieldCheck, label: 'CBN Licensed' },
+  { icon: ShieldCheck, label: 'Enterprise Security' },
   { icon: Lock,        label: 'SSL Encrypted' },
   { icon: Clock,       label: 'Instant Payouts' },
   { icon: Star,        label: '4.9★ Rating' },
@@ -98,7 +98,7 @@ export const steps = [
 ]
 
 export const pillars = [
-  { icon: ShieldCheck, title: 'Bank-grade security',    desc: '256-bit SSL, biometric auth, and AI fraud detection on every transaction.', metric: '256-bit', metricLabel: 'Encryption' },
+  { icon: ShieldCheck, title: 'Enterprise security',    desc: '256-bit SSL, biometric auth, and AI fraud detection on every transaction.', metric: '256-bit', metricLabel: 'Encryption' },
   { icon: Zap,         title: 'Lightning-fast payouts', desc: 'Most transactions complete in under 2 seconds — every day, around the clock.', metric: '< 2s',   metricLabel: 'Avg payout' },
   { icon: BarChart3,   title: 'Always the best rates',  desc: 'Live rates aggregated from 50+ sources to guarantee the best naira value.',     metric: '50+',     metricLabel: 'Rate sources' },
 ]
@@ -113,6 +113,6 @@ export const faqs = [
   { question: 'How long does a gift card payout take?',        answer: 'Most payouts complete in 15–30 seconds. Once the card is verified, naira is credited to your wallet immediately and you can withdraw to any Nigerian bank instantly.' },
   { question: 'Which gift card brands do you accept?',          answer: 'We accept 200+ brands including Amazon, iTunes, Google Play, Steam, Xbox, Netflix, Spotify, eBay, Walmart and many more.' },
   { question: 'Are there any platform fees?',                   answer: 'Zero platform fees. The rate you see is exactly what you receive — no hidden charges and no deductions, ever.' },
-  { question: 'Is VeloxZap regulated and safe?',                answer: 'Yes. VeloxZap is CBN licensed, ISO 27001 certified and PCI DSS compliant. All transactions are end-to-end encrypted.' },
+  { question: 'Is VeloxZap regulated and safe?',                answer: 'Safety is core to how we operate. VeloxZap runs on enterprise-grade infrastructure — ISO 27001 aligned security and PCI DSS compliant systems — with every transaction end-to-end encrypted and funds processed through licensed payment partners including Paystack, Flutterwave, and Monnify.' },
   { question: 'Can the virtual card be used internationally?',  answer: 'Absolutely. Your VeloxZap Visa virtual card works on any Visa-enabled platform globally — Amazon, Netflix, Shopify, Fiverr, Adobe and more.' },
 ]

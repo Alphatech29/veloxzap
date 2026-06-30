@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -262,6 +263,20 @@ export default function VirtualCard() {
 
   return (
     <main className="main-offset relative isolate min-h-screen overflow-hidden text-text" style={{ background: STAGE_BG }}>
+      <SEO
+        title="Get a Virtual Dollar Card — Spend Globally in Naira"
+        description="Create a VeloxZap virtual Visa dollar card and pay on Amazon, Netflix, Shopify, and anywhere Visa is accepted. Fund in naira, spend in 200+ countries."
+        path="/virtual-card"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Virtual Dollar Card",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Virtual Visa dollar card funded in naira for international payments on Amazon, Netflix, Shopify and more.",
+          "areaServed": "NG",
+          "serviceType": "Virtual Card Issuance"
+        }}
+      />
       <div className="pointer-events-none absolute inset-0 z-0" style={{ backgroundImage: DOT_GRID, backgroundSize: '28px 28px', maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 100%)' }}/>
       <div className="pointer-events-none absolute top-[5%] -right-[130px] z-0 h-[480px] w-[480px] rounded-full opacity-45 blur-[80px]" style={{ background: 'radial-gradient(circle, var(--color-brand-accent) 0%, transparent 70%)' }}/>
       <div className="pointer-events-none absolute bottom-[8%] -left-[120px] z-0 h-[520px] w-[520px] rounded-full opacity-45 blur-[80px]" style={{ background: 'radial-gradient(circle, var(--color-brand-gold-soft) 0%, transparent 70%)' }}/>

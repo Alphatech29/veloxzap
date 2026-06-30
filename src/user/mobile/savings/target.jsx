@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview } from '../../../hooks/useSavings'
-import { setScheduleStatus } from '../../../lib/savings'
+import { setScheduleStatus, topUpAccount } from '../../../lib/savings'
 import CreateGoalSheet from '../../../components/internalUI/CreateGoalSheet'
 import GoalHistorySheet from '../../../components/internalUI/GoalHistorySheet'
 import WithdrawGoalSheet from '../../../components/internalUI/WithdrawGoalSheet'
 import {
   ChevronLeft, Target, Plus, Check, Loader2,
-  ArrowUpRight, Pause, Play, Flag, Percent, Coins, Zap,
+  ArrowUpRight, ArrowDownLeft, Pause, Play, Flag, Percent, Coins, Zap,
   History,
 } from 'lucide-react'
 
@@ -92,10 +92,20 @@ function mapGoal(a) {
 
 /* ── Goal card ────────────────────────────────────────────── */
 
-function GoalCard({ goal, onWithdraw, onHistory, scheduling, onPause, onResume }) {
+function GoalCard({ goal, onWithdraw, onHistory, scheduling, onPause, onResume, onQuickSave, quickSaving }) {
   const isPaused       = goal.scheduleStatus === 'paused'
   const { isCompleted, isWithdrawn } = goal
   const withdrawalBlocked = WITHDRAWAL_BLOCKED.has(goal.withdrawalStatus)
+  const [showQuickSave, setShowQuickSave] = useState(false)
+  const [saveAmt, setSaveAmt]             = useState('')
+
+  function submitQuickSave() {
+    const num = Number(saveAmt.replace(/[^0-9.]/g, ''))
+    if (num < 100) return
+    onQuickSave(goal.id, num)
+    setShowQuickSave(false)
+    setSaveAmt('')
+  }
 
   return (
     <div
@@ -214,53 +224,119 @@ function GoalCard({ goal, onWithdraw, onHistory, scheduling, onPause, onResume }
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--c-border-soft)]">
-          <button
-            type="button"
-            onClick={() => onHistory(goal)}
-            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95"
-          >
-            <History size={11} strokeWidth={2.3} /> History
-          </button>
-
-          {!isCompleted && !isWithdrawn && goal.frequency && (
-            <button
-              type="button"
-              onClick={() => isPaused ? onResume(goal.id) : onPause(goal.id)}
-              disabled={scheduling}
-              className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-60"
-              style={isPaused
-                ? { background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }
-                : { background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }
-              }
-            >
-              {scheduling
-                ? <Loader2 size={11} className="animate-spin" />
-                : isPaused
-                  ? <><Play size={10} strokeWidth={2.5} /> Resume</>
-                  : <><Pause size={10} strokeWidth={2.5} /> Pause</>
-              }
-            </button>
-          )}
-
-          {!isCompleted && !isWithdrawn && (
-            withdrawalBlocked ? (
-              <span
-                className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border ml-auto cursor-default capitalize"
-                style={{ background: 'rgba(251,146,60,0.07)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }}
+        <div className="mt-3 pt-3 border-t border-[var(--c-border-soft)]">
+          <AnimatePresence mode="wait">
+            {!isCompleted && !isWithdrawn && showQuickSave ? (
+              <motion.div
+                key="quicksave"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="flex flex-col gap-2"
               >
-                {goal.withdrawalStatus}
-              </span>
+                <p className="text-[10px] font-semibold text-[var(--c-text-muted)] m-0">
+                  Add funds to <span className="font-bold text-[var(--c-text)]">{goal.name}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[var(--c-text-muted)]">₦</span>
+                    <input
+                      type="text" inputMode="decimal" value={saveAmt}
+                      onChange={e => setSaveAmt(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && submitQuickSave()}
+                      placeholder="0.00"
+                      autoFocus
+                      className="w-full h-9 pl-7 pr-3 rounded-lg text-[12.5px] font-bold text-[var(--c-text)] tabular-nums outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
+                      style={{ background: 'var(--c-surface-soft)' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowQuickSave(false); setSaveAmt('') }}
+                    className="inline-flex items-center px-3 h-9 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95 shrink-0"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitQuickSave}
+                    disabled={quickSaving || Number(saveAmt.replace(/[^0-9.]/g, '')) < 100}
+                    className="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-50 shrink-0"
+                    style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+                  >
+                    {quickSaving
+                      ? <Loader2 size={11} className="animate-spin" />
+                      : <><ArrowDownLeft size={11} strokeWidth={2.5} /> Save</>
+                    }
+                  </button>
+                </div>
+              </motion.div>
             ) : (
-              <button
-                type="button"
-                onClick={() => onWithdraw(goal)}
-                className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95 ml-auto"
+              <motion.div
+                key="actions"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center gap-2"
               >
-                <ArrowUpRight size={11} strokeWidth={2.5} /> Withdraw
-              </button>
-            )
-          )}
+                <button
+                  type="button"
+                  onClick={() => onHistory(goal)}
+                  className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95"
+                >
+                  <History size={11} strokeWidth={2.3} /> History
+                </button>
+
+                {!isCompleted && !isWithdrawn && (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickSave(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95"
+                    style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+                  >
+                    <ArrowDownLeft size={11} strokeWidth={2.5} /> Quick Save
+                  </button>
+                )}
+
+                {!isCompleted && !isWithdrawn && goal.frequency && (
+                  <button
+                    type="button"
+                    onClick={() => isPaused ? onResume(goal.id) : onPause(goal.id)}
+                    disabled={scheduling}
+                    className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-60"
+                    style={isPaused
+                      ? { background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }
+                      : { background: 'rgba(251,146,60,0.08)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }
+                    }
+                  >
+                    {scheduling
+                      ? <Loader2 size={11} className="animate-spin" />
+                      : isPaused
+                        ? <><Play size={10} strokeWidth={2.5} /> Resume</>
+                        : <><Pause size={10} strokeWidth={2.5} /> Pause</>
+                    }
+                  </button>
+                )}
+
+                {!isCompleted && !isWithdrawn && (
+                  withdrawalBlocked ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border ml-auto cursor-default capitalize"
+                      style={{ background: 'rgba(251,146,60,0.07)', borderColor: 'rgba(251,146,60,0.25)', color: '#fb923c' }}
+                    >
+                      {goal.withdrawalStatus}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onWithdraw(goal)}
+                      className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95 ml-auto"
+                    >
+                      <ArrowUpRight size={11} strokeWidth={2.5} /> Withdraw
+                    </button>
+                  )
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
@@ -274,12 +350,13 @@ export default function MobileTargetSavings() {
   const { alert } = useAlert()
   const { plans: rawProducts, investments, creating, create, withdraw, refresh } = useSavingsOverview()
 
-  const [showModal, setShowModal]       = useState(false)
-  const [success, setSuccess]           = useState(null)
-  const [schedulingId, setSchedulingId] = useState(null)
-  const [withdrawGoal, setWithdrawGoal] = useState(null)
-  const [withdrawing, setWithdrawing]   = useState(false)
-  const [historyGoal, setHistoryGoal]   = useState(null)
+  const [showModal, setShowModal]         = useState(false)
+  const [success, setSuccess]             = useState(null)
+  const [schedulingId, setSchedulingId]   = useState(null)
+  const [withdrawGoal, setWithdrawGoal]   = useState(null)
+  const [withdrawing, setWithdrawing]     = useState(false)
+  const [quickSavingId, setQuickSavingId] = useState(null)
+  const [historyGoal, setHistoryGoal]     = useState(null)
 
   const targetGoals = useMemo(() =>
     investments.filter(a => (a.product_type || a.type) === 'target').map(mapGoal),
@@ -326,6 +403,17 @@ export default function MobileTargetSavings() {
       })
     } else {
       alert({ type: 'error', title: 'Could not create goal', message: r.message || 'Something went wrong.' })
+    }
+  }
+
+  async function handleQuickSave(id, amount) {
+    setQuickSavingId(id)
+    const r = await topUpAccount(id, { amount })
+    setQuickSavingId(null)
+    if (r?.success) {
+      refresh()
+    } else {
+      alert({ type: 'error', title: 'Deposit failed', message: r?.message || 'Could not process deposit.' })
     }
   }
 
@@ -447,6 +535,8 @@ export default function MobileTargetSavings() {
                 scheduling={schedulingId === goal.id}
                 onPause={handlePause}
                 onResume={handleResume}
+                onQuickSave={handleQuickSave}
+                quickSaving={quickSavingId === goal.id}
               />
             ))}
           </section>

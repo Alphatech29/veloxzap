@@ -6,6 +6,8 @@ import {
   ChevronRight, Crown, Lock, BellRing, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import useEmailVerification from '../../hooks/useEmailVerification'
+import { useToast } from '../../components/ui/Toast'
 
 const HERO_BG = `radial-gradient(640px 240px at 100% 0%, rgba(201,162,39,0.32), transparent 65%), radial-gradient(420px 200px at 0% 100%, rgba(232,197,71,0.18), transparent 60%), linear-gradient(135deg, rgba(20,42,92,0.98), rgba(10,31,68,1))`
 
@@ -20,6 +22,10 @@ export default function DesktopProfile() {
   const [copied, setCopied] = useState(null)
   const [editing, setEditing] = useState(null)
   const avatarUrl = user?.avatar
+  const isEmailVerified = user?.is_email_verified === 1
+
+  const { sendLink, sending } = useEmailVerification()
+  const { toast } = useToast()
 
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
@@ -36,9 +42,25 @@ export default function DesktopProfile() {
     setTimeout(() => setCopied(null), 1500)
   }
 
+  async function openVerifyEmail() {
+    const result = await sendLink()
+    toast({
+      type: result.success ? 'success' : 'error',
+      title: result.success ? 'Verification link sent' : 'Could not send link',
+      message: result.success
+        ? `Check ${user?.email} and click the link to confirm.`
+        : result.message,
+    })
+  }
+
   const personalInfo = [
     { id: 'name',  icon: User,     label: 'Full name',     value: user?.full_name || 'Add name' },
-    { id: 'email', icon: Mail,     label: 'Email',         value: user?.email || '—',                meta: user?.is_email_verified === 1 ? 'Verified' : 'Unverified', metaTone: user?.is_email_verified === 1 ? 'success' : 'danger' },
+    {
+      id: 'email', icon: Mail, label: 'Email', value: user?.email || '—',
+      meta: isEmailVerified ? 'Verified' : 'Unverified',
+      metaTone: isEmailVerified ? 'success' : 'danger',
+      cta: isEmailVerified ? undefined : { label: 'Verify' },
+    },
     { id: 'phone', icon: Phone,    label: 'Phone',         value: user?.phone_number || '+234 803 555 1234' },
     { id: 'country', icon: Globe,  label: 'Country',       value: user?.country || 'Nigeria' },
     { id: 'dob',   icon: Calendar, label: 'Date of birth', value: user?.dob || 'Apr 14, 1995' },
@@ -171,7 +193,15 @@ export default function DesktopProfile() {
         >
           <Grid2>
             {personalInfo.map(item => (
-              <InfoCell key={item.id} {...item} editing={false} copied={copied} onCopy={copy} />
+              <InfoCell
+                key={item.id}
+                {...item}
+                editing={false}
+                copied={copied}
+                onCopy={copy}
+                onCta={item.id === 'email' ? openVerifyEmail : undefined}
+                ctaDisabled={item.id === 'email' && sending}
+              />
             ))}
           </Grid2>
         </SectionCard>
@@ -450,7 +480,7 @@ function Stack({ children }) {
   return <div className="flex flex-col gap-2">{children}</div>
 }
 
-function InfoCell({ icon: Icon, label, value, meta, metaTone, editing, copyable, copyKey, cta, copied, onCopy }) {
+function InfoCell({ icon: Icon, label, value, meta, metaTone, editing, copyable, copyKey, cta, copied, onCopy, onCta, ctaDisabled }) {
   const isCopied = copyable && copied === (copyKey || label)
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
@@ -490,9 +520,11 @@ function InfoCell({ icon: Icon, label, value, meta, metaTone, editing, copyable,
       {cta && (
         <button
           type="button"
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[10px] font-bold border border-[rgba(232,197,71,0.55)] shrink-0 hover:-translate-y-px transition"
+          onClick={onCta}
+          disabled={ctaDisabled}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[10px] font-bold border border-[rgba(232,197,71,0.55)] shrink-0 hover:-translate-y-px transition disabled:opacity-60 disabled:pointer-events-none"
         >
-          {cta.label} <ChevronRight size={10} strokeWidth={2.6} />
+          {ctaDisabled ? <Loader2 size={10} className="animate-spin" /> : <>{cta.label} <ChevronRight size={10} strokeWidth={2.6} /></>}
         </button>
       )}
       {copyable && (

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview, useSavingsPlanLedger } from '../../../hooks/useSavings'
-import { setScheduleStatus } from '../../../lib/savings'
+import { setScheduleStatus, topUpAccount } from '../../../lib/savings'
 import CreateGoalModal from '../../../components/internalUI/CreateGoalModal'
 import {
   Target, Plus, Check, Loader2,
@@ -209,11 +209,21 @@ function mapGoal(a) {
 
 const WITHDRAWAL_BLOCKED = new Set(['pending', 'approved', 'completed'])
 
-function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume, onHistory }) {
+function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume, onHistory, onQuickSave, quickSaving }) {
   const isPaused = goal.scheduleStatus === 'paused'
   const { isCompleted, isWithdrawn } = goal
   const [confirmWithdraw, setConfirmWithdraw] = useState(false)
+  const [showQuickSave, setShowQuickSave]     = useState(false)
+  const [saveAmt, setSaveAmt]                 = useState('')
   const withdrawalBlocked = WITHDRAWAL_BLOCKED.has(goal.withdrawalStatus)
+
+  function submitQuickSave() {
+    const num = Number(saveAmt.replace(/[^0-9.]/g, ''))
+    if (num < 100) return
+    onQuickSave(goal.id, num)
+    setShowQuickSave(false)
+    setSaveAmt('')
+  }
 
   return (
     <motion.article
@@ -335,10 +345,55 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
           </div>
         </div>
 
-        {/* Bottom bar — always visible */}
+        {/* Bottom bar */}
         <div className="mt-3 pt-3 border-t border-[var(--c-border-soft)]">
           <AnimatePresence mode="wait">
-            {!isCompleted && !isWithdrawn && confirmWithdraw ? (
+            {!isCompleted && !isWithdrawn && showQuickSave ? (
+              <motion.div
+                key="quicksave"
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="flex flex-col gap-2"
+              >
+                <p className="text-[10.5px] font-semibold text-[var(--c-text-muted)] m-0">
+                  Add funds to <span className="font-bold text-[var(--c-text)]">{goal.name}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[var(--c-text-muted)]">₦</span>
+                    <input
+                      type="text" inputMode="decimal" value={saveAmt}
+                      onChange={e => setSaveAmt(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && submitQuickSave()}
+                      placeholder="0.00"
+                      autoFocus
+                      className="w-full h-8 pl-7 pr-3 rounded-lg text-[12px] font-bold text-[var(--c-text)] tabular-nums outline-none border border-[var(--c-border)] focus:border-[var(--c-accent-border-strong)] transition"
+                      style={{ background: 'var(--c-surface-soft)' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setShowQuickSave(false); setSaveAmt('') }}
+                    className="inline-flex items-center px-3 h-8 rounded-lg font-bold text-[11px] border border-[var(--c-border)] text-[var(--c-text-muted)] bg-[var(--c-surface-soft)] transition active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={submitQuickSave}
+                    disabled={quickSaving || Number(saveAmt.replace(/[^0-9.]/g, '')) < 100}
+                    className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95 disabled:opacity-50"
+                    style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+                  >
+                    {quickSaving
+                      ? <Loader2 size={11} className="animate-spin" />
+                      : <><ArrowDownLeft size={11} strokeWidth={2.5} /> Deposit</>
+                    }
+                  </button>
+                </div>
+              </motion.div>
+
+            ) : !isCompleted && !isWithdrawn && confirmWithdraw ? (
               <motion.div
                 key="warn"
                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
@@ -374,6 +429,7 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
                   </button>
                 </div>
               </motion.div>
+
             ) : (
               <motion.div
                 key="actions"
@@ -388,6 +444,18 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
                 >
                   <History size={11} strokeWidth={2.3} /> History
                 </button>
+
+                {!isCompleted && !isWithdrawn && (
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickSave(true)}
+                    className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg font-bold text-[11px] border transition active:scale-95"
+                    style={{ background: TEAL_BG, borderColor: TEAL_BORDER, color: TEAL }}
+                  >
+                    <ArrowDownLeft size={11} strokeWidth={2.5} /> Quick Save
+                  </button>
+                )}
+
                 {!isCompleted && !isWithdrawn && goal.frequency && (
                   <button
                     type="button"
@@ -407,6 +475,7 @@ function GoalCard({ goal, onWithdraw, withdrawing, scheduling, onPause, onResume
                     }
                   </button>
                 )}
+
                 {!isCompleted && !isWithdrawn && (
                   withdrawalBlocked ? (
                     <span
@@ -441,11 +510,12 @@ export default function DesktopTargetSavings() {
   const { alert } = useAlert()
   const { plans: rawProducts, investments, creating, create, withdraw, refresh } = useSavingsOverview()
 
-  const [showModal, setShowModal] = useState(false)
-  const [success, setSuccess]     = useState(null)
-  const [schedulingId, setSchedulingId] = useState(null)
+  const [showModal, setShowModal]         = useState(false)
+  const [success, setSuccess]             = useState(null)
+  const [schedulingId, setSchedulingId]   = useState(null)
   const [withdrawingId, setWithdrawingId] = useState(null)
-  const [historyGoal, setHistoryGoal] = useState(null)
+  const [quickSavingId, setQuickSavingId] = useState(null)
+  const [historyGoal, setHistoryGoal]     = useState(null)
 
   const targetGoals = useMemo(() =>
     investments.filter(a => (a.product_type || a.type) === 'target').map(mapGoal),
@@ -492,6 +562,18 @@ export default function DesktopTargetSavings() {
       alert({ type: 'success', title: 'Goal created', message: `${payload.name} is now active` })
     } else {
       alert({ type: 'error', title: 'Could not create goal', message: r.message || 'Something went wrong.' })
+    }
+  }
+
+  async function handleQuickSave(id, amount) {
+    setQuickSavingId(id)
+    const r = await topUpAccount(id, { amount })
+    setQuickSavingId(null)
+    if (r?.success) {
+      refresh()
+      alert({ type: 'success', title: 'Saved!', message: `${fmtN(amount)} added to your goal.` })
+    } else {
+      alert({ type: 'error', title: 'Deposit failed', message: r?.message || 'Could not process deposit.' })
     }
   }
 
@@ -638,6 +720,8 @@ export default function DesktopTargetSavings() {
                 onPause={handlePause}
                 onResume={handleResume}
                 onHistory={setHistoryGoal}
+                onQuickSave={handleQuickSave}
+                quickSaving={quickSavingId === goal.id}
               />
             ))}
           </div>

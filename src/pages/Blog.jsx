@@ -1,3 +1,4 @@
+import SEO from '../components/SEO'
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -6,7 +7,7 @@ import {
   Tag, Mail, BookOpen,
 } from 'lucide-react'
 import { colors, tint, gradientText } from '../components/landing/theme'
-import { POSTS } from './blog/data'
+import usePublicBlogPosts from '../hooks/usePublicBlogPosts'
 import { CATEGORIES, catLabel, PILL, Avatar, CoverArt } from './blog/shared'
 
 const goldGrad = `linear-gradient(135deg, ${colors.gold}, ${colors.champagne})`
@@ -18,8 +19,10 @@ export default function Blog() {
   const [activeCat, setActiveCat] = useState('all')
   const [query,     setQuery]     = useState('')
 
-  const featured = POSTS.find(p => p.featured)
-  const rest     = POSTS.filter(p => !p.featured)
+  const { posts, loading } = usePublicBlogPosts()
+
+  const featured = posts.find(p => p.featured)
+  const rest     = posts.filter(p => !p.featured)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -43,6 +46,19 @@ export default function Blog() {
         overflow: 'hidden',
       }}
     >
+      <SEO
+        title="VeloxZap Blog — Fintech Tips, Product Updates & Guides"
+        description="Read the VeloxZap blog for the latest fintech tips, product news, how-to guides on airtime, data, gift cards, crypto and virtual dollar cards."
+        path="/blog"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Blog",
+          "name": "VeloxZap Blog",
+          "url": "https://veloxzap.com/blog",
+          "description": "Fintech tips, product updates and guides from the VeloxZap team.",
+          "publisher": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" }
+        }}
+      />
 
       <div
         aria-hidden
@@ -163,7 +179,7 @@ export default function Blog() {
               transition={{ duration: 0.6 }}
             >
               <Link
-                to={`/company/blog/${featured.id}`}
+                to={`/blog/${featured.id}`}
                 style={{ textDecoration: 'none', display: 'block' }}
               >
                 <div
@@ -199,7 +215,7 @@ export default function Blog() {
                     }}
                   />
 
-                  <CoverArt accent={featured.accent} large />
+                  <CoverArt accent={featured.accent} image={featured.image} large />
 
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -339,7 +355,28 @@ export default function Blog() {
       <section style={{ ...SECTION, paddingTop: 20, paddingBottom: 80 }}>
         <div style={WRAP}>
           <AnimatePresence mode="wait">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{
+                  display: 'grid', gap: 22,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                }}
+              >
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse"
+                    style={{
+                      height: 320, borderRadius: 18,
+                      background: tint(colors.navyMid, 50),
+                      border: `1px solid ${tint(colors.gold, 12)}`,
+                    }}
+                  />
+                ))}
+              </motion.div>
+            ) : filtered.length === 0 ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -355,10 +392,10 @@ export default function Blog() {
                   className="f-head"
                   style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: colors.text }}
                 >
-                  No articles match yet
+                  {posts.length === 0 ? 'No articles published yet' : 'No articles match yet'}
                 </h3>
                 <p style={{ margin: 0, fontSize: 14, color: colors.textMuted }}>
-                  Try a different category or clear your search.
+                  {posts.length === 0 ? 'Check back soon — we are working on it.' : 'Try a different category or clear your search.'}
                 </p>
               </motion.div>
             ) : (
@@ -380,7 +417,7 @@ export default function Blog() {
                     transition={{ duration: 0.45, delay: Math.min(i, 6) * 0.05 }}
                   >
                     <Link
-                      to={`/company/blog/${p.id}`}
+                      to={`/blog/${p.id}`}
                       style={{ textDecoration: 'none', display: 'block', height: '100%' }}
                     >
                       <div
@@ -406,7 +443,7 @@ export default function Blog() {
                           e.currentTarget.style.boxShadow = 'none'
                         }}
                       >
-                        <CoverArt accent={p.accent} />
+                        <CoverArt accent={p.accent} image={p.image} />
 
                         <div style={{ padding: '18px 4px 4px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                           <span

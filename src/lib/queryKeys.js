@@ -9,7 +9,12 @@ export const queryKeys = {
 
   giftcards: {
     brands: ['giftcards', 'brands'],
+    publicBrands: ['giftcards', 'publicBrands'],
     recent: ['giftcards', 'recent'],
+  },
+
+  blog: {
+    posts: ['blog', 'posts'],
   },
 
   savings: {

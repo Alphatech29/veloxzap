@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronDown, Gift, Receipt, CreditCard, Smartphone,
   Menu, X, ArrowRight, Sparkles, Bitcoin, Globe2,
-  Building2, BriefcaseBusiness, Newspaper, Mail,
+  Building2, Newspaper, Mail,
   LayoutDashboard,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -29,10 +29,9 @@ const products = [
 ]
 
 const company = [
-  { icon: Building2,         label: 'About Us', desc: 'Our mission, story and the team behind VeloxZap',     href: '/company/about',    accent: C.gold },
-  { icon: BriefcaseBusiness, label: 'Careers',  desc: 'Build the future of African fintech with us',         href: '/company/careers',  accent: C.champagne, badge: 'Hiring' },
-  { icon: Newspaper,         label: 'Blog',     desc: 'Product updates, market insights and announcements',  href: '/company/blog',     accent: C.gold },
-  { icon: Mail,              label: 'Contact',  desc: 'Reach support, partnerships or press in minutes',     href: '/company/contact',  accent: C.gold },
+  { icon: Building2, label: 'About Us', desc: 'Our mission, story and the team behind VeloxZap',     href: '/about',    accent: C.gold },
+  { icon: Newspaper, label: 'Blog',     desc: 'Product updates, market insights and announcements',  href: '/blog',     accent: C.gold },
+  { icon: Mail,      label: 'Contact',  desc: 'Reach support, partnerships or press in minutes',     href: '/contact',  accent: C.gold },
 ]
 
 const navLinks = [
@@ -470,7 +469,7 @@ export default function Header() {
 
                       <div style={{ padding: '12px 10px 4px', borderTop: `1px solid ${tint('white', 5)}`, marginTop: 10 }}>
                         <Link
-                          to="/company"
+                          to="/about"
                           onClick={() => setCompanyOpen(false)}
                           style={{
                             textDecoration: 'none',

@@ -9,6 +9,7 @@ import {
   Sparkles, Wallet, BadgeCheck, BadgePercent, Search, Bell, RefreshCw,
   CreditCard, ScrollText, Shield,
 } from 'lucide-react'
+import SEO from '../components/SEO'
 import './css/PayBills.css'
 
 const categories = [
@@ -64,7 +65,7 @@ const features = [
 ]
 
 const heroChips = [
-  { icon: ShieldCheck, label: 'CBN Licensed' },
+  { icon: ShieldCheck, label: 'Enterprise Security' },
   { icon: Clock,       label: '15s delivery' },
   { icon: Shield,      label: 'Direct to billers' },
 ]
@@ -83,7 +84,21 @@ export default function PayBills() {
 
   return (
     <main className="pb-stage main-offset">
-      
+      <SEO
+        title="Pay Electricity Bills & More Online Instantly"
+        description="Pay DSTV, GOTV, electricity bills and 100+ billers in seconds from your VeloxZap wallet. No queues, no banking apps, no scratch cards."
+        path="/bills"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Bill Payments",
+          "provider": { "@type": "Organization", "name": "VeloxZap", "url": "https://veloxzap.com" },
+          "description": "Pay electricity, cable TV, and 100+ bills instantly from your VeloxZap wallet.",
+          "areaServed": "NG",
+          "serviceType": "Utility Bill Payment"
+        }}
+      />
+
       <div className="pb-aurora pb-aurora-a" />
       <div className="pb-aurora pb-aurora-b" />
       <div className="pb-grain" />

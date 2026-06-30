@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link, useParams, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft, ArrowRight, Calendar, Clock, Quote as QuoteIcon,
-  Link2, Check, Sparkles, Mail, Tag,
+  ArrowLeft, ArrowRight, Calendar, Clock,
+  Link2, Check, Mail, Tag,
 } from 'lucide-react'
 
 const TwitterIcon = (props) => (
@@ -24,7 +24,8 @@ const FacebookIcon = (props) => (
   </svg>
 )
 import { colors, tint, gradientText } from '../../components/landing/theme'
-import { POSTS, findPost, relatedPosts } from './data'
+import usePublicBlogPosts from '../../hooks/usePublicBlogPosts'
+import { useAuth } from '../../hooks/useAuth'
 import { catLabel, PILL, Avatar, CoverArt } from './shared'
 
 const goldGrad = `linear-gradient(135deg, ${colors.gold}, ${colors.champagne})`
@@ -150,182 +151,10 @@ function ShareBar({ post, url }) {
 }
 
 
-function Block({ block }) {
-  const { type } = block
-
-  if (type === 'p') {
-    return (
-      <p
-        style={{
-          margin: '0 0 22px',
-          fontSize: 17,
-          lineHeight: 1.78,
-          color: colors.text,
-          letterSpacing: '0.005em',
-        }}
-      >
-        {block.text}
-      </p>
-    )
-  }
-
-  if (type === 'h2') {
-    return (
-      <h2
-        className="f-head"
-        style={{
-          margin: '36px 0 14px',
-          fontSize: 'clamp(22px, 2.4vw, 26px)',
-          fontWeight: 800,
-          color: colors.text,
-          letterSpacing: '-0.02em',
-          lineHeight: 1.25,
-        }}
-      >
-        {block.text}
-      </h2>
-    )
-  }
-
-  if (type === 'h3') {
-    return (
-      <h3
-        className="f-head"
-        style={{
-          margin: '28px 0 10px',
-          fontSize: 19,
-          fontWeight: 700,
-          color: colors.text,
-          letterSpacing: '-0.01em',
-        }}
-      >
-        {block.text}
-      </h3>
-    )
-  }
-
-  if (type === 'list') {
-    return (
-      <ul
-        style={{
-          margin: '0 0 24px',
-          padding: 0,
-          listStyle: 'none',
-          display: 'flex', flexDirection: 'column', gap: 10,
-        }}
-      >
-        {block.items.map((item, i) => (
-          <li
-            key={i}
-            style={{
-              display: 'flex', alignItems: 'flex-start', gap: 12,
-              fontSize: 16, lineHeight: 1.7,
-              color: colors.text,
-            }}
-          >
-            <span
-              aria-hidden
-              style={{
-                marginTop: 9,
-                flexShrink: 0,
-                width: 6, height: 6, borderRadius: '50%',
-                background: goldGrad,
-                boxShadow: `0 0 10px ${tint(colors.gold, 50)}`,
-              }}
-            />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    )
-  }
-
-  if (type === 'quote') {
-    return (
-      <figure
-        style={{
-          position: 'relative',
-          margin: '32px 0',
-          padding: '28px 28px 24px',
-          borderRadius: 16,
-          background: `linear-gradient(135deg, ${tint(colors.navyMid, 70)}, ${tint(colors.navy, 75)})`,
-          border: `1px solid ${tint(colors.gold, 22)}`,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute', top: 0, left: 0, bottom: 0, width: 4,
-            background: goldGrad,
-          }}
-        />
-        <QuoteIcon size={26} color={colors.gold} style={{ marginBottom: 10, opacity: 0.85 }} />
-        <blockquote
-          className="f-head"
-          style={{
-            margin: 0,
-            fontSize: 'clamp(18px, 2vw, 21px)',
-            fontWeight: 600,
-            lineHeight: 1.5,
-            color: colors.text,
-            letterSpacing: '-0.005em',
-          }}
-        >
-          {block.text}
-        </blockquote>
-        {block.cite && (
-          <figcaption
-            className="f-mono"
-            style={{
-              marginTop: 12,
-              fontSize: 11.5, fontWeight: 700, letterSpacing: '0.14em',
-              color: colors.gold, textTransform: 'uppercase',
-            }}
-          >
-            — {block.cite}
-          </figcaption>
-        )}
-      </figure>
-    )
-  }
-
-  if (type === 'callout') {
-    const isGold = block.tone !== 'mute'
-    return (
-      <aside
-        style={{
-          position: 'relative',
-          margin: '28px 0',
-          padding: '20px 22px',
-          borderRadius: 14,
-          background: isGold ? tint(colors.gold, 8) : tint(colors.text, 5),
-          border: `1px solid ${isGold ? tint(colors.gold, 28) : tint(colors.text, 12)}`,
-          display: 'flex', gap: 14, alignItems: 'flex-start',
-        }}
-      >
-        <Sparkles size={18} color={isGold ? colors.gold : colors.textMuted} style={{ flexShrink: 0, marginTop: 2 }} />
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15, lineHeight: 1.65,
-            color: colors.text,
-          }}
-        >
-          {block.text}
-        </p>
-      </aside>
-    )
-  }
-
-  return null
-}
-
-
 function PostCard({ post }) {
   return (
     <Link
-      to={`/company/blog/${post.id}`}
+      to={`/blog/${post.id}`}
       style={{ textDecoration: 'none', display: 'block', height: '100%' }}
     >
       <div
@@ -350,7 +179,7 @@ function PostCard({ post }) {
           e.currentTarget.style.boxShadow = 'none'
         }}
       >
-        <CoverArt accent={post.accent} />
+        <CoverArt accent={post.accent} image={post.image} />
         <div style={{ padding: '16px 4px 4px', display: 'flex', flexDirection: 'column', flex: 1 }}>
           <span
             className="f-mono"
@@ -399,18 +228,43 @@ function PostCard({ post }) {
 
 export default function BlogPost() {
   const { id } = useParams()
-  const post = findPost(id)
-
+  const { posts, loading } = usePublicBlogPosts()
+  const { isAuthenticated } = useAuth()
+  const post = posts.find(p => p.id === id)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' })
   }, [id])
 
-  if (!post) {
-    return <Navigate to="/company/blog" replace />
+  if (!loading && !post) {
+    return <Navigate to="/blog" replace />
   }
 
-  const related = relatedPosts(post, 3)
+  if (loading || !post) {
+    return (
+      <main
+        style={{
+          position: 'relative',
+          minHeight: '100vh',
+          paddingTop: 104,
+          background:
+            `radial-gradient(ellipse 60% 40% at 80% 0%, ${tint(colors.gold, 10)}, transparent 60%),` +
+            `radial-gradient(ellipse 60% 40% at 20% 100%, ${tint(colors.champagne, 8)}, transparent 65%),` +
+            `linear-gradient(180deg, var(--color-primary-500) 0%, ${colors.navy} 50%, var(--color-primary-700) 100%)`,
+        }}
+      >
+        <section style={{ ...SECTION, paddingTop: 60 }}>
+          <div style={WRAP} className="animate-pulse">
+            <div style={{ height: 22, width: 140, borderRadius: 99, background: tint(colors.text, 8), marginBottom: 24 }} />
+            <div style={{ height: 44, borderRadius: 12, background: tint(colors.text, 8), marginBottom: 16 }} />
+            <div style={{ height: 320, borderRadius: 22, background: tint(colors.text, 6) }} />
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  const related = posts.filter(p => p.id !== post.id && p.category === post.category).slice(0, 3)
   const url = typeof window !== 'undefined' ? window.location.href : ''
 
   return (
@@ -444,7 +298,7 @@ export default function BlogPost() {
       <section style={{ ...SECTION, paddingTop: 40, paddingBottom: 30 }}>
         <div style={WRAP}>
           <Link
-            to="/company/blog"
+            to="/blog"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '8px 14px', borderRadius: 99,
@@ -569,16 +423,14 @@ export default function BlogPost() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.05 }}
           >
-            <CoverArt accent={post.accent} hero />
+            <CoverArt accent={post.accent} image={post.image} hero />
           </motion.div>
         </div>
       </section>
 
 
       <section style={{ ...SECTION, paddingTop: 10, paddingBottom: 40 }}>
-        <article style={WRAP}>
-          {post.body?.map((block, i) => <Block key={i} block={block} />)}
-        </article>
+        <article style={WRAP} className="blog-prose" dangerouslySetInnerHTML={{ __html: post.content }} />
       </section>
 
 
@@ -596,11 +448,11 @@ export default function BlogPost() {
           >
             <ShareBar post={post} url={url} />
             <Link
-              to="/auth/register"
+              to={isAuthenticated ? '/user/dashboard' : '/auth/register'}
               className="cta-gold"
               style={{ padding: '10px 18px', fontSize: 13.5 }}
             >
-              Try VeloxZap <ArrowRight size={14} />
+              {isAuthenticated ? 'Go to Dashboard' : 'Try VeloxZap'} <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -685,7 +537,7 @@ export default function BlogPost() {
                 </h2>
               </div>
               <Link
-                to="/company/blog"
+                to="/blog"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   textDecoration: 'none',

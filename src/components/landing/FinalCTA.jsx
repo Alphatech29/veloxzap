@@ -6,7 +6,7 @@ import { ArrowRight, ShieldCheck, CheckCircle, Clock } from 'lucide-react'
 import { colors, tint, gradientText } from './theme'
 
 const trustBadges = [
-  { icon: ShieldCheck, label: 'CBN Licensed'    },
+  { icon: ShieldCheck, label: 'Enterprise Security' },
   { icon: CheckCircle, label: 'Zero Fees'        },
   { icon: Clock,       label: 'Instant Payouts' },
 ]

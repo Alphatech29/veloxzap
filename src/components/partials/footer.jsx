@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import useSettings from '../../hooks/useSettings'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 import {
   ArrowRight, Mail, MapPin, Phone,
@@ -57,37 +58,28 @@ const LINKS = {
     ['Spend Globally',        '/spend'],
     ['Virtual Card',          '/virtual-card'],
     ['Airtime & Data',        '/airtime'],
+    ['Live Rates',            '/rates'],
   ],
   Company: [
     ['About Us', '/about'],
     ['Blog',     '/blog'],
-    ['Careers',  '/careers'],
     ['Press',    '/press'],
   ],
   Legal: [
     ['Privacy Policy',   '/privacy'],
     ['Terms of Service', '/terms'],
-    ['AML Policy',       '/aml'],
     ['Cookie Policy',    '/cookies'],
   ],
   Support: [
-    ['Help Center',   '/help'],
     ['Contact Us',    '/contact'],
     ['System Status', '/status'],
     ['Community',     '/community'],
   ],
 }
 
-const SOCIALS = [
-  { Icon: SocialIcons.Twitter,   label: 'Twitter',   href: 'https://twitter.com/veloxzap'   },
-  { Icon: SocialIcons.Instagram, label: 'Instagram', href: 'https://instagram.com/veloxzap' },
-  { Icon: SocialIcons.Facebook,  label: 'Facebook',  href: 'https://facebook.com/veloxzap'  },
-  { Icon: SocialIcons.Linkedin,  label: 'LinkedIn',  href: 'https://linkedin.com/company/veloxzap' },
-  { Icon: SocialIcons.Telegram,  label: 'Telegram',  href: 'https://t.me/veloxzap'          },
-]
 
 const BADGES = [
-  { Icon: ShieldCheck, label: 'CBN Licensed' },
+  { Icon: ShieldCheck, label: 'Enterprise Security' },
   { Icon: Lock,        label: 'PCI DSS'      },
   { Icon: BadgeCheck,  label: 'ISO 27001'    },
 ]
@@ -177,7 +169,22 @@ function NewsletterCapsule() {
 }
 
 export default function Footer() {
-  
+  const { settings } = useSettings()
+
+  const contactLines = [
+    settings?.office_address && { Icon: MapPin, text: settings.office_address },
+    settings?.support_phone && { Icon: Phone,  text: settings.support_phone },
+    settings?.support_email && { Icon: Mail,   text: settings.support_email },
+  ].filter(Boolean)
+
+  const socials = [
+    settings?.twitter_url   && { Icon: SocialIcons.Twitter,   label: 'Twitter',   href: settings.twitter_url },
+    settings?.instagram_url && { Icon: SocialIcons.Instagram, label: 'Instagram', href: settings.instagram_url },
+    settings?.facebook_url  && { Icon: SocialIcons.Facebook,  label: 'Facebook',  href: settings.facebook_url },
+    settings?.linkedin_url  && { Icon: SocialIcons.Linkedin,  label: 'LinkedIn',  href: settings.linkedin_url },
+    settings?.telegram_url  && { Icon: SocialIcons.Telegram,  label: 'Telegram',  href: settings.telegram_url },
+  ].filter(Boolean)
+
   const [spot, setSpot] = useState({ x: 50, y: 50, on: false })
   function trackSpot(e) {
     const r = e.currentTarget.getBoundingClientRect()
@@ -291,18 +298,16 @@ export default function Footer() {
             </p>
 
             {/* Contact lines */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
-              {[
-                { Icon: MapPin, text: 'Victoria Island, Lagos, Nigeria' },
-                { Icon: Phone,  text: '+234 800 VELOX (835 69)' },
-                { Icon: Mail,   text: 'hello@veloxzap.ng' },
-              ].map(({ Icon, text }) => (
-                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Icon size={13} color={tint(C.gold, 80)} />
-                  <span style={{ fontSize: 12, color: C.textMuted }}>{text}</span>
-                </div>
-              ))}
-            </div>
+            {contactLines.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 22 }}>
+                {contactLines.map(({ Icon, text }) => (
+                  <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Icon size={13} color={tint(C.gold, 80)} />
+                    <span style={{ fontSize: 12, color: C.textMuted }}>{text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Trust badges */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -368,20 +373,22 @@ export default function Footer() {
           <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 500 }}>
             Follow the journey
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {SOCIALS.map(({ Icon, label, href }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="fz-soc"
-              >
-                <Icon size={15} />
-              </a>
-            ))}
-          </div>
+          {socials.length > 0 && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {socials.map(({ Icon, label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="fz-soc"
+                >
+                  <Icon size={15} />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Bottom bar */}
@@ -393,10 +400,10 @@ export default function Footer() {
           }}
         >
           <p style={{ fontSize: 12, color: tint(C.text, 35), margin: 0, fontFamily: 'monospace' }}>
-            © {new Date().getFullYear()} VeloxZap Technologies Ltd. — Crafted in Lagos.
+            © {new Date().getFullYear()} {settings?.site_name} — Crafted in Lagos.
           </p>
           <div style={{ display: 'flex', gap: 18 }}>
-            {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Support', '/help']].map(([label, href]) => (
+            {[['Privacy', '/privacy'], ['Terms', '/terms']].map(([label, href]) => (
               <Link key={label} to={href} className="fz-foot-mini">{label}</Link>
             ))}
           </div>

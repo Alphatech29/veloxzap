@@ -82,7 +82,7 @@ export default function Hero() {
         }}
       >
         Sell or buy gift cards, pay bills, recharge airtime &amp; data, and spend globally
-        with a Visa virtual card — all in one place. Zero fees. Instant payouts. CBN licensed.
+        with a Visa virtual card — all in one place. Zero fees. Instant payouts. Bank-grade security.
       </motion.p>
 
       
