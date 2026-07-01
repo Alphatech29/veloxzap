@@ -55,10 +55,9 @@ const LINKS = {
   Products: [
     ['Buy & Sell Gift Cards', '/gift-cards'],
     ['Pay Bills',             '/bills'],
-    ['Spend Globally',        '/spend'],
+    ['Spend Globally',        '/spend-globally'],
     ['Virtual Card',          '/virtual-card'],
     ['Airtime & Data',        '/airtime'],
-    ['Live Rates',            '/rates'],
   ],
   Company: [
     ['About Us', '/about'],

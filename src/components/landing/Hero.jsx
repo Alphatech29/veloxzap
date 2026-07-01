@@ -2,7 +2,7 @@
 
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, BarChart3 } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { colors, tint, gradientText } from './theme'
 import { trustItems } from './data'
 
@@ -94,9 +94,6 @@ export default function Hero() {
       >
         <Link to="/auth/register" className="cta-gold">
           Start for Free <ArrowRight size={16} />
-        </Link>
-        <Link to="/rates" className="cta-ghost">
-          <BarChart3 size={15} color={colors.gold} /> View Live Rates
         </Link>
       </motion.div>
 

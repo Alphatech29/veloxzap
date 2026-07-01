@@ -49,7 +49,6 @@ import SystemStatus from './pages/SystemStatus'
 import Blog from './pages/Blog'
 import BlogPost from './pages/blog/BlogPost'
 import Contact from './pages/Contact'
-import Rates from './pages/Rates'
 import NotFound from './pages/NotFound'
 
 function App() {
@@ -76,7 +75,6 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
           <Route path="/contact" element={<Contact />} />
-          <Route path="/rates" element={<Rates />} />
           <Route path="*" element={<NotFound />} />
         </Route>
 
