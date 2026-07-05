@@ -42,9 +42,9 @@ export default function MobileConvert() {
   const { wallet } = useUser()
   const { settings } = useSettings()
 
-  const usdRate = Number(settings?.ngn_to_usd ?? 0)
-
-  const rates = { NGN: 1, USD: usdRate }
+  // Two independent, non-reciprocal rates (buy/sell spread) — must match backend's utilities/convert.js
+  const ngnToUsdRate = Number(settings?.ngn_to_usd ?? 0) // NGN per 1 USD, applied when selling NGN for USD
+  const usdToNgnRate = Number(settings?.usd_to_ngn ?? 0) // NGN per 1 USD, applied when selling USD for NGN
 
   const balances = {
     NGN: Number(wallet?.ngn_balance ?? 0),
@@ -63,13 +63,17 @@ export default function MobileConvert() {
   const to = CURRENCIES.find(c => c.code === toCode)
   const balance = balances[fromCode] ?? 0
 
-  const num = Number(String(amount).replace(/[^\d.]/g, '')) || 0
-  const converted = rates[to.code] ? num * (rates[from.code] / rates[to.code]) : 0
-  const insufficient = num > balance
-  const canSubmit = num > 0 && !insufficient && usdRate > 0 && !converting
+  const activeRate = fromCode === 'USD' ? usdToNgnRate : ngnToUsdRate
 
-  const rateDisplay = usdRate > 0
-    ? `1 USD = ${formatAmount(usdRate, 2)} NGN`
+  const num = Number(String(amount).replace(/[^\d.]/g, '')) || 0
+  const converted = fromCode === 'USD'
+    ? num * usdToNgnRate
+    : (ngnToUsdRate ? num / ngnToUsdRate : 0)
+  const insufficient = num > balance
+  const canSubmit = num > 0 && !insufficient && activeRate > 0 && !converting
+
+  const rateDisplay = activeRate > 0
+    ? `1 USD = ${formatAmount(activeRate, 2)} NGN`
     : 'Rate unavailable'
 
   function handleAmountChange(e) {
@@ -229,7 +233,7 @@ export default function MobileConvert() {
 
       <p className="inline-flex items-center justify-center gap-1.5 text-[10.5px] text-[var(--c-text-muted)] mt-1 mb-2">
         <ShieldCheck size={11} className="text-brand-accent" />
-        {usdRate > 0 ? `Rate: 1 USD = ${usdRate.toLocaleString('en-NG')} NGN · indicative` : 'Fetching rate…'}
+        {activeRate > 0 ? `Rate: 1 USD = ${activeRate.toLocaleString('en-NG')} NGN · indicative` : 'Fetching rate…'}
       </p>
 
       <CurrencyPicker

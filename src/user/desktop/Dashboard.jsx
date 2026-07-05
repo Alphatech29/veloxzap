@@ -4,10 +4,12 @@ import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone,
   Receipt, ArrowLeftRight, Wifi,
   Sparkles, ShieldCheck, ChevronRight, Gift, Bitcoin,
-  Clock, Lock, X, PieChart,
+  Lock, X, PieChart,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useTransactions from '../../hooks/useTransactions'
+import TransactionModal from '../../components/internalUI/TransactionModal'
+import { fmtDate } from '../../utils/format'
 
 const QUICK_ACTIONS = [
   { to: '/user/airtime',          label: 'Airtime',       icon: Smartphone,    featured: true },
@@ -19,6 +21,15 @@ const QUICK_ACTIONS = [
 ]
 
 const PALETTE = ['#C9A227', '#7AA7FF', '#E89B6B', '#5BD0A0', '#A78BFA', '#F472B6']
+
+const STATUS_TONE = {
+  successful: 'bg-[var(--c-success-bg)] text-[var(--c-success)]',
+  processing: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
+  pending:    'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
+  failed:     'bg-[rgba(248,113,113,0.1)] text-[var(--c-danger)]',
+  refund:     'bg-[var(--c-accent-soft)] text-brand-accent',
+  reverse:    'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]',
+}
 
 const HERO_BG = `radial-gradient(700px 300px at 110% -10%, rgba(201,162,39,0.28), transparent 60%),
   radial-gradient(400px 300px at -5% 110%, rgba(232,197,71,0.14), transparent 60%),
@@ -54,6 +65,7 @@ export default function Dashboard() {
   const [hidden, setHidden]               = useState(() => localStorage.getItem('vzap_hide_balance') === '1')
   const [pinDismissed, setPinDismissed]   = useState(false)
   const [activeAccount, setActiveAccount] = useState('ngn')
+  const [activeTx, setActiveTx]           = useState(null)
 
   const accounts = buildAccounts(wallet)
   const account  = accounts.find(a => a.id === activeAccount) || accounts[0]
@@ -66,7 +78,7 @@ export default function Dashboard() {
   const spendingCategories = useMemo(() => {
     const map = {}
     allTx
-      .filter(t => t.kind === 'out' && t.status === 'completed')
+      .filter(t => t.kind === 'out' && t.status === 'successful')
       .forEach(t => { map[t.category] = (map[t.category] || 0) + t.total })
     const total = Object.values(map).reduce((s, v) => s + v, 0)
     return Object.entries(map)
@@ -262,7 +274,11 @@ export default function Dashboard() {
           <header className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--c-border)]">
             <div>
               <h2 className="text-[13px] font-bold m-0 text-[var(--c-text)] tracking-[-0.15px]">Recent activity</h2>
-              <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">Last 7 transactions across all wallets</p>
+              <p className="text-[10.5px] text-[var(--c-text-muted)] m-0 mt-0.5">
+                {txLoading
+                  ? 'Recent transactions across all wallets'
+                  : `Last ${recentTx.length} transaction${recentTx.length === 1 ? '' : 's'} across all wallets`}
+              </p>
             </div>
             <Link to="/user/transactions"
               className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-brand-accent hover:underline shrink-0">
@@ -294,8 +310,12 @@ export default function Dashboard() {
             <ul className="m-0 list-none p-0">
               {recentTx.map((tx, i) => (
                 <li key={tx.id}
+                  onClick={() => setActiveTx(tx)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveTx(tx) } }}
                   className={[
-                    'grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3 hover:bg-[var(--c-surface-soft)] transition',
+                    'grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3 cursor-pointer hover:bg-[var(--c-surface-soft)] focus:bg-[var(--c-surface-soft)] focus:outline-none transition',
                     i > 0 ? 'border-t border-[var(--c-border)]' : '',
                   ].join(' ')}>
 
@@ -303,48 +323,40 @@ export default function Dashboard() {
                     'inline-flex items-center justify-center w-9 h-9 rounded-lg shrink-0',
                     tx.kind === 'in'
                       ? 'text-[var(--c-success)] bg-[var(--c-success-bg)]'
-                      : 'text-[var(--c-warn)] bg-[var(--c-warn-bg)]',
+                      : tx.kind === 'internal'
+                        ? 'text-[var(--c-text-muted)] bg-[var(--c-surface-soft)]'
+                        : 'text-[var(--c-warn)] bg-[var(--c-warn-bg)]',
                   ].join(' ')}>
                     {tx.kind === 'in'
                       ? <ArrowDownLeft size={13} strokeWidth={2.4} />
-                      : <ArrowUpRight  size={13} strokeWidth={2.4} />}
+                      : tx.kind === 'internal'
+                        ? <ArrowLeftRight size={13} strokeWidth={2.4} />
+                        : <ArrowUpRight  size={13} strokeWidth={2.4} />}
                   </span>
 
                   <div className="flex flex-col min-w-0 leading-tight">
                     <span className="text-[12.5px] font-semibold text-[var(--c-text)] truncate">
                       {tx.description || tx.title}
                     </span>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[10px] text-[var(--c-text-muted)] tabular-nums">
-                        {tx.day} · {tx.meta}
-                      </span>
-                      {tx.reference && (
-                        <span className="text-[9.5px] font-mono text-[var(--c-text-faint)]">
-                          #{tx.reference}
-                        </span>
-                      )}
-                      {tx.status !== 'completed' && (
-                        <span className={[
-                          'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8.5px] uppercase tracking-[0.8px] font-bold',
-                          tx.status === 'pending'
-                            ? 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]'
-                            : 'bg-[rgba(248,113,113,0.1)] text-[var(--c-danger,#f87171)]',
-                        ].join(' ')}>
-                          {tx.status === 'pending'
-                            ? <Clock size={8} strokeWidth={3} />
-                            : <X     size={8} strokeWidth={3} />}
-                          {tx.status}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-[10px] text-[var(--c-text-muted)] tabular-nums mt-0.5">
+                      {tx.createdAt ? fmtDate(tx.createdAt) : `${tx.day} · ${tx.meta}`}
+                    </span>
                   </div>
 
-                  <span className={[
-                    'text-[13px] font-bold tabular-nums whitespace-nowrap text-right',
-                    tx.kind === 'in' ? 'text-[var(--c-success)]' : 'text-[var(--c-text)]',
-                  ].join(' ')}>
-                    {tx.kind === 'in' ? '+' : '−'}{formatNGN(tx.total)}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={[
+                      'text-[13px] font-bold tabular-nums whitespace-nowrap text-right',
+                      tx.kind === 'in' ? 'text-[var(--c-success)]' : 'text-[var(--c-text)]',
+                    ].join(' ')}>
+                      {tx.kind === 'in' ? '+' : tx.kind === 'internal' ? '' : '−'}{formatNGN(tx.total)}
+                    </span>
+                    <span className={[
+                      'inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold',
+                      STATUS_TONE[tx.status] || 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]',
+                    ].join(' ')}>
+                      {tx.status}
+                    </span>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -424,6 +436,8 @@ export default function Dashboard() {
           </div>
         </article>
       </section>
+
+      <TransactionModal tx={activeTx} onClose={() => setActiveTx(null)} />
     </div>
   )
 }

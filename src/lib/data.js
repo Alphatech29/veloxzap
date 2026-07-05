@@ -23,7 +23,7 @@ export async function getDataVariations(network) {
   return { success: true, data: result.data ?? [] }
 }
 
-export async function purchaseData({ phone, network, variationCode, amount, pin }) {
+export async function purchaseData({ phone, network, variationCode, amount, planName, pin }) {
   const serviceID = SERVICE_ID_MAP[network]
   if (!serviceID) {
     return { success: false, message: 'Unknown network provider.' }
@@ -31,7 +31,7 @@ export async function purchaseData({ phone, network, variationCode, amount, pin 
 
   const result = await apiFetch('/api/v1/users/purchaseData', {
     method: 'POST',
-    body: { phone, serviceID, variation_code: variationCode, amount, pin },
+    body: { phone, serviceID, variation_code: variationCode, amount, plan_name: planName, pin },
   })
 
   if (!result.success) {

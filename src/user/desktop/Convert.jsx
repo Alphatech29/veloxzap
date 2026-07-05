@@ -10,6 +10,7 @@ import { convertCurrency, getConversionHistory } from '../../lib/convert'
 import { useAlert } from '../../components/ui/Alert'
 
 const QUICK_PCTS = [
+  { id: '10',  label: '10%', value: 0.1  },
   { id: '25',  label: '25%', value: 0.25 },
   { id: '50',  label: '50%', value: 0.5  },
   { id: '75',  label: '75%', value: 0.75 },
@@ -38,8 +39,9 @@ export default function DesktopConvert() {
 
   useEffect(() => { loadHistory() }, [loadHistory])
 
-  const usdRate  = Number(settings?.ngn_to_usd ?? 0)
-  const rates    = { NGN: 1, USD: usdRate }
+  // Two independent, non-reciprocal rates (buy/sell spread) — must match backend's utilities/convert.js
+  const ngnToUsdRate = Number(settings?.ngn_to_usd ?? 0)
+  const usdToNgnRate = Number(settings?.usd_to_ngn ?? 0)
   const balances = {
     NGN: Number(wallet?.ngn_balance ?? 0),
     USD: Number(wallet?.usd_balance ?? 0),
@@ -50,15 +52,16 @@ export default function DesktopConvert() {
   const balance  = balances[fromCode] ?? 0
 
   const num       = parseFloat(String(amount).replace(/[^\d.]/g, '')) || 0
-  const converted = rates[toCode] ? num * (rates[fromCode] / rates[toCode]) : 0
+  const converted = direction === 'usd-ngn'
+    ? num * usdToNgnRate
+    : (ngnToUsdRate ? num / ngnToUsdRate : 0)
 
+  const activeRate = direction === 'usd-ngn' ? usdToNgnRate : ngnToUsdRate
   const insufficient = num > balance
-  const canSubmit    = num > 0 && !insufficient && usdRate > 0 && !converting
+  const canSubmit    = num > 0 && !insufficient && activeRate > 0 && !converting
 
-  const rateDisplay = usdRate > 0
-    ? direction === 'usd-ngn'
-      ? `1 USD = ₦${usdRate.toLocaleString()}`
-      : `1 NGN = $${(1 / usdRate).toFixed(6)}`
+  const rateDisplay = activeRate > 0
+    ? `1 USD = ₦${activeRate.toLocaleString()}`
     : '—'
 
   function handleAmountChange(e) {
@@ -213,29 +216,29 @@ export default function DesktopConvert() {
                   >
                     <div className="relative w-8 h-8 shrink-0">
                       <img
-                        src={`https://flagcdn.com/w40/${flagCode(r.from_currency)}.png`}
-                        alt={r.from_currency}
+                        src={`https://flagcdn.com/w40/${flagCode(currencyCode(r.from_currency))}.png`}
+                        alt={currencyCode(r.from_currency)}
                         className="absolute top-0 left-0 w-5 h-5 rounded-full object-cover border-2 border-[var(--c-surface)]"
                       />
                       <img
-                        src={`https://flagcdn.com/w40/${flagCode(r.to_currency)}.png`}
-                        alt={r.to_currency}
+                        src={`https://flagcdn.com/w40/${flagCode(currencyCode(r.to_currency))}.png`}
+                        alt={currencyCode(r.to_currency)}
                         className="absolute bottom-0 right-0 w-5 h-5 rounded-full object-cover border-2 border-[var(--c-surface)]"
                       />
                     </div>
                     <div className="flex flex-col min-w-0 leading-tight">
                       <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">
-                        {r.from_currency} → {r.to_currency}
+                        {currencyCode(r.from_currency)} → {currencyCode(r.to_currency)}
                       </span>
                       <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5 inline-flex items-center gap-0.5">
                         <Clock size={9} /> {timeAgo(r.created_at)}
                       </span>
                     </div>
                     <span className="text-[11px] font-mono text-[var(--c-text-muted)] tabular-nums">
-                      -{fmt(Number(r.from_amount), r.from_currency)}
+                      -{fmt(Number(r.from_amount), currencyCode(r.from_currency))}
                     </span>
                     <span className="text-[11.5px] font-bold tabular-nums text-[var(--c-success)] whitespace-nowrap">
-                      +{fmt(Number(r.to_amount), r.to_currency)}
+                      +{fmt(Number(r.to_amount), currencyCode(r.to_currency))}
                     </span>
                   </li>
                 ))}
@@ -310,21 +313,40 @@ export default function DesktopConvert() {
             <h3 className="inline-flex items-center gap-1.5 text-[11.5px] font-bold m-0 text-[var(--c-text)] mb-3">
               <TrendingUp size={11} className="text-brand-accent" /> Live rate
             </h3>
-            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
-              <div className="flex items-center gap-1 shrink-0">
-                <img src="https://flagcdn.com/w40/us.png" alt="USD" className="w-6 h-4 rounded object-cover" />
-                <img src="https://flagcdn.com/w40/ng.png" alt="NGN" className="w-6 h-4 rounded object-cover" />
-              </div>
-              <div className="flex flex-col min-w-0 leading-tight">
-                <span className="text-[12px] font-bold text-[var(--c-text)]">USD / NGN</span>
-                <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5">US Dollar · Nigerian Naira</span>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-[13px] font-bold tabular-nums text-[var(--c-text)]">
-                  {usdRate > 0 ? `₦${usdRate.toLocaleString()}` : '—'}
-                </span>
-                <p className="text-[9.5px] text-[var(--c-text-muted)] m-0 mt-0.5">per 1 USD</p>
-              </div>
+            <div className="flex flex-col gap-2">
+              {direction === 'ngn-usd' ? (
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <img src="https://flagcdn.com/w40/ng.png" alt="NGN" className="w-6 h-4 rounded object-cover" />
+                    <img src="https://flagcdn.com/w40/us.png" alt="USD" className="w-6 h-4 rounded object-cover" />
+                  </div>
+                  <div className="flex flex-col min-w-0 leading-tight">
+                    <span className="text-[12px] font-bold text-[var(--c-text)]">NGN → USD</span>
+                    <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5">Rate when you sell Naira</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[13px] font-bold tabular-nums text-[var(--c-text)]">
+                      {ngnToUsdRate > 0 ? `₦${ngnToUsdRate.toLocaleString()} = $1` : '—'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <img src="https://flagcdn.com/w40/us.png" alt="USD" className="w-6 h-4 rounded object-cover" />
+                    <img src="https://flagcdn.com/w40/ng.png" alt="NGN" className="w-6 h-4 rounded object-cover" />
+                  </div>
+                  <div className="flex flex-col min-w-0 leading-tight">
+                    <span className="text-[12px] font-bold text-[var(--c-text)]">USD → NGN</span>
+                    <span className="text-[10px] text-[var(--c-text-muted)] mt-0.5">Rate when you sell Dollars</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[13px] font-bold tabular-nums text-[var(--c-text)]">
+                      {usdToNgnRate > 0 ? `$1 = ₦${usdToNgnRate.toLocaleString()}` : '—'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </article>
         </div>
@@ -335,6 +357,9 @@ export default function DesktopConvert() {
 
 const FLAG_MAP = { NGN: 'ng', USD: 'us' }
 function flagCode(currency) { return FLAG_MAP[currency?.toUpperCase()] ?? 'un' }
+
+// Backend stores from_currency/to_currency as the raw sign (₦ / $), not a code
+function currencyCode(sign) { return sign === '₦' ? 'NGN' : sign === '$' ? 'USD' : sign }
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''

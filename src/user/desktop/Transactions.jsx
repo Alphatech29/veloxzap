@@ -1,46 +1,70 @@
 import { useEffect, useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, Search, ArrowDownLeft, ArrowUpRight, TrendingUp,
-  Download, Filter, Check, Clock, AlertCircle, X, ChevronLeft, ChevronRight,
-  Calendar, Receipt,
+  Sparkles, Search, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
+  Download, Filter, X, ChevronLeft, ChevronRight, ChevronDown, Check, Tag,
+  Receipt,
 } from 'lucide-react'
 import TransactionModal from '../../components/internalUI/TransactionModal'
 import useTransactions from '../../hooks/useTransactions'
-
-const TYPE_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'in',  label: 'Income' },
-  { id: 'out', label: 'Expense' },
-]
+import { fmtDate } from '../../utils/format'
 
 const STATUS_META = {
-  completed: { label: 'Completed', icon: Check,       bg: 'var(--c-success-bg)',         fg: 'var(--c-success)' },
-  pending:   { label: 'Pending',   icon: Clock,       bg: 'var(--c-warn-bg)',             fg: 'var(--c-warn)' },
-  failed:    { label: 'Failed',    icon: AlertCircle, bg: 'var(--c-danger-bg)',   fg: 'var(--c-danger)' },
+  successful: { label: 'Successful', bg: 'var(--c-success-bg)',   fg: 'var(--c-success)' },
+  processing: { label: 'Processing', bg: 'var(--c-warn-bg)',      fg: 'var(--c-warn)' },
+  pending:    { label: 'Pending',    bg: 'var(--c-warn-bg)',      fg: 'var(--c-warn)' },
+  failed:     { label: 'Failed',     bg: 'var(--c-danger-soft)',  fg: 'var(--c-danger)' },
+  refund:     { label: 'Refund',     bg: 'var(--c-accent-soft)',  fg: 'var(--c-accent)' },
+  reverse:    { label: 'Reversed',   bg: 'var(--c-surface-soft)', fg: 'var(--c-text-muted)' },
 }
 
-const COLS      = 'grid-cols-[auto_1fr_0.75fr_0.6fr_0.9fr]'
-const PAGE_SIZE = 100
+const STATUS_OPTIONS = ['All', ...Object.keys(STATUS_META)]
+
+const COLS      = 'grid-cols-[auto_1fr_0.9fr]'
+const PAGE_SIZE = 50
 const SKELETON  = 50
 
 function formatNGN(n) {
   return '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function formatShort(n) {
-  const v = Number(n)
-  if (v >= 1_000_000) return `₦${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000)     return `₦${Math.round(v / 1_000)}k`
-  return '₦' + v.toLocaleString('en-NG')
+
+function csvCell(value) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`
+}
+
+function exportCsv(rows) {
+  const header = ['Date', 'Category', 'Description', 'Reference', 'Type', 'Status', 'Amount']
+  const lines = rows.map(t => [
+    t.createdAt ? new Date(t.createdAt).toLocaleString('en-NG') : '',
+    t.category,
+    t.title,
+    t.reference,
+    t.kind === 'in' ? 'Credit' : t.kind === 'internal' ? 'Internal' : 'Debit',
+    STATUS_META[t.status]?.label ?? t.status,
+    t.total,
+  ])
+  const csv = [header, ...lines].map(row => row.map(csvCell).join(',')).join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `veloxzap-transactions-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 export default function DesktopTransactions() {
   const { transactions, loading } = useTransactions({ recentLimit: Infinity })
 
-  const [type,     setType]     = useState('all')
-  const [category, setCategory] = useState('All')
-  const [query,    setQuery]    = useState('')
-  const [page,     setPage]     = useState(1)
-  const [activeTx, setActiveTx] = useState(null)
+  const [category,     setCategory]     = useState('All')
+  const [status,       setStatus]       = useState('All')
+  const [query,        setQuery]        = useState('')
+  const [page,         setPage]         = useState(1)
+  const [activeTx,     setActiveTx]     = useState(null)
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [statusOpen,   setStatusOpen]   = useState(false)
 
   const categories = useMemo(
     () => ['All', ...Array.from(new Set(transactions.map(t => t.category)))],
@@ -54,8 +78,8 @@ export default function DesktopTransactions() {
   const filtered = useMemo(() => {
     const q = query.toLowerCase()
     return transactions.filter(tx => {
-      if (type !== 'all' && tx.kind !== type) return false
       if (category !== 'All' && tx.category !== category) return false
+      if (status !== 'All' && tx.status !== status) return false
       if (q) {
         const match = [tx.title, tx.description, tx.reference, tx.category]
           .some(v => v?.toLowerCase().includes(q))
@@ -63,18 +87,13 @@ export default function DesktopTransactions() {
       }
       return true
     })
-  }, [transactions, type, category, query])
-
-  const totalIn  = useMemo(() => transactions.filter(t => t.kind === 'in'  && t.status === 'completed').reduce((s, t) => s + t.total, 0), [transactions])
-  const totalOut = useMemo(() => transactions.filter(t => t.kind === 'out' && t.status === 'completed').reduce((s, t) => s + t.total, 0), [transactions])
-  const net      = totalIn - totalOut
-  const count    = transactions.length
+  }, [transactions, category, status, query])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage   = Math.min(page, totalPages)
   const sliced     = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
-  function reset() { setType('all'); setCategory('All'); setQuery(''); setPage(1) }
+  function reset() { setCategory('All'); setStatus('All'); setQuery(''); setPage(1) }
 
   return (
     <div className="flex flex-col gap-4 max-w-[1240px] mx-auto pb-8">
@@ -91,29 +110,16 @@ export default function DesktopTransactions() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--c-surface)] border border-[var(--c-border)] text-[var(--c-text)] text-[11.5px] font-semibold hover:border-[var(--c-accent-border)] transition">
-            <Calendar size={12} /> May 2026
-          </button>
-          <button type="button" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[11.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_4px_12px_-4px_rgba(201,162,39,0.4)] hover:-translate-y-px transition">
+          <button
+            type="button"
+            onClick={() => exportCsv(filtered)}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[11.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_4px_12px_-4px_rgba(201,162,39,0.4)] hover:-translate-y-px transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          >
             <Download size={12} strokeWidth={2.6} /> Export
           </button>
         </div>
       </header>
-
-      {/* KPIs */}
-      <section className="grid grid-cols-2 min-[640px]:grid-cols-4 gap-3">
-        <Kpi icon={ArrowDownLeft} label="Total in"      value={loading ? '—' : formatShort(totalIn)}  tint="success" />
-        <Kpi icon={ArrowUpRight}  label="Total out"     value={loading ? '—' : formatShort(totalOut)} tint="warn" />
-        <Kpi
-          icon={TrendingUp}
-          label="Net flow"
-          value={loading ? '—' : formatShort(Math.abs(net))}
-          delta={loading ? undefined : net >= 0 ? 'Surplus' : 'Deficit'}
-          deltaTone={net >= 0 ? 'success' : 'danger'}
-          tint="accent"
-        />
-        <Kpi icon={Receipt} label="Transactions" value={loading ? '—' : count.toString()} tint="muted" />
-      </section>
 
       <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
 
@@ -138,25 +144,111 @@ export default function DesktopTransactions() {
               )}
             </div>
 
-            <div className="inline-flex p-0.5 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)]">
-              {TYPE_TABS.map(t => {
-                const active = type === t.id
-                return (
-                  <button key={t.id} type="button" onClick={() => { setType(t.id); setPage(1) }}
-                    className={['px-2.5 py-1 rounded-md text-[10.5px] font-bold tracking-[0.2px] transition',
-                      active
-                        ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary shadow-[0_2px_8px_rgba(201,162,39,0.28)]'
-                        : 'text-[var(--c-text-muted)] hover:text-[var(--c-text)]',
-                    ].join(' ')}>
-                    {t.label}
-                  </button>
-                )
-              })}
+            {/* Category dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setCategoryOpen(v => !v); setStatusOpen(false) }}
+                className={[
+                  'inline-flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-xl text-[11.5px] font-semibold transition',
+                  category !== 'All'
+                    ? 'bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent shadow-[0_2px_10px_-4px_rgba(201,162,39,0.35)]'
+                    : 'bg-[var(--c-surface)] border border-[var(--c-border-soft)] text-[var(--c-text)] hover:border-[var(--c-accent-border)]',
+                ].join(' ')}
+              >
+                <Tag size={12} className={category !== 'All' ? 'text-brand-accent' : 'text-[var(--c-text-muted)]'} />
+                {category === 'All' ? 'All categories' : category}
+                <ChevronDown size={12} className={`transition-transform ${categoryOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {categoryOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 z-20 mt-1.5 w-56 max-h-72 overflow-y-auto rounded-2xl bg-[var(--c-menu-bg)] border border-[var(--c-border)] shadow-[0_20px_60px_-20px_rgba(2,7,23,0.55)] p-1.5"
+                  >
+                    {categories.map(c => {
+                      const active = category === c
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => { setCategory(c); setCategoryOpen(false); setPage(1) }}
+                          className={[
+                            'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left text-[12px] font-semibold transition',
+                            active ? 'bg-[var(--c-accent-soft)] text-brand-accent' : 'text-[var(--c-text)] hover:bg-[var(--c-surface-soft)]',
+                          ].join(' ')}
+                        >
+                          {c === 'All' ? 'All categories' : c}
+                          {active && <Check size={13} strokeWidth={2.6} className="text-brand-accent shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Status dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setStatusOpen(v => !v); setCategoryOpen(false) }}
+                className={[
+                  'inline-flex items-center gap-2 pl-3 pr-2.5 py-1.5 rounded-xl text-[11.5px] font-semibold transition',
+                  status !== 'All'
+                    ? 'bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent shadow-[0_2px_10px_-4px_rgba(201,162,39,0.35)]'
+                    : 'bg-[var(--c-surface)] border border-[var(--c-border-soft)] text-[var(--c-text)] hover:border-[var(--c-accent-border)]',
+                ].join(' ')}
+              >
+                {status === 'All' ? (
+                  <Filter size={12} className="text-[var(--c-text-muted)]" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: STATUS_META[status].fg }} />
+                )}
+                {status === 'All' ? 'All statuses' : STATUS_META[status].label}
+                <ChevronDown size={12} className={`transition-transform ${statusOpen ? 'rotate-180' : ''}`} />
+              </button>
+              <AnimatePresence>
+                {statusOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 z-20 mt-1.5 w-52 max-h-72 overflow-y-auto rounded-2xl bg-[var(--c-menu-bg)] border border-[var(--c-border)] shadow-[0_20px_60px_-20px_rgba(2,7,23,0.55)] p-1.5"
+                  >
+                    {STATUS_OPTIONS.map(s => {
+                      const active = status === s
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => { setStatus(s); setStatusOpen(false); setPage(1) }}
+                          className={[
+                            'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-[12px] font-semibold transition',
+                            active ? 'bg-[var(--c-accent-soft)] text-brand-accent' : 'text-[var(--c-text)] hover:bg-[var(--c-surface-soft)]',
+                          ].join(' ')}
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ background: s === 'All' ? 'var(--c-text-faint)' : STATUS_META[s].fg }}
+                          />
+                          <span className="flex-1">{s === 'All' ? 'All statuses' : STATUS_META[s].label}</span>
+                          {active && <Check size={13} strokeWidth={2.6} className="text-brand-accent shrink-0" />}
+                        </button>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {(type !== 'all' || category !== 'All' || query) && (
+            {(category !== 'All' || status !== 'All' || query) && (
               <button type="button" onClick={reset}
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] text-[10.5px] font-semibold hover:text-[var(--c-text)] hover:border-[var(--c-border)] transition">
                 <X size={11} /> Reset
@@ -168,36 +260,13 @@ export default function DesktopTransactions() {
           </div>
         </header>
 
-        {/* Category chips */}
-        <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-[var(--c-border)] bg-[var(--c-surface-soft)]">
-          {categories.map(c => {
-            const active = category === c
-            const ct = c === 'All' ? transactions.length : transactions.filter(t => t.category === c).length
-            return (
-              <button key={c} type="button" onClick={() => { setCategory(c); setPage(1) }}
-                className={['inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-semibold tracking-[0.1px] transition',
-                  active
-                    ? 'bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_2px_8px_rgba(201,162,39,0.28)]'
-                    : 'bg-[var(--c-surface)] border border-[var(--c-border-soft)] text-[var(--c-text-muted)] hover:border-[var(--c-accent-border)] hover:text-[var(--c-text)]',
-                ].join(' ')}>
-                {c}
-                <span className={['tabular-nums text-[9.5px] font-bold', active ? 'text-brand-primary/70' : 'text-[var(--c-text-faint)]'].join(' ')}>
-                  {ct}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
         {/* Table */}
         <div className="overflow-x-auto">
 
           {/* Column headers */}
           <div className={`grid ${COLS} gap-4 px-4 py-2.5 text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] border-b border-[var(--c-border)] bg-[var(--c-surface-soft)] sticky top-0 z-10 min-w-[620px]`}>
             <span />
-            <span>Category</span>
-            <span>Date</span>
-            <span>Status</span>
+            <span>Description</span>
             <span className="text-right">Amount</span>
           </div>
 
@@ -211,9 +280,10 @@ export default function DesktopTransactions() {
                     <span aria-hidden className="h-3 w-3/4 rounded bg-[var(--c-surface-soft)] animate-pulse" />
                     <span aria-hidden className="h-2.5 w-1/2 rounded bg-[var(--c-surface-soft)] animate-pulse" />
                   </div>
-                  <span aria-hidden className="h-3 w-2/3 rounded bg-[var(--c-surface-soft)] animate-pulse" />
-                  <span aria-hidden className="h-5 w-20 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
-                  <span aria-hidden className="h-3 w-24 rounded bg-[var(--c-surface-soft)] animate-pulse ml-auto" />
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span aria-hidden className="h-3 w-24 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                    <span aria-hidden className="h-4 w-14 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -234,8 +304,7 @@ export default function DesktopTransactions() {
           ) : (
             <ul className="list-none m-0 p-0 min-w-[620px]">
               {sliced.map((tx, i) => {
-                const s = STATUS_META[tx.status] ?? STATUS_META.completed
-                const Icon = s.icon
+                const s = STATUS_META[tx.status] ?? STATUS_META.successful
                 return (
                   <li
                     key={tx.id}
@@ -250,39 +319,41 @@ export default function DesktopTransactions() {
                   >
                     {/* Direction icon */}
                     <span className={['inline-flex items-center justify-center w-9 h-9 rounded-lg shrink-0',
-                      tx.kind === 'in' ? 'text-[var(--c-success)] bg-[var(--c-success-bg)]' : 'text-[var(--c-warn)] bg-[var(--c-warn-bg)]',
+                      tx.kind === 'in'
+                        ? 'text-[var(--c-success)] bg-[var(--c-success-bg)]'
+                        : tx.kind === 'internal'
+                          ? 'text-[var(--c-text-muted)] bg-[var(--c-surface-soft)]'
+                          : 'text-[var(--c-warn)] bg-[var(--c-warn-bg)]',
                     ].join(' ')}>
                       {tx.kind === 'in'
                         ? <ArrowDownLeft size={14} strokeWidth={2.4} />
-                        : <ArrowUpRight  size={14} strokeWidth={2.4} />}
+                        : tx.kind === 'internal'
+                          ? <ArrowLeftRight size={14} strokeWidth={2.4} />
+                          : <ArrowUpRight  size={14} strokeWidth={2.4} />}
                     </span>
 
-                    {/* Description + category + ref */}
-                    <div className="flex flex-col min-w-0 leading-tight">
+                    {/* Description */}
+                    <div className="flex flex-col min-w-0 leading-tight gap-0.5">
                       <span className="text-[12px] font-semibold text-[var(--c-text)] truncate">
-                        {tx.category}
+                        {tx.description}
                       </span>
-
+                      <span className="text-[10px] text-[var(--c-text-faint)] truncate">
+                        {fmtDate(tx.createdAt)}
+                      </span>
                     </div>
 
-                    {/* Date */}
-                    <span className="text-[11px] text-[var(--c-text-muted)] tabular-nums">
-                      {tx.day} · {tx.meta}
-                    </span>
-
-                    {/* Status */}
-                    <span className="inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-[0.8px]"
-                      style={{ background: s.bg, color: s.fg }}>
-                      <Icon size={9} strokeWidth={3} />
-                      {s.label}
-                    </span>
-
-                    {/* Amount */}
-                    <span className={['text-[12.5px] font-bold tabular-nums whitespace-nowrap text-right',
-                      tx.kind === 'in' ? 'text-[var(--c-success)]' : 'text-[var(--c-text)]',
-                    ].join(' ')}>
-                      {tx.kind === 'in' ? '+' : '-'}{formatNGN(tx.total)}
-                    </span>
+                    {/* Amount + status */}
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={['text-[12.5px] font-bold tabular-nums whitespace-nowrap text-right',
+                        tx.kind === 'in' ? 'text-[var(--c-success)]' : 'text-[var(--c-text)]',
+                      ].join(' ')}>
+                        {tx.kind === 'in' ? '+' : '-'}{formatNGN(tx.total)}
+                      </span>
+                      <span className="inline-flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[9.5px] font-bold"
+                        style={{ background: s.bg, color: s.fg }}>
+                        {s.label}
+                      </span>
+                    </div>
                   </li>
                 )
               })}
@@ -331,34 +402,5 @@ export default function DesktopTransactions() {
 
       <TransactionModal tx={activeTx} onClose={() => setActiveTx(null)} />
     </div>
-  )
-}
-
-function Kpi({ icon: Icon, label, value, delta, deltaTone, tint }) {
-  const tintMap = {
-    success: 'bg-[var(--c-success-bg)] text-[var(--c-success)]',
-    warn:    'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
-    accent:  'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]',
-    muted:   'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)] border border-[var(--c-border-soft)]',
-  }
-  const deltaMap = {
-    success: 'text-[var(--c-success)]',
-    danger:  'text-[var(--c-danger)]',
-  }
-  return (
-    <article className="relative overflow-hidden p-3 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className={['inline-flex items-center justify-center w-8 h-8 rounded-lg', tintMap[tint] || tintMap.muted].join(' ')}>
-          <Icon size={14} strokeWidth={2.4} />
-        </span>
-        {delta && (
-          <span className={['inline-flex items-center gap-0.5 text-[10px] font-bold whitespace-nowrap', deltaMap[deltaTone] || 'text-[var(--c-text-muted)]'].join(' ')}>
-            {delta}
-          </span>
-        )}
-      </div>
-      <p className="text-[10px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] m-0">{label}</p>
-      <p className="text-[16px] font-black text-[var(--c-text)] m-0 mt-0.5 tabular-nums tracking-[-0.3px]">{value}</p>
-    </article>
   )
 }

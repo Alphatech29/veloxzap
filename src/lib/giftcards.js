@@ -27,7 +27,7 @@ export async function submitGiftCardTrade({ brandId, subCategoryId, denomination
       sub_category_id: subCategoryId,
       amount:          denomination,
       mode:            'ecode',
-      code:            codes?.[0] ?? '',
+      code:            codes ?? [],
     }
   }
   const result = await apiFetch('/api/v1/users/trade-card', { method: 'POST', body })

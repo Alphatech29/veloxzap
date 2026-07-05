@@ -114,11 +114,22 @@ export default function TradeDetailModal({ trade, brands, onClose }) {
           )}
 
           {/* E-code */}
-          {trade.cardType === 'ecode' && trade.cardEcode && (
+          {trade.cardType === 'ecode' && trade.cardEcodes.length > 0 && (
             <div className="mx-5 mt-3">
-              <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] mb-2 m-0">E-code</p>
-              <div className="px-3.5 py-3 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)]">
-                <p className="text-[13px] font-mono font-semibold text-[var(--c-text)] m-0 break-all select-all">{trade.cardEcode}</p>
+              <p className="text-[9.5px] uppercase tracking-[1.1px] font-bold text-[var(--c-text-muted)] mb-2 m-0">
+                E-code{trade.cardEcodes.length > 1 ? 's' : ''}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {trade.cardEcodes.map((code, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3.5 py-3 rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border)]">
+                    {trade.cardEcodes.length > 1 && (
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-md bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[9px] font-black text-brand-accent shrink-0">
+                        {i + 1}
+                      </span>
+                    )}
+                    <p className="text-[13px] font-mono font-semibold text-[var(--c-text)] m-0 break-all select-all">{code}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}

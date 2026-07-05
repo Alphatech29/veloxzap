@@ -102,6 +102,7 @@ export default function DesktopData() {
       network: activeNet,
       variationCode: selectedPlan.variationCode,
       amount: selectedPlan.amount,
+      planName: selectedPlan.name,
       pin,
     })
     setPinOpen(false)

@@ -24,7 +24,18 @@ function normalizeTrade(t) {
     ? date.toLocaleString('en-NG', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
     : '—'
   let cardImages = []
-  try { cardImages = t.card_image ? JSON.parse(t.card_image) : [] } catch { cardImages = [] }
+  if (Array.isArray(t.card_image)) {
+    cardImages = t.card_image
+  } else {
+    try { cardImages = t.card_image ? JSON.parse(t.card_image) : [] } catch { cardImages = [] }
+  }
+  let cardEcodes = []
+  if (Array.isArray(t.card_ecode)) {
+    cardEcodes = t.card_ecode
+  } else {
+    try { cardEcodes = t.card_ecode ? JSON.parse(t.card_ecode) : [] } catch { cardEcodes = t.card_ecode ? [t.card_ecode] : [] }
+  }
+  if (!Array.isArray(cardEcodes)) cardEcodes = cardEcodes ? [cardEcodes] : []
   return {
     id:              t.id,
     reference:       t.reference,
@@ -40,7 +51,7 @@ function normalizeTrade(t) {
     receiveAmount:   Number(t.receive_amount),
     fee:             Number(t.fee),
     finalAmount:     Number(t.final_amount),
-    cardEcode:       t.card_ecode || null,
+    cardEcodes,
     cardImages,
     status:          t.status,
     createdAt,

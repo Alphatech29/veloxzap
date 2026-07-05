@@ -5,6 +5,12 @@ export const queryKeys = {
 
   transactions: {
     recent: ['transactions', 'recent'],
+    byReference: (reference) => ['transactions', 'byReference', reference],
+    electricityByReference: (reference) => ['transactions', 'electricityByReference', reference],
+    vtuByReference: (reference) => ['transactions', 'vtuByReference', reference],
+    cableTvByReference: (reference) => ['transactions', 'cableTvByReference', reference],
+    conversionByReference: (reference) => ['transactions', 'conversionByReference', reference],
+    giftcardTradeByReference: (reference) => ['transactions', 'giftcardTradeByReference', reference],
   },
 
   giftcards: {

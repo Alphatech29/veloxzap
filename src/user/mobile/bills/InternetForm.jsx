@@ -89,6 +89,9 @@ export default function InternetForm({ onBack }) {
         variation_code: selectedVariation?.code,
         amount: num,
         phone,
+        email: isSmile ? inputValue : undefined,
+        planName: selectedVariation?.name,
+        accountLabel: isSmile ? selectedSmileAccount?.label : undefined,
         pin,
       })
     } catch {
@@ -504,11 +507,11 @@ export default function InternetForm({ onBack }) {
     >
       <div className="flex-1 overflow-y-auto pb-4">
         {net.smileAccounts.map((acc, i) => {
-          const active = selectedSmileAccount?.id === acc.id
+          const active = selectedSmileAccount === acc
           const isLast = i === net.smileAccounts.length - 1
           return (
             <button
-              key={acc.id}
+              key={i}
               type="button"
               onClick={() => { setSelectedSmileAccount(acc); setSmileAccountSheetOpen(false) }}
               className={[

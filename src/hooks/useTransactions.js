@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchHistory } from '../lib/transactions'
+import { fetchHistory, fetchWalletTransactionByReference, fetchElectricityTransactionByReference, fetchVtuTransactionByReference, fetchCableTvTransactionByReference, fetchConversionByReference, fetchGiftcardTradeByReference } from '../lib/transactions'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -34,8 +34,11 @@ function normalize(row) {
     reference:   row.reference ?? null,
 
     // direction & category
-    kind:        row.status_type === 'credit' ? 'in' : 'out',
-    category:    (row.service_type || 'Other').replace(/^\w/, c => c.toUpperCase()),
+    kind:        row.status_type === 'credit' ? 'in' : row.status_type === 'internal' ? 'internal' : 'out',
+    serviceType: row.service_type ?? null,
+    category:    (row.service_type || '').toLowerCase().startsWith('savings')
+      ? 'Savings'
+      : (row.service_type || 'Other').replace(/^\w/, c => c.toUpperCase()),
     title:       (row.service_type || 'Transaction').replace(/^\w/, c => c.toUpperCase()),
     description: row.description ?? null,
 
@@ -50,7 +53,7 @@ function normalize(row) {
     currency:    row.currency ?? '₦',
 
     // status
-    status:      row.status === 'successful' ? 'completed' : row.status,
+    status:      row.status,
 
     // raw timestamps for audit trail
     createdAt:   row.created_at  ?? null,
@@ -71,11 +74,11 @@ export default function useTransactions({ autoFetch = true, recentLimit = 6 } = 
   // Only status_type:"credit" + status:"successful" counts as inflow
   // Only status_type:"debit"  + status:"successful" counts as outflow
   const inflow = transactions
-    .filter(t => t.kind === 'in' && t.status === 'completed')
+    .filter(t => t.kind === 'in' && t.status === 'successful')
     .reduce((s, t) => s + t.total, 0)
 
   const outflow = transactions
-    .filter(t => t.kind === 'out' && t.status === 'completed')
+    .filter(t => t.kind === 'out' && t.status === 'successful')
     .reduce((s, t) => s + t.total, 0)
 
   return {
@@ -86,5 +89,95 @@ export default function useTransactions({ autoFetch = true, recentLimit = 6 } = 
     outflow,
     refresh: query.refetch,
     fetchRecent: query.refetch,
+  }
+}
+
+export function useWalletTransaction(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.byReference(reference),
+    queryFn: () => unwrap(fetchWalletTransactionByReference(reference)),
+    select: (data) => data.transaction,
+    enabled: !!reference,
+  })
+
+  return {
+    transaction: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+  }
+}
+
+export function useElectricityTransaction(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.electricityByReference(reference),
+    queryFn: () => unwrap(fetchElectricityTransactionByReference(reference)),
+    select: (data) => data.transaction,
+    enabled: !!reference,
+  })
+
+  return {
+    transaction: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+  }
+}
+
+export function useVtuTransaction(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.vtuByReference(reference),
+    queryFn: () => unwrap(fetchVtuTransactionByReference(reference)),
+    select: (data) => data.transaction,
+    enabled: !!reference,
+  })
+
+  return {
+    transaction: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+  }
+}
+
+export function useCableTvTransaction(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.cableTvByReference(reference),
+    queryFn: () => unwrap(fetchCableTvTransactionByReference(reference)),
+    select: (data) => data.transaction,
+    enabled: !!reference,
+  })
+
+  return {
+    transaction: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+  }
+}
+
+export function useConversionTransaction(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.conversionByReference(reference),
+    queryFn: () => unwrap(fetchConversionByReference(reference)),
+    select: (data) => data.transaction,
+    enabled: !!reference,
+  })
+
+  return {
+    transaction: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
+  }
+}
+
+export function useGiftcardTrade(reference) {
+  const query = useQuery({
+    queryKey: queryKeys.transactions.giftcardTradeByReference(reference),
+    queryFn: () => unwrap(fetchGiftcardTradeByReference(reference)),
+    select: (data) => data.trade,
+    enabled: !!reference,
+  })
+
+  return {
+    trade: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error?.message ?? null,
   }
 }

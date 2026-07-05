@@ -1,11 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone, Wifi,
   Receipt, Gift, Bitcoin, ShieldCheck, ChevronRight,
-  Sparkles, TrendingUp, Lock, PiggyBank,
+  Sparkles, TrendingUp, Lock, PiggyBank, ArrowLeftRight,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import useTransactions from '../../hooks/useTransactions'
+import TransactionModal from '../../components/internalUI/TransactionModal'
+import { fmtDate } from '../../utils/format'
 
 const QUICK_ACTIONS = [
   { to: '/user/airtime',      label: 'Airtime',      icon: Smartphone },
@@ -18,12 +21,14 @@ const QUICK_ACTIONS = [
   { to: '/user/convert',       label: 'Convert',       icon: TrendingUp },
 ]
 
-const RECENT = [
-  { id: 't1', kind: 'in',  title: 'Funding · Paystack',   meta: 'Today, 09:42', day: 'Today',     amount: 250000 },
-  { id: 't2', kind: 'out', title: 'MTN Airtime · 0803…',  meta: 'Today, 08:11', day: 'Today',     amount: 2000 },
-  { id: 't3', kind: 'out', title: 'DSTV Compact',          meta: 'Yesterday',     day: 'Yesterday', amount: 14500 },
-  { id: 't4', kind: 'in',  title: 'USDT → NGN swap',       meta: 'Yesterday',     day: 'Yesterday', amount: 87420 },
-]
+const STATUS_TONE = {
+  successful: 'bg-[var(--c-success-bg)] text-[var(--c-success)]',
+  processing: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
+  pending:    'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
+  failed:     'bg-[rgba(248,113,113,0.1)] text-[var(--c-danger,#f87171)]',
+  refund:     'bg-[var(--c-accent-soft)] text-brand-accent',
+  reverse:    'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]',
+}
 
 const BALANCE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 
@@ -41,17 +46,17 @@ function formatShortNGN(n) {
 
 export default function MobileDashboard() {
   const { user, wallet, loading } = useUser()
+  const { transactions: allTx, loading: txLoading, inflow, outflow } = useTransactions({ recentLimit: Infinity })
   const [hidden, setHidden] = useState(
     () => localStorage.getItem('vzap_hide_balance') === '1'
   )
   const [currency, setCurrency] = useState('NGN')
+  const [activeTx, setActiveTx] = useState(null)
   const ngnBalance = Number(wallet?.ngn_balance ?? 0)
   const usdBalance = Number(wallet?.usd_balance ?? 0)
   const balance = currency === 'NGN' ? ngnBalance : usdBalance
-  const inflow = 642300
-  const outflow = 298140
 
-  const days = Array.from(new Set(RECENT.map(r => r.day)))
+  const recentTx = useMemo(() => allTx.slice(0, 4), [allTx])
 
   return (
     <div className="flex flex-col gap-5">
@@ -173,46 +178,32 @@ export default function MobileDashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-2">
-        <article className="relative overflow-hidden p-2.5 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
-          <span aria-hidden className="pointer-events-none absolute -top-5 -right-5 w-14 h-14 rounded-full bg-[var(--c-success-bg)] blur-xl" />
-
-          <div className="relative flex items-center justify-between gap-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-[8px] bg-[var(--c-success-bg)] text-[var(--c-success)]">
-              <ArrowDownLeft size={11} strokeWidth={2.6} />
-            </span>
-            <span className="inline-flex items-center gap-0.5 text-[9.5px] text-[var(--c-success)] font-bold whitespace-nowrap">
-              <TrendingUp size={8} strokeWidth={2.8} /> +18.2%
-            </span>
-          </div>
-
-          <div className="relative mt-2">
-            <p className="text-[9px] uppercase tracking-[1px] font-semibold text-[var(--c-text-muted)] m-0">
+        <article className="relative overflow-hidden flex items-center gap-2 p-2 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
+          <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[var(--c-success-bg)] blur-xl" />
+          <span className="relative inline-flex items-center justify-center w-6 h-6 rounded-[7px] bg-[var(--c-success-bg)] text-[var(--c-success)] shrink-0">
+            <ArrowDownLeft size={10} strokeWidth={2.6} />
+          </span>
+          <div className="relative min-w-0">
+            <p className="text-[8px] uppercase tracking-[0.8px] font-semibold text-[var(--c-text-muted)] m-0">
               Inflow
             </p>
-            <p className="text-[12.5px] font-bold tracking-[-0.2px] text-[var(--c-text)] tabular-nums truncate m-0 mt-0.5">
-              {hidden ? '••••••' : formatShortNGN(inflow)}
+            <p className="text-[11px] font-bold tracking-[-0.2px] text-[var(--c-text)] tabular-nums truncate m-0">
+              {hidden ? '••••••' : txLoading ? '—' : formatShortNGN(inflow)}
             </p>
           </div>
         </article>
 
-        <article className="relative overflow-hidden p-2.5 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
-          <span aria-hidden className="pointer-events-none absolute -top-5 -right-5 w-14 h-14 rounded-full bg-[var(--c-warn-bg)] blur-xl" />
-
-          <div className="relative flex items-center justify-between gap-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-[8px] bg-[var(--c-warn-bg)] text-[var(--c-warn)]">
-              <ArrowUpRight size={11} strokeWidth={2.6} />
-            </span>
-            <span className="inline-flex items-center gap-0.5 text-[9.5px] text-[var(--c-danger)] font-bold whitespace-nowrap">
-              <TrendingUp size={8} strokeWidth={2.8} className="rotate-180" /> -4.7%
-            </span>
-          </div>
-
-          <div className="relative mt-2">
-            <p className="text-[9px] uppercase tracking-[1px] font-semibold text-[var(--c-text-muted)] m-0">
+        <article className="relative overflow-hidden flex items-center gap-2 p-2 rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)]">
+          <span aria-hidden className="pointer-events-none absolute -top-4 -right-4 w-10 h-10 rounded-full bg-[var(--c-warn-bg)] blur-xl" />
+          <span className="relative inline-flex items-center justify-center w-6 h-6 rounded-[7px] bg-[var(--c-warn-bg)] text-[var(--c-warn)] shrink-0">
+            <ArrowUpRight size={10} strokeWidth={2.6} />
+          </span>
+          <div className="relative min-w-0">
+            <p className="text-[8px] uppercase tracking-[0.8px] font-semibold text-[var(--c-text-muted)] m-0">
               Outflow
             </p>
-            <p className="text-[12.5px] font-bold tracking-[-0.2px] text-[var(--c-text)] tabular-nums truncate m-0 mt-0.5">
-              {hidden ? '••••••' : formatShortNGN(outflow)}
+            <p className="text-[11px] font-bold tracking-[-0.2px] text-[var(--c-text)] tabular-nums truncate m-0">
+              {hidden ? '••••••' : txLoading ? '—' : formatShortNGN(outflow)}
             </p>
           </div>
         </article>
@@ -259,56 +250,90 @@ export default function MobileDashboard() {
         </div>
 
         <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
-          {days.map((day, di) => {
-            const items = RECENT.filter(r => r.day === day)
-            return (
-              <div key={day} className={di > 0 ? 'border-t border-[var(--c-border)]' : ''}>
-                <p className="text-[9px] uppercase tracking-[1.2px] font-semibold text-[var(--c-text-muted)] m-0 px-3 pt-2 pb-1">
-                  {day}
-                </p>
-                <ul className="m-0 list-none">
-                  {items.map(tx => (
-                    <li
-                      key={tx.id}
-                      className="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 px-3 py-2 active:bg-[var(--c-surface-soft)] transition"
-                    >
-                      <span
-                        className={[
-                          'inline-flex items-center justify-center w-7 h-7 rounded-[9px]',
-                          tx.kind === 'in'
-                            ? 'text-[var(--c-success)] bg-[var(--c-success-bg)]'
+          {txLoading ? (
+            <ul className="m-0 list-none">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li key={i} className={`flex items-center gap-2.5 px-3 py-2 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
+                  <span aria-hidden className="w-7 h-7 rounded-[9px] bg-[var(--c-surface-soft)] animate-pulse shrink-0" />
+                  <div className="flex-1 flex flex-col gap-1">
+                    <span aria-hidden className="h-2.5 w-3/5 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                    <span aria-hidden className="h-2 w-2/5 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                  </div>
+                  <span aria-hidden className="h-2.5 w-14 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                </li>
+              ))}
+            </ul>
+          ) : recentTx.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--c-surface-soft)] text-[var(--c-text-faint)]">
+                <ArrowLeftRight size={15} />
+              </span>
+              <p className="text-[11px] text-[var(--c-text-faint)] m-0">No transactions yet</p>
+            </div>
+          ) : (
+            <ul className="m-0 list-none">
+              {recentTx.map((tx, i) => (
+                <li key={tx.id}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTx(tx)}
+                    className={[
+                      'w-full grid grid-cols-[auto_1fr_auto] items-center gap-2.5 px-3 py-2 text-left active:bg-[var(--c-surface-soft)] transition',
+                      i > 0 ? 'border-t border-[var(--c-border)]' : '',
+                    ].join(' ')}
+                  >
+                    <span
+                      className={[
+                        'inline-flex items-center justify-center w-7 h-7 rounded-[9px]',
+                        tx.kind === 'in'
+                          ? 'text-[var(--c-success)] bg-[var(--c-success-bg)]'
+                          : tx.kind === 'internal'
+                            ? 'text-[var(--c-text-muted)] bg-[var(--c-surface-soft)]'
                             : 'text-[var(--c-warn)] bg-[var(--c-warn-bg)]',
-                        ].join(' ')}
-                      >
-                        {tx.kind === 'in'
-                          ? <ArrowDownLeft size={11} strokeWidth={2.6} />
+                      ].join(' ')}
+                    >
+                      {tx.kind === 'in'
+                        ? <ArrowDownLeft size={11} strokeWidth={2.6} />
+                        : tx.kind === 'internal'
+                          ? <ArrowLeftRight size={11} strokeWidth={2.6} />
                           : <ArrowUpRight size={11} strokeWidth={2.6} />}
+                    </span>
+                    <div className="flex flex-col min-w-0 leading-tight">
+                      <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">
+                        {tx.description || tx.title}
                       </span>
-                      <div className="flex flex-col min-w-0 leading-tight">
-                        <span className="text-[11.5px] font-semibold text-[var(--c-text)] truncate">
-                          {tx.title}
-                        </span>
-                        <span className="text-[9.5px] text-[var(--c-text-muted)] mt-0.5 truncate">
-                          {tx.meta}
-                        </span>
-                      </div>
+                      <span className="text-[9.5px] text-[var(--c-text-muted)] mt-0.5 truncate">
+                        {fmtDate(tx.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
                       <span
                         className={[
                           'text-[11.5px] font-bold tabular-nums whitespace-nowrap',
                           tx.kind === 'in' ? 'text-[var(--c-success)]' : 'text-[var(--c-text)]',
                         ].join(' ')}
                       >
-                        {tx.kind === 'in' ? '+' : '-'}
-                        {formatNGN(tx.amount)}
+                        {tx.kind === 'in' ? '+' : tx.kind === 'internal' ? '' : '-'}
+                        {formatNGN(tx.total)}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
+                      <span
+                        className={[
+                          'inline-flex items-center px-1.5 py-0.5 rounded-full text-[8.5px] font-bold',
+                          STATUS_TONE[tx.status] || 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]',
+                        ].join(' ')}
+                      >
+                        {tx.status}
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
+
+      <TransactionModal tx={activeTx} onClose={() => setActiveTx(null)} />
     </div>
   )
 }
