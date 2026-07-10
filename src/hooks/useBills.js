@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { verifyMeter, purchaseElectricity } from '../lib/bills'
+import { verifyMeter, purchaseElectricity } from '../services/bills'
 import { queryKeys } from '../lib/queryKeys'
 
 function mutationError(mutation, fallback) {

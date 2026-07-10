@@ -3,20 +3,14 @@ import { AnimatePresence } from 'framer-motion'
 import { Gift, History, ChevronRight, Sparkles } from 'lucide-react'
 import useGiftCards, { countryLabel } from '../../hooks/useGiftCards'
 import TradeDetailModal from '../../components/internalUI/TradeDetailModal'
+import { TRADE_STATUS } from '../../constants/status'
 
 function formatNGN(n) {
   return '₦' + Number(n).toLocaleString('en-NG')
 }
 
 function StatusBadge({ status }) {
-  const map = {
-    pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
-    processing: { label: 'Processing', cls: 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]' },
-    paid:       { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-    failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-bg,#3a1a1a)] text-[var(--c-danger,#f87171)]' },
-    completed:  { label: 'Completed',  cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-  }
-  const s = map[status] || map.pending
+  const s = TRADE_STATUS[status] || TRADE_STATUS.pending
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${s.cls}`}>
       {s.label}

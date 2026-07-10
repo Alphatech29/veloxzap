@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 // Maps frontend network IDs → VTPass serviceID for data
 const SERVICE_ID_MAP = {

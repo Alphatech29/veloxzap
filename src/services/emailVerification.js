@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function sendEmailVerificationLink() {
   const result = await apiFetch('/api/v1/auth/resend-verification', {

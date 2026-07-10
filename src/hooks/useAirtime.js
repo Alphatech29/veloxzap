@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { purchaseAirtime, getRecentAirtimeNumbers } from '../lib/airtime'
+import { purchaseAirtime, getRecentAirtimeNumbers } from '../services/airtime'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

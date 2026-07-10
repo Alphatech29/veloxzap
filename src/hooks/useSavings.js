@@ -13,7 +13,7 @@ import {
   updateSchedule as updateScheduleApi,
   createSchedule as createScheduleApi,
   getSavingsWithdrawals,
-} from '../lib/savings'
+} from '../services/savings'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

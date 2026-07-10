@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 function urlBase64ToUint8Array(base64) {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)

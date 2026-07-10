@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getGiftCardBrands, submitGiftCardTrade, getRecentGiftCardTrades } from '../lib/giftcards'
+import { getGiftCardBrands, submitGiftCardTrade, getRecentGiftCardTrades } from '../services/giftcards'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -53,7 +53,9 @@ function normalizeTrade(t) {
     finalAmount:     Number(t.final_amount),
     cardEcodes,
     cardImages,
+    cardQty:         Number(t.card_qty) || 1,
     status:          t.status,
+    rejectNote:      t.reject_note || null,
     createdAt,
   }
 }

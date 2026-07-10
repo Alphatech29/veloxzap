@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getWebSettings } from '../lib/settings'
+import { getWebSettings } from '../services/settings'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

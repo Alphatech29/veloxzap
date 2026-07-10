@@ -6,8 +6,9 @@ import {
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useSettings from '../../hooks/useSettings'
-import { convertCurrency, getConversionHistory } from '../../lib/convert'
+import { convertCurrency, getConversionHistory } from '../../services/convert'
 import { useAlert } from '../../components/ui/Alert'
+import { flagCode, currencyCode } from '../../constants/currency'
 
 const QUICK_PCTS = [
   { id: '10',  label: '10%', value: 0.1  },
@@ -354,12 +355,6 @@ export default function DesktopConvert() {
     </div>
   )
 }
-
-const FLAG_MAP = { NGN: 'ng', USD: 'us' }
-function flagCode(currency) { return FLAG_MAP[currency?.toUpperCase()] ?? 'un' }
-
-// Backend stores from_currency/to_currency as the raw sign (₦ / $), not a code
-function currencyCode(sign) { return sign === '₦' ? 'NGN' : sign === '$' ? 'USD' : sign }
 
 function timeAgo(dateStr) {
   if (!dateStr) return ''

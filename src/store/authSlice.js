@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { login as loginRequest } from '../lib/login'
+import { login as loginRequest } from '../services/login'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const USER_KEY = 'veloxzap.user'

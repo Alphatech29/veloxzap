@@ -4,7 +4,7 @@ import {
   ChevronLeft, KeyRound, Eye, EyeOff,
   AlertCircle, Loader2, ShieldCheck,
 } from 'lucide-react'
-import { changePassword } from '../../lib/user'
+import { changePassword } from '../../services/user'
 import { useAlert } from '../../components/ui/Alert'
 
 function StrengthBar({ password }) {

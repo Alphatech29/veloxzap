@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getPublicGiftCardBrands } from '../lib/giftcards'
+import { getPublicGiftCardBrands } from '../services/giftcards'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

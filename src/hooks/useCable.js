@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { verifySmartcard, getTvVariations, changeBouquet, renewBouquet } from '../lib/cable'
+import { verifySmartcard, getTvVariations, changeBouquet, renewBouquet } from '../services/cable'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

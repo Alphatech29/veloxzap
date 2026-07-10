@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 import { getClientMetadata } from './metadata'
 
 export async function getBanks() {

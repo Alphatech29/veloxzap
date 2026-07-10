@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function verifySmileEmail(email) {
   return apiFetch('/api/v1/users/verify-smile-email', {

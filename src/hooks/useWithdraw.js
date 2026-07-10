@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getBanks, verifyBankAccount, submitWithdrawal } from '../lib/withdraw'
+import { getBanks, verifyBankAccount, submitWithdrawal } from '../services/withdraw'
 import { buildCodeMap } from '../utils/bankLogos'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'

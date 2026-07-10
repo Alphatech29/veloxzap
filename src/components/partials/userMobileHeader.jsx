@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, Sun, HelpCircle, X, Sunrise, Sunset } from 'lucide-react'
+import { Bell, Sun, HelpCircle, X, Sunrise, Sunset, Check, Inbox } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import useNotifications from '../../hooks/useNotifications'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -26,17 +27,33 @@ function greeting() {
 const ICON_BTN =
   'inline-flex items-center justify-center w-10 h-10 rounded-2xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] active:scale-95 hover:border-[var(--c-accent-border)] transition'
 
+function timeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+  if (diff < 60) return 'Just now'
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return new Date(dateStr).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' })
+}
+
 export default function UserMobileHeader() {
   const { user } = useUser()
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications()
   const [showNotif, setShowNotif] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
+  const showAvatar = avatarUrl && !avatarError
   const rawFirst = (user?.full_name || '').trim().split(/\s+/)[0] || ''
   const firstName = rawFirst
     ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase()
     : 'there'
   const { label: greetLabel, Icon: GreetIcon } = greeting()
   const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [avatarUrl])
 
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 10) }
@@ -56,10 +73,12 @@ export default function UserMobileHeader() {
               aria-hidden
               className="absolute -inset-1 rounded-full bg-gradient-to-br from-brand-accent/45 to-brand-gold-soft/45 blur-md"
             />
-            {avatarUrl ? (
+            {showAvatar ? (
               <img
+                key={avatarUrl}
                 src={avatarUrl}
                 alt=""
+                onError={() => setAvatarError(true)}
                 className="relative w-10 h-10 rounded-full object-cover border border-[rgba(232,197,71,0.5)] shadow-[0_4px_14px_rgba(201,162,39,0.32)]"
               />
             ) : (
@@ -90,14 +109,16 @@ export default function UserMobileHeader() {
           <button
             type="button"
             onClick={() => setShowNotif(true)}
-            aria-label="Notifications"
+            aria-label={`Notifications${unreadCount ? ` (${unreadCount} unread)` : ''}`}
             className={`${ICON_BTN} relative`}
           >
             <Bell size={16} />
-            <span
-              aria-hidden
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft shadow-[0_0_0_2px_var(--c-top-bg),0_0_8px_rgba(201,162,39,0.7)]"
-            />
+            {unreadCount > 0 && (
+              <span
+                aria-hidden
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft shadow-[0_0_0_2px_var(--c-top-bg),0_0_8px_rgba(201,162,39,0.7)]"
+              />
+            )}
           </button>
         </div>
 
@@ -108,13 +129,19 @@ export default function UserMobileHeader() {
       </header>
 
       {showNotif && (
-        <NotificationSheet onClose={() => setShowNotif(false)} />
+        <NotificationSheet
+          notifications={notifications}
+          unreadCount={unreadCount}
+          markRead={markRead}
+          markAllRead={markAllRead}
+          onClose={() => setShowNotif(false)}
+        />
       )}
     </>
   )
 }
 
-function NotificationSheet({ onClose }) {
+function NotificationSheet({ notifications, unreadCount, markRead, markAllRead, onClose }) {
   return (
     <>
       <button
@@ -138,31 +165,65 @@ function NotificationSheet({ onClose }) {
               Notifications
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] active:scale-95 transition"
-          >
-            <X size={15} />
-          </button>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllRead}
+                className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-accent active:opacity-70 transition"
+              >
+                <Check size={12} /> Mark all read
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] active:scale-95 transition"
+            >
+              <X size={15} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col items-center text-center px-6 pt-3 pb-10">
-          <span className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent">
-            <span
-              aria-hidden
-              className="absolute -inset-3 rounded-3xl bg-brand-accent/15 blur-xl"
-            />
-            <Bell size={26} className="relative" />
-          </span>
-          <h4 className="mt-4 mb-1 text-[15.5px] font-semibold tracking-[-0.2px] text-[var(--c-text)]">
-            You're all caught up
-          </h4>
-          <p className="m-0 max-w-[260px] text-[12.5px] leading-[1.55] text-[var(--c-text-muted)]">
-            We'll let you know the moment anything needs your attention.
-          </p>
-        </div>
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center text-center px-6 pt-3 pb-10">
+            <span className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--c-accent-soft-2)] to-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-brand-accent">
+              <span
+                aria-hidden
+                className="absolute -inset-3 rounded-3xl bg-brand-accent/15 blur-xl"
+              />
+              <Inbox size={26} className="relative" />
+            </span>
+            <h4 className="mt-4 mb-1 text-[15.5px] font-semibold tracking-[-0.2px] text-[var(--c-text)]">
+              You're all caught up
+            </h4>
+            <p className="m-0 max-w-[260px] text-[12.5px] leading-[1.55] text-[var(--c-text-muted)]">
+              We'll let you know the moment anything needs your attention.
+            </p>
+          </div>
+        ) : (
+          <ul className="list-none m-0 p-0 pb-4">
+            {notifications.map((n, i) => (
+              <li key={n.id} className={i > 0 ? 'border-t border-[var(--c-border-soft)]' : ''}>
+                <button
+                  type="button"
+                  onClick={() => !n.read_at && markRead(n.id)}
+                  className="w-full flex items-start gap-3 px-5 py-3.5 text-left active:bg-[var(--c-surface-soft)] transition-colors"
+                >
+                  {!n.read_at && (
+                    <span aria-hidden className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-accent shrink-0" />
+                  )}
+                  <div className={`min-w-0 flex-1 ${n.read_at ? 'pl-4' : ''}`}>
+                    <p className="text-[13px] font-semibold text-[var(--c-text)] m-0 truncate">{n.title}</p>
+                    <p className="text-[12px] text-[var(--c-text-muted)] m-0 mt-0.5 leading-snug">{n.message}</p>
+                    <p className="text-[10.5px] text-[var(--c-text-faint)] m-0 mt-1">{timeAgo(n.created_at)}</p>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </>
   )

@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function verifySmartcard({ billersCode, serviceID }) {
   const params = new URLSearchParams({ billersCode, serviceID })

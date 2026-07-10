@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BottomSheet, { SheetRow } from '../../../components/internalUI/BottomSheet'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview, useSavingsAccount, useSavingsLedger, useSavingsWithdrawals } from '../../../hooks/useSavings'
-import { topUpAccount } from '../../../lib/savings'
+import { topUpAccount } from '../../../services/savings'
 import { fmtDate, fmtDateOnly } from '../../../utils/format'
 import { DEBIT_TIME_OPTIONS, fmtDebitTime, FREQUENCY_OPTIONS } from '../../../utils/savingsSchedule'
 import {

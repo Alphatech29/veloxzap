@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { submitContactMessage } from '../lib/contact'
+import { submitContactMessage } from '../services/contact'
 
 export default function useContact() {
   const submitMutation = useMutation({

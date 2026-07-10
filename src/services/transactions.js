@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function fetchWalletTransactionByReference(reference) {
   const result = await apiFetch(`/api/v1/users/transaction/${encodeURIComponent(reference)}`, { method: 'GET' })

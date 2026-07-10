@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
-import { createPin, changePin } from '../../lib/user'
+import { createPin, changePin } from '../../services/user'
 import { useAlert } from '../../components/ui/Alert'
 
 function PinInput({ value, onChange, masked, label, autoFocus }) {

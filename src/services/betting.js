@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function validateBetting({ serviceID, betting_number }) {
   return apiFetch(`/api/v1/users/validate-betting?serviceID=${encodeURIComponent(serviceID)}&betting_number=${encodeURIComponent(betting_number)}`)

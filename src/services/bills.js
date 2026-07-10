@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function verifyMeter({ billersCode, serviceID, type }) {
   const params = new URLSearchParams({ billersCode, serviceID, type })

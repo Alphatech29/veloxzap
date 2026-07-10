@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getPublicBlogPosts } from '../lib/blog'
+import { getPublicBlogPosts } from '../services/blog'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

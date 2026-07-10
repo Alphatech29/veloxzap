@@ -3,15 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Download, AlertCircle, Copy, Check } from 'lucide-react'
 import { fmtDate } from '../../utils/format'
 import { useWalletTransaction, useElectricityTransaction, useVtuTransaction, useCableTvTransaction, useConversionTransaction, useGiftcardTrade } from '../../hooks/useTransactions'
-
-const STATUS_META = {
-  successful: { label: 'Successful', cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-  processing: { label: 'Processing', cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
-  pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
-  failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
-  refund:     { label: 'Refund',     cls: 'bg-[var(--c-accent-soft)] text-brand-accent' },
-  reverse:    { label: 'Reversed',   cls: 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]' },
-}
+import { TRANSACTION_STATUS as STATUS_META } from '../../constants/status'
+import { formatNetwork } from '../../constants/network'
 
 function formatNGN(n) {
   return '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -38,24 +31,6 @@ function formatDisco(serviceId) {
     .filter(Boolean)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
-}
-
-const NETWORK_LABELS = {
-  'mtn-data':      'MTN',
-  'airtel-data':   'Airtel',
-  'glo-data':      'Glo',
-  'etisalat-data': 'T2mobile',
-  mtn:             'MTN',
-  airtel:          'Airtel',
-  glo:             'Glo',
-  etisalat:        'T2mobile',
-  'smile-direct':  'Smile',
-  spectranet:      'Spectranet',
-}
-
-function formatNetwork(serviceId) {
-  if (!serviceId) return null
-  return NETWORK_LABELS[serviceId] || serviceId
 }
 
 function parseEcodes(raw) {

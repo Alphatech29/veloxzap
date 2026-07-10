@@ -65,4 +65,9 @@ export const queryKeys = {
   },
 
   beneficiaries: ['beneficiaries'],
+
+  notifications: {
+    list: ['notifications', 'list'],
+    unreadCount: ['notifications', 'unreadCount'],
+  },
 }

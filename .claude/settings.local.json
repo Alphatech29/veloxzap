@@ -43,7 +43,9 @@
       "Bash(cp src/user/mobile/SavingsSection.jsx /tmp/mobile_savings_section.jsx)",
       "Bash(cp src/user/desktop/SavingsSection.jsx /tmp/desktop_savings_section.jsx)",
       "Read(//tmp/**)",
-      "Bash(node -e \"const {chromium} = require\\('playwright'\\); chromium.launch\\(\\).then\\(b=>{console.log\\('ok'\\); b.close\\(\\);}\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")"
+      "Bash(node -e \"const {chromium} = require\\('playwright'\\); chromium.launch\\(\\).then\\(b=>{console.log\\('ok'\\); b.close\\(\\);}\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")",
+      "Bash(ls \"c:/Users/HP/Desktop/veloxzap-backend/repositories\")",
+      "Read(//c/Users/HP/Desktop/veloxzap-backend/repositories/**)"
     ],
     "additionalDirectories": [
       "c:\\Users\\HP\\Desktop\\veloxzap\\src\\pages\\user",

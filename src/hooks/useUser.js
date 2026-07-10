@@ -5,9 +5,10 @@ import {
   getWallet,
   getDedicatedAccount,
   updateAvatar as updateAvatarRequest,
-} from '../lib/user'
+} from '../services/user'
 import { useAuth } from './useAuth'
-import { subscribePush } from '../lib/push'
+import { subscribePush } from '../services/push'
+import { connectSocket, disconnectSocket } from '../lib/socket'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -41,23 +42,20 @@ export default function useUser({ auto = true } = {}) {
 
     subscribePush()
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL
-    const es = new EventSource(`${API_BASE}/api/v1/users/wallet-stream`, { withCredentials: true })
+    const socket = connectSocket()
 
-    es.addEventListener('wallet', e => {
-      try {
-        const data = JSON.parse(e.data)
-        queryClient.setQueryData(queryKeys.wallet, prev =>
-          prev ? { ...prev, wallet: { ...prev.wallet, ...data } } : prev
-        )
-      } catch { /* malformed event */ }
-    })
-
-    es.onerror = () => {
-      // Browser auto-reconnects; nothing to do
+    function handleWalletUpdate(data) {
+      queryClient.setQueryData(queryKeys.wallet, prev =>
+        prev ? { ...prev, wallet: { ...prev.wallet, ...data } } : prev
+      )
     }
 
-    return () => es.close()
+    socket.on('wallet:update', handleWalletUpdate)
+
+    return () => {
+      socket.off('wallet:update', handleWalletUpdate)
+      disconnectSocket()
+    }
   }, [auto, isAuthenticated, queryClient])
 
   const refresh = useCallback(async () => {

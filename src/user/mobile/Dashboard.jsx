@@ -9,6 +9,7 @@ import useUser from '../../hooks/useUser'
 import useTransactions from '../../hooks/useTransactions'
 import TransactionModal from '../../components/internalUI/TransactionModal'
 import { fmtDate } from '../../utils/format'
+import { TRANSACTION_STATUS } from '../../constants/status'
 
 const QUICK_ACTIONS = [
   { to: '/user/airtime',      label: 'Airtime',      icon: Smartphone },
@@ -21,14 +22,9 @@ const QUICK_ACTIONS = [
   { to: '/user/convert',       label: 'Convert',       icon: TrendingUp },
 ]
 
-const STATUS_TONE = {
-  successful: 'bg-[var(--c-success-bg)] text-[var(--c-success)]',
-  processing: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
-  pending:    'bg-[var(--c-warn-bg)] text-[var(--c-warn)]',
-  failed:     'bg-[rgba(248,113,113,0.1)] text-[var(--c-danger,#f87171)]',
-  refund:     'bg-[var(--c-accent-soft)] text-brand-accent',
-  reverse:    'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]',
-}
+const STATUS_TONE = Object.fromEntries(
+  Object.entries(TRANSACTION_STATUS).map(([status, meta]) => [status, meta.cls])
+)
 
 const BALANCE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 

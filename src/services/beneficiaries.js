@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function fetchBeneficiaries() {
   const result = await apiFetch('/api/v1/users/beneficiaries', { method: 'GET' })

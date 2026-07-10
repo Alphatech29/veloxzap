@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function getSavingsProducts(type) {
   const qs = type && type !== 'All' ? `?type=${encodeURIComponent(type.toLowerCase())}` : ''

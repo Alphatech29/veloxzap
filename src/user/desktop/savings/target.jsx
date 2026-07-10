@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview, useSavingsPlanLedger } from '../../../hooks/useSavings'
-import { setScheduleStatus, topUpAccount } from '../../../lib/savings'
+import { setScheduleStatus, topUpAccount } from '../../../services/savings'
 import CreateGoalModal from '../../../components/internalUI/CreateGoalModal'
 import {
   Target, Plus, Check, Loader2,

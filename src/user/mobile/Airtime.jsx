@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, ChevronRight, Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
 } from 'lucide-react'
-import { purchaseAirtime, getRecentAirtimeNumbers } from '../../lib/airtime'
+import { purchaseAirtime, getRecentAirtimeNumbers } from '../../services/airtime'
 import { CASHBACK_RATE } from '../../hooks/useAirtime'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'

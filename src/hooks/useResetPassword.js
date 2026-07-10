@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { resetPassword } from '../lib/resetPassword'
+import { resetPassword } from '../services/resetPassword'
 
 export default function useResetPassword() {
   const submitMutation = useMutation({

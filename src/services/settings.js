@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function getWebSettings() {
   const result = await apiFetch('/api/v1/general/setting', { method: 'GET' })

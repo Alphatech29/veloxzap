@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Smartphone, Wifi, Receipt, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
@@ -80,9 +81,15 @@ export default function UserSidebar({ open, onClose, onLogout }) {
     ? '₦' + Number(settings.referral_rewards).toLocaleString('en-NG')
     : null
   const logo = theme === 'dark' ? '/logo-2.png' : '/logo-1.png'
+  const [avatarError, setAvatarError] = useState(false)
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
+  const showAvatar = avatarUrl && !avatarError
   const rawFirst = (user?.full_name || '').trim().split(/\s+/)[0] || ''
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [avatarUrl])
   const firstName = rawFirst
     ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase()
     : 'there'
@@ -119,10 +126,12 @@ export default function UserSidebar({ open, onClose, onLogout }) {
         <span aria-hidden className="pointer-events-none absolute -top-6 -right-6 w-16 h-16 rounded-full bg-brand-accent/[0.08] blur-2xl group-hover:bg-brand-accent/[0.18] transition" />
         <span className="relative inline-flex shrink-0">
           <span aria-hidden className="absolute -inset-0.5 rounded-full bg-gradient-to-br from-brand-accent/45 to-brand-gold-soft/45 blur-md" />
-          {avatarUrl ? (
+          {showAvatar ? (
             <img
+              key={avatarUrl}
               src={avatarUrl}
               alt=""
+              onError={() => setAvatarError(true)}
               className="relative w-10 h-10 rounded-full object-cover border border-[rgba(232,197,71,0.5)] shadow-[0_4px_14px_rgba(201,162,39,0.32)]"
             />
           ) : (

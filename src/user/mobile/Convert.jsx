@@ -9,7 +9,7 @@ import BottomSheet from '../../components/internalUI/BottomSheet'
 import ProcessingOverlay from '../../components/internalUI/ProcessingOverlay'
 import useUser from '../../hooks/useUser'
 import useSettings from '../../hooks/useSettings'
-import { convertCurrency } from '../../lib/convert'
+import { convertCurrency } from '../../services/convert'
 import { useAlert } from '../../components/ui/Alert'
 
 const CURRENCIES = [

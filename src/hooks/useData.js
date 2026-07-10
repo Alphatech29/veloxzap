@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getDataVariations, purchaseData, getRecentDataNumbers } from '../lib/data'
+import { getDataVariations, purchaseData, getRecentDataNumbers } from '../services/data'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

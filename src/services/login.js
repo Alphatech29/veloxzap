@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 
 export async function login({ email, password }) {
   const result = await apiFetch('/api/v1/auth/login', {

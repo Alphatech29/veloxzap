@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -69,8 +70,14 @@ export default function MobileMore() {
   const { logout } = useAuth()
   const { user } = useUser()
   const navigate = useNavigate()
+  const [avatarError, setAvatarError] = useState(false)
   const initials = getInitials(user)
   const avatarUrl = resolveAvatarUrl(user?.avatar)
+  const showAvatar = avatarUrl && !avatarError
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [avatarUrl])
 
   async function handleLogout() {
     await logout()
@@ -92,10 +99,12 @@ export default function MobileMore() {
         <div className="relative flex items-center gap-3">
           <div className="relative inline-flex shrink-0">
             <span aria-hidden className="absolute -inset-1 rounded-full bg-gradient-to-br from-brand-accent/45 to-brand-gold-soft/45 blur-md" />
-            {avatarUrl ? (
+            {showAvatar ? (
               <img
+                key={avatarUrl}
                 src={avatarUrl}
                 alt=""
+                onError={() => setAvatarError(true)}
                 className="relative w-[58px] h-[58px] rounded-full object-cover border border-[rgba(232,197,71,0.5)] shadow-[0_4px_14px_rgba(201,162,39,0.32)]"
               />
             ) : (

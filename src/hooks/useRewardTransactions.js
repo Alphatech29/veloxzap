@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchRewardTransactions } from '../lib/rewardRules'
+import { fetchRewardTransactions } from '../services/rewardRules'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

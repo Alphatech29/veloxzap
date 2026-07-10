@@ -1,4 +1,4 @@
-import { apiFetch } from './api'
+import { apiFetch } from '../lib/api'
 import { colors } from '../components/landing/theme'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL

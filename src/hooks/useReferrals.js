@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchReferrals } from '../lib/referrals'
+import { fetchReferrals } from '../services/referrals'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

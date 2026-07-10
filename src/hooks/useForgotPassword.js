@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { forgotPassword } from '../lib/forgotPassword'
+import { forgotPassword } from '../services/forgotPassword'
 
 export default function useForgotPassword() {
   const submitMutation = useMutation({

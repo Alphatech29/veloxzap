@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { sendEmailVerificationLink, verifyEmailLink } from '../lib/emailVerification'
+import { sendEmailVerificationLink, verifyEmailLink } from '../services/emailVerification'
 
 export default function useEmailVerification() {
   const sendMutation = useMutation({

@@ -8,15 +8,7 @@ import {
 import TransactionModal from '../../components/internalUI/TransactionModal'
 import useTransactions from '../../hooks/useTransactions'
 import { fmtDate } from '../../utils/format'
-
-const STATUS_META = {
-  successful: { label: 'Successful', bg: 'var(--c-success-bg)',   fg: 'var(--c-success)' },
-  processing: { label: 'Processing', bg: 'var(--c-warn-bg)',      fg: 'var(--c-warn)' },
-  pending:    { label: 'Pending',    bg: 'var(--c-warn-bg)',      fg: 'var(--c-warn)' },
-  failed:     { label: 'Failed',     bg: 'var(--c-danger-soft)',  fg: 'var(--c-danger)' },
-  refund:     { label: 'Refund',     bg: 'var(--c-accent-soft)',  fg: 'var(--c-accent)' },
-  reverse:    { label: 'Reversed',   bg: 'var(--c-surface-soft)', fg: 'var(--c-text-muted)' },
-}
+import { TRANSACTION_STATUS as STATUS_META } from '../../constants/status'
 
 const STATUS_OPTIONS = ['All', ...Object.keys(STATUS_META)]
 

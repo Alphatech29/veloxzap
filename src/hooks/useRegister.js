@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import useCountryPicker from './useCountryPicker'
-import { register } from '../lib/register'
+import { register } from '../services/register'
 
 const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Good', 'Strong']
 const STRENGTH_HINT  = '8+ characters with letters & numbers'

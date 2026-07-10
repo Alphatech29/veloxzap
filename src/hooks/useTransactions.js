@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchHistory, fetchWalletTransactionByReference, fetchElectricityTransactionByReference, fetchVtuTransactionByReference, fetchCableTvTransactionByReference, fetchConversionByReference, fetchGiftcardTradeByReference } from '../lib/transactions'
+import { fetchHistory, fetchWalletTransactionByReference, fetchElectricityTransactionByReference, fetchVtuTransactionByReference, fetchCableTvTransactionByReference, fetchConversionByReference, fetchGiftcardTradeByReference } from '../services/transactions'
 import { unwrap } from '../lib/queryClient'
 import { queryKeys } from '../lib/queryKeys'
 

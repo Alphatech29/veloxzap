@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { purchaseBetting, validateBetting } from '../lib/betting'
+import { purchaseBetting, validateBetting } from '../services/betting'
 import { queryKeys } from '../lib/queryKeys'
 
 function mutationError(mutation, fallback) {

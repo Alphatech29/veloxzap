@@ -42,7 +42,7 @@ function StatusBadge({ status }) {
   const map = {
     pending:   { label: 'Pending',   cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
     completed: { label: 'Paid',      cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-    failed:    { label: 'Failed',    cls: 'bg-[var(--c-danger-bg,#3a1a1a)] text-[var(--c-danger,#f87171)]' },
+    failed:    { label: 'Failed',    cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
   }
   const s = map[status] || map.pending
   return (

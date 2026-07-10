@@ -9,20 +9,14 @@ import {
 import useGiftCards, { DENOMINATIONS, countryLabel, countryCode } from '../../hooks/useGiftCards'
 import { useAlert } from '../../components/ui/Alert'
 import BottomSheet from '../../components/internalUI/BottomSheet'
+import { TRADE_STATUS } from '../../constants/status'
 
 function formatNGN(n) {
   return '₦' + n.toLocaleString('en-NG')
 }
 
 function StatusBadge({ status }) {
-  const map = {
-    pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
-    processing: { label: 'Processing', cls: 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]' },
-    paid:       { label: 'Paid',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-    failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
-    completed:  { label: 'Completed',  cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-  }
-  const s = map[status] || map.pending
+  const s = TRADE_STATUS[status] || TRADE_STATUS.pending
   return (
     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold ${s.cls}`}>
       {s.label}
@@ -1088,7 +1082,7 @@ export default function MobileTradeCards() {
                 </div>
 
                 {submitError && (
-                  <p className="inline-flex items-start gap-1.5 text-[10.5px] text-[var(--c-danger,#f87171)] bg-[var(--c-danger-bg,#3a1a1a)] rounded-xl px-3 py-2 mb-3 w-full">
+                  <p className="inline-flex items-start gap-1.5 text-[10.5px] text-[var(--c-danger)] bg-[var(--c-danger-soft)] rounded-xl px-3 py-2 mb-3 w-full">
                     <AlertCircle size={12} className="shrink-0 mt-0.5" /> {submitError}
                   </p>
                 )}

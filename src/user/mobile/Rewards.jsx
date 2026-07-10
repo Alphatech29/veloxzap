@@ -6,7 +6,7 @@ import useUser from '../../hooks/useUser'
 import useReferrals from '../../hooks/useReferrals'
 import useRewardRules from '../../hooks/useRewardRules'
 import useRewardTransactions from '../../hooks/useRewardTransactions'
-import { claimRewardTransaction } from '../../lib/rewardRules'
+import { claimRewardTransaction } from '../../services/rewardRules'
 import { useAlert } from '../../components/ui/Alert'
 import {
   ChevronLeft, Gift, Sparkles, TrendingUp, Crown, Star,
