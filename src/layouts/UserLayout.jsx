@@ -36,15 +36,18 @@ function UserShell() {
   }
 
   if (isMobile) {
+    const showMobileHeader = location.pathname === '/user/dashboard' || location.pathname === '/user/wallet'
     return (
       <div className="ul-shell min-h-screen" data-theme={theme}>
         <AlertProvider>
           <ToastProvider>
-            <UserMobileHeader />
+            {showMobileHeader && <UserMobileHeader />}
             <main
-              className="px-4 pt-[72px] pb-[88px]"
+              className="px-4 pb-[88px]"
               style={{
-                paddingTop: 'calc(60px + env(safe-area-inset-top) + 16px)',
+                paddingTop: showMobileHeader
+                  ? 'calc(60px + env(safe-area-inset-top) + 16px)'
+                  : 'calc(env(safe-area-inset-top) + 16px)',
                 paddingBottom: 'calc(88px + env(safe-area-inset-bottom) + 16px)',
               }}
             >

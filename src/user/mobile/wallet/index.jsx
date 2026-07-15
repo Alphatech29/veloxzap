@@ -1,0 +1,170 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, ShieldCheck, Sparkles, Info, ArrowDownLeft, ChevronRight } from 'lucide-react'
+import useCrypto from '../../../hooks/useCrypto'
+import { buildCoins, formatCoinAmount, formatUSD } from '../../../constants/crypto'
+import BottomSheet from '../../../components/internalUI/BottomSheet'
+
+const BALANCE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
+
+export default function MobileWallet() {
+  const navigate = useNavigate()
+  const { balances, loading } = useCrypto()
+  const [hidden, setHidden] = useState(() => localStorage.getItem('vzap_hide_crypto_balance') === '1')
+  const [depositSheetOpen, setDepositSheetOpen] = useState(false)
+
+  const coins = useMemo(() => buildCoins(balances), [balances])
+  const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + c.valueUSD, 0), [coins])
+  const depositCoins = useMemo(() => {
+    const seen = new Set()
+    return coins.filter(coin => {
+      if (seen.has(coin.symbol)) return false
+      seen.add(coin.symbol)
+      return true
+    })
+  }, [coins])
+
+  function toggleHide() {
+    setHidden(h => {
+      localStorage.setItem('vzap_hide_crypto_balance', h ? '0' : '1')
+      return !h
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <article
+        className="relative overflow-hidden p-3.5 rounded-2xl border border-[rgba(201,162,39,0.32)] text-text shadow-[0_18px_44px_-14px_rgba(2,7,23,0.55)]"
+        style={{ background: BALANCE_BG }}
+      >
+        <span aria-hidden className="absolute -top-12 -right-12 w-[180px] h-[180px] rounded-full bg-brand-accent/15 blur-3xl pointer-events-none" />
+        <span aria-hidden className="absolute -bottom-12 -left-10 w-[150px] h-[150px] rounded-full bg-brand-gold-soft/10 blur-3xl pointer-events-none" />
+
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.2px] text-brand-accent font-semibold">
+              Total assets
+            </span>
+            <button
+              type="button"
+              onClick={toggleHide}
+              aria-label={hidden ? 'Show balance' : 'Hide balance'}
+              className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-white/[0.08] border border-white/[0.16] active:scale-95 transition"
+            >
+              {hidden ? <EyeOff size={11} /> : <Eye size={11} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="relative flex items-end justify-between gap-2.5 mt-2">
+          <div className="min-w-0">
+            {loading ? (
+              <div aria-hidden className="w-[140px] h-[22px] rounded-md bg-white/[0.08] border border-white/[0.10] animate-pulse" />
+            ) : (
+              <div className="text-[20px] font-bold tracking-[-0.5px] truncate">
+                {hidden ? '$••••••' : formatUSD(totalUSD)}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setDepositSheetOpen(true)}
+            className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.3)] active:scale-[0.97] transition"
+          >
+
+            <span className="text-[11px] font-bold">Deposit</span>
+          </button>
+        </div>
+
+
+      </article>
+
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[12px] font-semibold m-0 text-[var(--c-text)] tracking-[-0.1px]">Assets</h2>
+        </div>
+
+        <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+          {loading ? (
+            <ul className="m-0 list-none">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li key={i} className={`flex items-center gap-2.5 px-3 py-2.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
+                  <span aria-hidden className="w-8 h-8 rounded-full bg-[var(--c-surface-soft)] animate-pulse shrink-0" />
+                  <div className="flex-1 flex flex-col gap-1">
+                    <span aria-hidden className="h-2.5 w-2/5 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                    <span aria-hidden className="h-2 w-1/4 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                  </div>
+                  <span aria-hidden className="h-2.5 w-14 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul className="m-0 list-none">
+              {coins.map((coin, i) => (
+                <li key={coin.asset}
+                  className={[
+                    'grid grid-cols-[auto_1fr_auto] items-center gap-2.5 px-3 py-2.5',
+                    i > 0 ? 'border-t border-[var(--c-border)]' : '',
+                  ].join(' ')}>
+
+                  <img src={coin.icon} alt={coin.symbol} className="w-8 h-8 rounded-full shrink-0" />
+
+                  <div className="flex flex-col min-w-0 leading-tight">
+                    <span className="text-[12px] font-semibold text-[var(--c-text)] truncate">
+                      {coin.name}
+                    </span>
+                    {coin.network && (
+                      <span className="text-[9.5px] text-[var(--c-text-muted)] mt-0.5 truncate">{coin.network}</span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[11.5px] font-bold tabular-nums text-[var(--c-text)] whitespace-nowrap">
+                      {hidden ? '••••••' : `${formatCoinAmount(coin.amount, coin.decimals)} ${coin.symbol}`}
+                    </span>
+                    <span className="text-[10px] tabular-nums text-[var(--c-text-muted)] font-medium whitespace-nowrap">
+                      {hidden ? '••••' : formatUSD(coin.valueUSD)}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <BottomSheet
+        open={depositSheetOpen}
+        onClose={() => setDepositSheetOpen(false)}
+        label="Deposit"
+        title="Choose a coin"
+      >
+        <ul className="m-0 list-none p-0 pb-2">
+          {depositCoins.map((coin, i) => (
+            <li key={coin.asset}>
+              <button
+                type="button"
+                onClick={() => {
+                  setDepositSheetOpen(false)
+                  navigate(`/user/wallet/coin/${coin.symbol.toLowerCase()}`)
+                }}
+                className={[
+                  'w-full grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3 text-left active:bg-[var(--c-surface-soft)] transition',
+                  i > 0 ? 'border-t border-[var(--c-border)]' : '',
+                ].join(' ')}
+              >
+                <img src={coin.icon} alt={coin.symbol} className="w-9 h-9 rounded-full shrink-0" />
+                <div className="flex flex-col min-w-0 leading-tight">
+                  <span className="text-[13px] font-semibold text-[var(--c-text)] truncate">
+                    {coin.name}
+                  </span>
+                </div>
+                <ChevronRight size={14} className="text-[var(--c-text-faint)] shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </BottomSheet>
+    </div>
+  )
+}

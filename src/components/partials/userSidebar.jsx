@@ -34,10 +34,10 @@ const NAV_GROUPS = [
     items: [
       { to: '/user/deposit',     label: 'Deposit',      icon: ArrowDownLeft },
       { to: '/user/withdraw',    label: 'Withdraw',     icon: ArrowUpRight },
+      { to: '/user/wallet',      label: 'Crypto wallet', icon: Wallet },
       { to: '/user/savings',          label: 'Save & earn',    icon: PiggyBank,
         badge: { label: 'Up to 18%', tone: 'gold' } },
       { to: '/user/convert',          label: 'Convert',        icon: ArrowLeftRight },
-      { to: '/user/crypto-exchange',  label: 'Crypto Exchange', icon: Bitcoin },
       { to: '/user/cards',            label: 'Virtual cards',  icon: CreditCard },
       { to: '/user/trade-cards',      label: 'Trade cards',    icon: Tag },
     ],

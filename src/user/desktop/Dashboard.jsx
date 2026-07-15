@@ -18,7 +18,7 @@ const QUICK_ACTIONS = [
   { to: '/user/bills',            label: 'Bills',         icon: Receipt },
   { to: '/user/trade-cards',      label: 'Gift Card',     icon: Gift },
   { to: '/user/convert',          label: 'Convert',       icon: ArrowLeftRight },
-  { to: '/user/crypto-exchange',  label: 'Crypto',        icon: Bitcoin },
+  { to: '/user/wallet',           label: 'Crypto',        icon: Bitcoin },
 ]
 
 const PALETTE = ['#C9A227', '#7AA7FF', '#E89B6B', '#5BD0A0', '#A78BFA', '#F472B6']

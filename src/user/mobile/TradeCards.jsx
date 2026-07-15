@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Sparkles, Gift, Check, ShieldCheck, X, Loader2,
+  Sparkles, Gift, Check, ShieldCheck, X, Loader2,
   Plus, Trash2, AlertCircle, TrendingUp, Hash, ImageIcon, Upload, ChevronDown,
-  Search, Lock, Tag, History, ChevronRight,
+  Search, Lock, Tag, History,
 } from 'lucide-react'
 import useGiftCards, { DENOMINATIONS, countryLabel, countryCode } from '../../hooks/useGiftCards'
 import { useAlert } from '../../components/ui/Alert'
 import BottomSheet from '../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import { TRADE_STATUS } from '../../constants/status'
 
 function formatNGN(n) {
@@ -567,31 +568,21 @@ export default function MobileTradeCards() {
   return (
     <div className="flex flex-col gap-4 pb-28">
 
-      {/* Header */}
-      <div className="flex items-center gap-3 -mt-1">
-        <button type="button" onClick={() => navigate('/user/dashboard')}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] active:scale-95 transition shrink-0">
-          <ChevronLeft size={16} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-[9.5px] uppercase tracking-[1.2px] font-bold text-brand-accent m-0 inline-flex items-center gap-1">
-            <Sparkles size={9} /> Gift cards
-          </p>
-          <h1 className="text-[17px] font-bold tracking-[-0.3px] text-[var(--c-text)] m-0 leading-tight">Trade gift cards</h1>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setRatesSheetOpen(true)}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)] text-[9px] font-bold uppercase tracking-[0.9px] text-[var(--c-text-muted)] active:scale-95 transition"
-          >
-            <Tag size={9} /> Rates
-          </button>
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[9px] font-bold uppercase tracking-[0.9px] text-brand-accent">
-            <ShieldCheck size={9} /> Instant
-          </span>
-        </div>
-      </div>
+      <MobilePageHeader
+        title="Trade gift cards"
+        onBack={() => navigate('/user/dashboard')}
+        right={
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setRatesSheetOpen(true)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)] text-[9px] font-bold uppercase tracking-[0.9px] text-[var(--c-text-muted)] active:scale-95 transition"
+            >
+              <Tag size={9} /> Rates
+            </button>
+          </div>
+        }
+      />
 
       {/* ── Unified form card ── */}
       <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden divide-y divide-[var(--c-border)]">

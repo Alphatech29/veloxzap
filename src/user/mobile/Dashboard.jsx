@@ -17,9 +17,9 @@ const QUICK_ACTIONS = [
   { to: '/user/data',         label: 'Data',         icon: Wifi },
   { to: '/user/savings',      label: 'Save & Earn',  icon: PiggyBank },
   { to: '/user/trade-cards',  label: 'Trade Card',   icon: Gift },
-  { to: '/user/crypto-exchange', label: 'Crypto Trade', icon: Bitcoin },
   { to: '/user/buy-giftcard', label: 'Buy Gift Card', icon: Gift },
   { to: '/user/convert',       label: 'Convert',       icon: TrendingUp },
+  { to: '/user/wallet',        label: 'Crypto',        icon: Bitcoin },
 ]
 
 const STATUS_TONE = Object.fromEntries(
@@ -64,10 +64,23 @@ export default function MobileDashboard() {
         <span aria-hidden className="absolute -bottom-12 -left-10 w-[150px] h-[150px] rounded-full bg-brand-gold-soft/10 blur-3xl pointer-events-none" />
 
         <div className="relative flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[1.4px] text-brand-accent font-semibold">
-            <ShieldCheck size={11} />
-            Vault balance
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[1.4px] text-brand-accent font-semibold">
+              Balance
+            </span>
+            <button
+              type="button"
+              onClick={() => setHidden(h => {
+                const next = !h
+                localStorage.setItem('vzap_hide_balance', next ? '1' : '0')
+                return next
+              })}
+              aria-label={hidden ? 'Show balance' : 'Hide balance'}
+              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.08] border border-white/[0.16] active:scale-95 transition"
+            >
+              {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.08] border border-white/[0.12]">
               {[
@@ -85,13 +98,6 @@ export default function MobileDashboard() {
                 </button>
               ))}
             </div>
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.16] text-[9.5px] uppercase tracking-[1.1px] text-white/80 font-semibold">
-              <span className="relative flex w-1.5 h-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-brand-accent animate-ping opacity-70" />
-                <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-brand-accent" />
-              </span>
-              Live
-            </span>
           </div>
         </div>
 
@@ -110,18 +116,7 @@ export default function MobileDashboard() {
               </div>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setHidden(h => {
-              const next = !h
-              localStorage.setItem('vzap_hide_balance', next ? '1' : '0')
-              return next
-            })}
-            aria-label={hidden ? 'Show balance' : 'Hide balance'}
-            className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-white/[0.08] border border-white/[0.16] active:scale-95 transition"
-          >
-            {hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
+
         </div>
 
         <div className="relative grid grid-cols-2 gap-2 mt-3.5">
@@ -139,17 +134,6 @@ export default function MobileDashboard() {
             <ArrowUpRight size={13} strokeWidth={2.6} />
             <span className="text-[12px] font-bold">Withdraw</span>
           </Link>
-        </div>
-
-        <div className="relative flex items-center justify-between mt-4 pt-3 border-t border-white/[0.08]">
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-white/55">
-            <ShieldCheck size={11} />
-            256-bit encrypted
-          </span>
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-white/55">
-            <Sparkles size={10} className="text-brand-accent" />
-            Updated just now
-          </span>
         </div>
       </article>
 

@@ -9,6 +9,10 @@ import Profile from './user/Profile'
 import Transactions from './user/Transactions'
 import UserContact from './user/Contact'
 import Convert from './user/Convert'
+import Wallet from './user/Wallet'
+import WalletCoin from './user/mobile/wallet/CoinInfo'
+import WalletHistory from './user/mobile/wallet/AssetHistory'
+import WalletDepositDetail from './user/mobile/wallet/DepositDetail'
 import Rewards from './user/Rewards'
 import Saving from './user/Saving'
 import TargetSavings from './user/TargetSavings'
@@ -22,7 +26,6 @@ import Data from './user/Data'
 import Bills from './user/Bills'
 import TradeCards from './user/TradeCards'
 import TradeHistory from './user/TradeHistory'
-import CryptoExchange from './user/CryptoExchange'
 import Settings from './user/Settings'
 import ChangePassword from './user/ChangePassword'
 import TransactionPin from './user/TransactionPin'
@@ -93,6 +96,10 @@ function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="contact" element={<UserContact />} />
           <Route path="convert" element={<Convert />} />
+          <Route path="wallet" element={<Wallet />} />
+          <Route path="wallet/coin/:symbol" element={<WalletCoin />} />
+          <Route path="wallet/history" element={<WalletHistory />} />
+          <Route path="wallet/history/:id" element={<WalletDepositDetail />} />
           <Route path="rewards" element={<Rewards />} />
           <Route path="savings" element={<Saving />} />
           <Route path="savings/target-savings" element={<TargetSavings />} />
@@ -106,7 +113,6 @@ function App() {
           <Route path="bills" element={<Bills />} />
           <Route path="trade-cards" element={<TradeCards />} />
           <Route path="trade-history" element={<TradeHistory />} />
-          <Route path="crypto-exchange" element={<CryptoExchange />} />
           <Route path="settings" element={<Settings />} />
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="transaction-pin" element={<TransactionPin />} />

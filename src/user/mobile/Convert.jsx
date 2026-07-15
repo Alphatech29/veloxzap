@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, ChevronDown, ArrowDownUp, Sparkles, Info,
+  ChevronDown, ArrowDownUp, Info,
   ShieldCheck, X, Check, TrendingUp,
 } from 'lucide-react'
 import BottomSheet from '../../components/internalUI/BottomSheet'
 import ProcessingOverlay from '../../components/internalUI/ProcessingOverlay'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import useUser from '../../hooks/useUser'
 import useSettings from '../../hooks/useSettings'
 import { convertCurrency } from '../../services/convert'
@@ -38,13 +38,11 @@ function formatBalance(code, value) {
 }
 
 export default function MobileConvert() {
-  const navigate = useNavigate()
   const { wallet } = useUser()
   const { settings } = useSettings()
 
-  // Two independent, non-reciprocal rates (buy/sell spread) — must match backend's utilities/convert.js
-  const ngnToUsdRate = Number(settings?.ngn_to_usd ?? 0) // NGN per 1 USD, applied when selling NGN for USD
-  const usdToNgnRate = Number(settings?.usd_to_ngn ?? 0) // NGN per 1 USD, applied when selling USD for NGN
+  const ngnToUsdRate = Number(settings?.ngn_to_usd ?? 0)
+  const usdToNgnRate = Number(settings?.usd_to_ngn ?? 0)
 
   const balances = {
     NGN: Number(wallet?.ngn_balance ?? 0),
@@ -125,25 +123,10 @@ export default function MobileConvert() {
         title="Converting…"
         subtitle={`${formatAmount(num, from.decimals)} ${fromCode} → ${toCode}`}
       />
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <Sparkles size={11} /> Exchange
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Convert
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Swap between NGN and USD instantly · zero hidden fees
-        </p>
-      </div>
+      <MobilePageHeader title="Convert" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Swap between NGN and USD instantly.
+      </p>
 
       <div className="relative flex flex-col gap-2">
         <CurrencyCard

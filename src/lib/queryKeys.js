@@ -3,6 +3,13 @@ export const queryKeys = {
   wallet: ['wallet'],
   dedicatedAccount: ['dedicatedAccount'],
 
+  crypto: {
+    balances: ['crypto', 'balances'],
+    addresses: ['crypto', 'addresses'],
+    config: ['crypto', 'config'],
+    deposits: ['crypto', 'deposits'],
+  },
+
   transactions: {
     recent: ['transactions', 'recent'],
     byReference: (reference) => ['transactions', 'byReference', reference],
