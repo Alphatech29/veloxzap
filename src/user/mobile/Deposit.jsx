@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
-  ChevronLeft, Sparkles, Bitcoin, ChevronRight,
+  Bitcoin, ChevronRight,
   Copy, Check, Info, Clock, ShieldCheck,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 export default function MobileDeposit() {
   const { dedicatedAccount } = useUser()
-  const navigate = useNavigate()
   const [copied, setCopied] = useState(null)
 
   function handleCopy(key, value) {
@@ -19,25 +19,10 @@ export default function MobileDeposit() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <Sparkles size={11} /> Add money
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Deposit
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Top up via your virtual account · funds arrive in seconds.
-        </p>
-      </div>
+      <MobilePageHeader title="Deposit" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Top up via your virtual account · funds arrive in seconds.
+      </p>
 
       <BankPanel account={dedicatedAccount} copied={copied} onCopy={handleCopy} />
 

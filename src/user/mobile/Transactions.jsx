@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Search, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
+  Search, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
   Sparkles, AlertCircle, Download, ChevronDown, Check, Tag, Filter,
 } from 'lucide-react'
 import TransactionModal from '../../components/internalUI/TransactionModal'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import useTransactions from '../../hooks/useTransactions'
 import { fmtDate } from '../../utils/format'
 import { TRANSACTION_STATUS as STATUS_META } from '../../constants/status'
@@ -45,7 +45,6 @@ function exportCsv(rows) {
 }
 
 export default function MobileTransactions() {
-  const navigate = useNavigate()
   const { transactions, loading } = useTransactions({ recentLimit: Infinity })
   const [filter,        setFilter]        = useState('All')
   const [status,        setStatus]        = useState('All')
@@ -92,30 +91,12 @@ export default function MobileTransactions() {
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between -mt-1">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition"
-        >
-          <ChevronLeft size={14} /> Back
-        </button>
-        <button
-          type="button"
-          onClick={() => exportCsv(filtered)}
-          disabled={filtered.length === 0}
-          aria-label="Export statement"
-          className="inline-flex items-center justify-center w-9 h-9 rounded-[10px] bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[var(--c-text)] hover:border-[var(--c-accent-border)] hover:text-brand-accent active:scale-95 transition disabled:opacity-40 disabled:pointer-events-none"
-        >
-          <Download size={14} />
-        </button>
-      </div>
-
-      <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mb-2 mt-1">
-          Transactions
-        </h1>
-      </div>
+      <MobilePageHeader
+        title="Transactions"
+        rightIcon={Download}
+        rightLabel="Export statement"
+        onRightClick={() => filtered.length > 0 && exportCsv(filtered)}
+      />
 
       <div className="flex items-center gap-2">
         {/* Category dropdown */}

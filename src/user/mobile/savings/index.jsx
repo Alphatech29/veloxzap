@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import BottomSheet from '../../../components/internalUI/BottomSheet'
 import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview } from '../../../hooks/useSavings'
 import {
-  ChevronLeft, PiggyBank, TrendingUp, Lock, Wallet, Target, Sparkles, Plus,
+  PiggyBank, TrendingUp, Lock, Wallet, Target, Sparkles, Plus,
   ShieldCheck, Clock, Check, ChevronRight, Percent, Loader2,
 } from 'lucide-react'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
@@ -333,7 +334,6 @@ function CreatePlanSheet({ product, onClose, onSubmit, submitting, success }) {
 /* ── Page ──────────────────────────────────────────────────── */
 
 export default function MobileSaving() {
-  const navigate = useNavigate()
   const { alert } = useAlert()
   const {
     plans: rawProducts,
@@ -395,26 +395,7 @@ export default function MobileSaving() {
 
   return (
     <div className="flex flex-col gap-3.5">
-      {/* Back */}
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={13} /> Back
-      </button>
-
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
-            <PiggyBank size={9} /> Save & earn
-          </p>
-          <h1 className="text-[17px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5">
-            Grow your money
-          </h1>
-        </div>
-      </div>
+      <MobilePageHeader title="Grow your money" />
 
       {/* ── Hero ── */}
       <motion.article

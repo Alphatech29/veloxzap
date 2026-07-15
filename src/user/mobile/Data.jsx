@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Sparkles, Phone, Check, ShieldCheck, Wifi, Info, X, Loader2,
+  Phone, Check, ShieldCheck, Wifi, Info, X, Loader2,
   Clock, Zap, ChevronRight, Receipt,
 } from 'lucide-react'
 import mtnLogo from '../../assets/mtn.png'
@@ -13,6 +12,7 @@ import useData, { TYPE_TABS } from '../../hooks/useData'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
 import BottomSheet, { SheetRow } from '../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 const NETWORKS = [
   { id: 'mtn',      label: 'MTN',      logo: mtnLogo,    color: '#FFCC00' },
@@ -50,7 +50,6 @@ function formatNGN(n) {
 }
 
 export default function MobileData() {
-  const navigate   = useNavigate()
   const { alert }  = useAlert()
   const {
     recentNumbers, recentLoading,
@@ -130,26 +129,10 @@ export default function MobileData() {
   return (
     <div className="flex flex-col gap-5 pb-6">
 
-      {/* Header */}
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <Sparkles size={11} /> Stay online
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Buy data
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Pick a plan for any Nigerian network · activates instantly.
-        </p>
-      </div>
+      <MobilePageHeader title="Buy data" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Pick a plan for any Nigerian network · activates instantly.
+      </p>
 
       {/* Phone input */}
       <section>

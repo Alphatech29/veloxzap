@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ChevronLeft, KeyRound, Eye, EyeOff,
-  AlertCircle, Loader2, ShieldCheck,
+  KeyRound, Eye, EyeOff,
+  AlertCircle, Loader2,
 } from 'lucide-react'
 import { changePassword } from '../../services/user'
 import { useAlert } from '../../components/ui/Alert'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 function StrengthBar({ password }) {
   const score = [/.{8,}/, /[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/]
@@ -99,25 +100,10 @@ export default function MobileChangePassword() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] active:scale-95 transition self-start -mt-1 hover:text-brand-accent"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <ShieldCheck size={11} /> Security
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Change password
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1 leading-snug">
-          Use a strong, unique password you don't use elsewhere.
-        </p>
-      </div>
+      <MobilePageHeader title="Change password" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Use a strong, unique password you don't use elsewhere.
+      </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 

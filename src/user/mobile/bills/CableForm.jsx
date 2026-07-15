@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, ChevronDown, Sparkles, Check, ShieldCheck, Info, X, Tv,
+  ChevronDown, Check, ShieldCheck, Info, X, Tv,
   AlertCircle, Loader2, RefreshCw,
 } from 'lucide-react'
 import { PROVIDERS, formatNGN } from './constants'
 import PinModal from '../../../components/ui/PinModal'
 import BottomSheet, { SheetRow } from '../../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 import useCable from '../../../hooks/useCable'
 import { useAlert } from '../../../components/ui/Alert'
 import useUser from '../../../hooks/useUser'
@@ -129,20 +130,16 @@ export default function CableForm({ onBack }) {
     <>
     <div className="flex flex-col gap-3.5">
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between -mt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition"
-        >
-          <ChevronLeft size={12} /> Back
-        </button>
-        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)] text-[9px] font-bold text-[var(--c-text-muted)]">
-          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[7px] font-black">2</span>
-          Step 2 of 2
-        </span>
-      </div>
+      <MobilePageHeader
+        title="Pay Cable TV"
+        onBack={onBack}
+        right={
+          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[9px] font-bold text-[var(--c-text-muted)]">
+            <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[7px] font-black">2</span>
+            Step 2 of 2
+          </span>
+        }
+      />
 
       {/* Category header */}
       <div className="relative overflow-hidden rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] p-3.5">
@@ -152,10 +149,7 @@ export default function CableForm({ onBack }) {
             <Tv size={19} strokeWidth={2.1} />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
-              <Sparkles size={8} /> Cable TV
-            </p>
-            <h1 className="text-[14px] font-semibold tracking-[-0.4px] text-[var(--c-text)] m-0 leading-tight">Pay Cable TV</h1>
+            <p className="text-[12px] font-semibold text-[var(--c-text)] m-0">Cable TV</p>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[8.5px] font-bold uppercase tracking-[0.7px] text-brand-accent">
             <ShieldCheck size={9} /> Secure

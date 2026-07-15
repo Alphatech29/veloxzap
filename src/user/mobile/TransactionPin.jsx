@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Lock, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react'
+import { Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import { createPin, changePin } from '../../services/user'
 import { useAlert } from '../../components/ui/Alert'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 function PinInput({ value, onChange, masked, label, autoFocus }) {
   const inputsRef = useRef([])
@@ -109,27 +110,12 @@ export default function MobileTransactionPin() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] active:scale-95 transition self-start -mt-1 hover:text-brand-accent"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <ShieldCheck size={11} /> Security
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          {hasPinSet ? 'Change transaction PIN' : 'Set transaction PIN'}
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1 leading-snug">
-          {hasPinSet
-            ? 'Enter your current PIN, then choose a new one.'
-            : 'Create a 4-digit PIN to authorise transactions.'}
-        </p>
-      </div>
+      <MobilePageHeader title={hasPinSet ? 'Change transaction PIN' : 'Set transaction PIN'} />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        {hasPinSet
+          ? 'Enter your current PIN, then choose a new one.'
+          : 'Create a 4-digit PIN to authorise transactions.'}
+      </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-5 p-4 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)]">

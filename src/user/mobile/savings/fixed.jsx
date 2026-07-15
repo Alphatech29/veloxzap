@@ -6,10 +6,11 @@ import { useAlert } from '../../../components/ui/Alert'
 import { useSavingsOverview, useSavingsWithdrawals, useSavingsPlanLedger } from '../../../hooks/useSavings'
 import { fmtDate } from '../../../utils/format'
 import {
-  ChevronLeft, ChevronDown, Lock, Plus, Check, Loader2, ShieldCheck,
+  ChevronDown, Lock, Plus, Check, Loader2, ShieldCheck,
   ArrowUpRight, ArrowDownLeft, Clock, Calendar, Percent, Coins, X,
   AlertTriangle, Zap, TrendingUp, History, Receipt, Sparkles,
 } from 'lucide-react'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
@@ -719,25 +720,20 @@ export default function MobileFixedSavings() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--c-bg)' }}>
 
-      {/* Header */}
-      <div className="grid grid-cols-3 items-center pt-4">
-        <button
-          type="button"
-          onClick={() => navigate('/user/savings')}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition justify-self-start"
-        >
-          <ChevronLeft size={13} /> Back
-        </button>
-        <h1 className="text-[15px] font-black text-[var(--c-text)] m-0 tracking-[-0.3px] text-center">Fixed plans</h1>
-        <button
-          type="button"
-          onClick={() => { setShowSheet(true); setSuccess(null) }}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition active:scale-90 justify-self-end"
-          style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', boxShadow: '0 4px 14px rgba(201,162,39,0.4)' }}
-        >
-          <Plus size={17} strokeWidth={2.6} />
-        </button>
-      </div>
+      <MobilePageHeader
+        title="Fixed plans"
+        onBack={() => navigate('/user/savings')}
+        right={
+          <button
+            type="button"
+            onClick={() => { setShowSheet(true); setSuccess(null) }}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition active:scale-90"
+            style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', boxShadow: '0 4px 14px rgba(201,162,39,0.4)' }}
+          >
+            <Plus size={17} strokeWidth={2.6} />
+          </button>
+        }
+      />
 
       <div className="flex flex-col gap-4  py-4 pb-24">
 

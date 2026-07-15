@@ -8,10 +8,11 @@ import CreateGoalSheet from '../../../components/internalUI/CreateGoalSheet'
 import GoalHistorySheet from '../../../components/internalUI/GoalHistorySheet'
 import WithdrawGoalSheet from '../../../components/internalUI/WithdrawGoalSheet'
 import {
-  ChevronLeft, Target, Plus, Check, Loader2,
+  Target, Plus, Check, Loader2,
   ArrowUpRight, ArrowDownLeft, Pause, Play, Flag, Percent, Coins, Zap,
   History,
 } from 'lucide-react'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
@@ -448,25 +449,20 @@ export default function MobileTargetSavings() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--c-bg)' }}>
 
-      {/* Top bar */}
-      <div className="grid grid-cols-3 items-center pt-4">
-        <button
-          type="button"
-          onClick={() => navigate('/user/savings')}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition justify-self-start"
-        >
-          <ChevronLeft size={13} /> Back
-        </button>
-        <h1 className="text-[15px] font-black text-[var(--c-text)] m-0 tracking-[-0.3px] text-center">Your goals</h1>
-        <button
-          type="button"
-          onClick={() => { setShowModal(true); setSuccess(null) }}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition active:scale-90 justify-self-end"
-          style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', boxShadow: '0 4px 14px rgba(201,162,39,0.4)' }}
-        >
-          <Plus size={17} strokeWidth={2.6} />
-        </button>
-      </div>
+      <MobilePageHeader
+        title="Your goals"
+        onBack={() => navigate('/user/savings')}
+        right={
+          <button
+            type="button"
+            onClick={() => { setShowModal(true); setSuccess(null) }}
+            className="inline-flex items-center justify-center w-9 h-9 rounded-xl transition active:scale-90"
+            style={{ background: 'linear-gradient(135deg,#C9A227,#f0d060)', color: '#0A1F44', boxShadow: '0 4px 14px rgba(201,162,39,0.4)' }}
+          >
+            <Plus size={17} strokeWidth={2.6} />
+          </button>
+        }
+      />
 
       <div className="flex flex-col gap-4 py-4 pb-24">
 

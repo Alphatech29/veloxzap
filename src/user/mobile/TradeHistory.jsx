@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Gift, History, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Gift, History, ChevronRight, X } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import useGiftCards, { countryLabel } from '../../hooks/useGiftCards'
 import BottomSheet from '../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import { TRADE_STATUS } from '../../constants/status'
 
 function formatNGN(n) {
@@ -116,27 +117,13 @@ export default function MobileTradeHistory() {
   return (
     <div className="flex flex-col pb-28">
 
-      {/* Header */}
-      <div className="flex items-center gap-3 -mt-1 mb-3">
-        <button type="button" onClick={() => navigate('/user/trade-cards')}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-[var(--c-surface)] border border-[var(--c-border)] active:scale-95 transition shrink-0">
-          <ChevronLeft size={16} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-[9.5px] uppercase tracking-[1.2px] font-bold text-brand-accent m-0 inline-flex items-center gap-1">
-            <History size={9} /> Gift cards
-          </p>
-          <h1 className="text-[17px] font-bold tracking-[-0.3px] text-[var(--c-text)] m-0 leading-tight">Trade history</h1>
-        </div>
-        {!recentLoading && (
-          <span className="text-[10px] font-bold text-[var(--c-text-muted)] bg-[var(--c-surface)] border border-[var(--c-border)] px-2 py-0.5 rounded-full tabular-nums shrink-0">
-            {recentTrades.length}
-          </span>
-        )}
-      </div>
+      <MobilePageHeader
+        title="Trade history"
+        onBack={() => navigate('/user/trade-cards')}
+      />
 
       {/* Status filter pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-3 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex items-center gap-1.5 overflow-x-auto mt-3 pb-3 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
         {STATUSES.map(s => (
           <button
             key={s}

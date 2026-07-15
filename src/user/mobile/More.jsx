@@ -5,7 +5,7 @@ import {
   History, User, Users, ScrollText, LogOut, ChevronRight,
   Shield, Fingerprint, Bell, HelpCircle, MessageCircle,
   FileText, ShieldCheck, Info, BadgeCheck, Star, Copy,
-  Palette, Languages, Coins, EyeOff, Sun, Moon,
+  Palette, Languages, Coins, EyeOff, Sun, Moon, Lock, KeyRound,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useTheme } from '../../hooks/useTheme'
@@ -24,11 +24,21 @@ const PREFERENCES = [
   { to: '/user/preferences/privacy',    label: 'Privacy',          sub: 'Hide balance on launch', icon: EyeOff },
 ]
 
-const SECURITY = [
-  { to: '/user/security/2fa',        label: '2-step verification', sub: 'Recommended',           icon: Shield,      meta: 'On' },
-  { to: '/user/security/biometrics', label: 'Biometric login',     sub: 'Face ID or fingerprint', icon: Fingerprint },
-  { to: '/user/notifications',       label: 'Alerts & reminders',  sub: 'Push, email, SMS',      icon: Bell },
-]
+function buildSecurity(user) {
+  return [
+    {
+      to: '/user/transaction-pin',
+      label: 'Transaction PIN',
+      sub: user?.is_pin_created === 1 ? 'Change your PIN' : 'Set up your PIN',
+      icon: Lock,
+      meta: user?.is_pin_created === 1 ? 'Set' : undefined,
+    },
+    { to: '/user/change-password',     label: 'Change password',     sub: 'Update your login password', icon: KeyRound },
+    { to: '/user/security/2fa',        label: '2-step verification', sub: 'Recommended',           icon: Shield,      meta: 'On' },
+    { to: '/user/security/biometrics', label: 'Biometric login',     sub: 'Face ID or fingerprint', icon: Fingerprint },
+    { to: '/user/notifications',       label: 'Alerts & reminders',  sub: 'Push, email, SMS',      icon: Bell },
+  ]
+}
 
 const SUPPORT = [
   { to: '/user/help',    label: 'Help center', sub: 'Browse FAQs & guides',   icon: HelpCircle },
@@ -159,7 +169,7 @@ export default function MobileMore() {
 
       <Section title="Account" items={ACCOUNT} />
       <Section title="Preferences" items={PREFERENCES} />
-      <Section title="Security" items={SECURITY} />
+      <Section title="Security" items={buildSecurity(user)} />
       <Section title="Support" items={SUPPORT} />
       <Section title="About" items={ABOUT} compact />
 

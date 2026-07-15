@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ChevronLeft, Camera, BadgeCheck, Star, Copy, Pencil,
+  Camera, BadgeCheck, Star, Copy, Pencil,
   User, Mail, Phone, Calendar, ShieldCheck, MapPin, Wallet, IdCard, Globe,
   AlertTriangle, Loader2,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useEmailVerification from '../../hooks/useEmailVerification'
 import { useToast } from '../../components/ui/Toast'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 const PROFILE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 
@@ -35,7 +35,6 @@ function formatMemberSince(value) {
 
 export default function MobileProfile() {
   const { user, updateAvatar, updating } = useUser()
-  const navigate = useNavigate()
   const initials = getInitials(user)
   const avatarUrl = user?.avatar
   const isEmailVerified = user?.is_email_verified === 1
@@ -87,13 +86,7 @@ export default function MobileProfile() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] active:scale-95 transition self-start -mt-1 hover:text-brand-accent"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
+      <MobilePageHeader title="Profile" />
 
       <motion.article
         initial={{ opacity: 0, y: 10 }}

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, Sparkles, Check, ShieldCheck, Info, X, Volleyball,
+  ChevronRight, Check, ShieldCheck, Info, X, Volleyball,
   Loader2, Search,
 } from 'lucide-react'
 import { PROVIDERS, formatNGN } from './constants'
 import PinModal from '../../../components/ui/PinModal'
 import BottomSheet, { SheetRow } from '../../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 import useBetting from '../../../hooks/useBetting'
 import { useAlert } from '../../../components/ui/Alert'
 
@@ -127,20 +128,16 @@ export default function BettingForm({ onBack }) {
     <>
     <div className="flex flex-col gap-2.5">
 
-      {/* Top bar */}
-      <div className="flex items-center justify-between -mt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition"
-        >
-          <ChevronLeft size={12} /> Back
-        </button>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)] text-[9px] font-bold text-[var(--c-text-muted)]">
-          <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[7px] font-black">2</span>
-          Step 2 of 2
-        </span>
-      </div>
+      <MobilePageHeader
+        title="Fund Betting Wallet"
+        onBack={onBack}
+        right={
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] text-[9px] font-bold text-[var(--c-text-muted)]">
+            <span className="inline-flex items-center justify-center w-3 h-3 rounded-full bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[7px] font-black">2</span>
+            Step 2 of 2
+          </span>
+        }
+      />
 
       {/* Category header */}
       <div className="relative overflow-hidden rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] p-2.5">
@@ -149,10 +146,7 @@ export default function BettingForm({ onBack }) {
             <Volleyball size={16} strokeWidth={2.1} />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="inline-flex items-center gap-1 text-[8px] uppercase tracking-[1.2px] text-brand-accent font-bold m-0">
-              <Sparkles size={7} /> Betting
-            </p>
-            <h1 className="text-[13px] font-semibold tracking-[-0.3px] text-[var(--c-text)] m-0 leading-tight">Fund Betting Wallet</h1>
+            <p className="text-[12px] font-semibold text-[var(--c-text)] m-0">Betting</p>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[var(--c-accent-soft)] border border-[var(--c-accent-border)] text-[8px] font-bold uppercase tracking-[0.5px] text-brand-accent">
             <ShieldCheck size={8} /> Secure

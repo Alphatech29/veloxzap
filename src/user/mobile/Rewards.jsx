@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import useSettings from '../../hooks/useSettings'
 import useUser from '../../hooks/useUser'
@@ -9,11 +8,12 @@ import useRewardTransactions from '../../hooks/useRewardTransactions'
 import { claimRewardTransaction } from '../../services/rewardRules'
 import { useAlert } from '../../components/ui/Alert'
 import {
-  ChevronLeft, Gift, Sparkles, TrendingUp, Crown, Star,
+  Sparkles, TrendingUp, Crown, Star,
   ArrowUpRight, Zap, Users, ChevronRight, Coins, Lock, Check,
   Copy, Share2, UserPlus, Wallet, ShieldCheck, Send, MailPlus,
   Fingerprint,
 } from 'lucide-react'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 const EARN_META = [
   { id: 'swap',      label: 'Crypto swap',       sourceType: 'crypto_swap',     fallbackRate: '5× pts',  icon: TrendingUp },
@@ -71,7 +71,6 @@ function timeAgo(dateStr) {
 }
 
 export default function MobileRewards() {
-  const navigate = useNavigate()
   const [copied, setCopied]   = useState(null)
   const [claiming, setClaiming] = useState(null)
   const { settings }                                                         = useSettings()
@@ -160,29 +159,9 @@ export default function MobileRewards() {
 
   return (
     <div className="flex flex-col gap-3.5">
-      {/* Back */}
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={13} /> Back
-      </button>
-
-      {/* Page header */}
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="inline-flex items-center gap-1 text-[9px] uppercase tracking-[1.3px] text-brand-accent font-bold m-0">
-            <Gift size={9} /> Rewards & referrals
-          </p>
-          <h1 className="text-[17px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5">
-            Earn rewards
-          </h1>
-        </div>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-brand-accent/20 to-brand-gold-soft/10 border border-[rgba(201,162,39,0.35)] text-[8.5px] font-bold uppercase tracking-[0.8px] text-brand-accent shrink-0">
-          <Crown size={8} strokeWidth={2.8} /> Gold tier
-        </span>
-      </div>
+      <MobilePageHeader
+        title="Earn rewards"
+      />
 
       {/* ── Hero ── */}
       <motion.article

@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Plus, Snowflake, Eye, EyeOff, ListChecks,
-  Sparkles, Wifi, Copy, ArrowDownLeft,
+  Plus, Snowflake, Eye, EyeOff, ListChecks,
+  Wifi, Copy, ArrowDownLeft,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 
 const CARDS = [
   {
@@ -70,25 +71,10 @@ export default function MobileCards() {
 
   return (
     <div className="flex flex-col gap-5">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <Sparkles size={11} /> Wallet
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Virtual cards
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Spend instantly online · supports global merchants and subscriptions.
-        </p>
-      </div>
+      <MobilePageHeader title="Virtual cards" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Spend instantly online · supports global merchants and subscriptions.
+      </p>
 
       <div className="flex gap-1 p-1 rounded-full bg-[var(--c-surface)] border border-[var(--c-border)]">
         {CARDS.map(c => {

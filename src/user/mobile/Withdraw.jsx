@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, Search, X, Check, ChevronRight,
+  Search, X, Check, ChevronRight,
   AlertCircle, Loader2, ShieldCheck, Building2, ArrowUpRight,
   User, Clock, MessageSquare,
 } from 'lucide-react'
@@ -14,6 +14,7 @@ import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
 import BeneficiaryPicker from '../../components/ui/BeneficiaryPicker'
 import BottomSheet from '../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import BankAvatar from '../../components/ui/BankAvatar'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 20000]
@@ -299,34 +300,26 @@ export default function MobileWithdraw() {
     <KycGate verified={user?.is_kyc_verified === 1}>
     <div className="flex flex-col pb-6">
 
-      {/* ── Header ── */}
-      <div className="flex items-center gap-3 mb-3 -mt-1">
-        <button type="button"
-          onClick={handleBack}
-          className="inline-flex items-center justify-center w-9 h-9 rounded-full border active:scale-95 transition shrink-0"
-          style={{ background: 'var(--c-surface)', borderColor: 'var(--c-border)' }}
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-[15px] font-bold text-[var(--c-text)] m-0 leading-tight">Send money</h1>
-          <p className="text-[10px] text-[var(--c-text-muted)] m-0">
-            {step === 1 ? 'Recipient details' : 'Amount & remark'}
-          </p>
-        </div>
-        {/* Step pills */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          {[1, 2].map(s => (
-            <motion.div
-              key={s}
-              animate={{ width: step === s ? 24 : 8, opacity: step >= s ? 1 : 0.3 }}
-              transition={{ duration: 0.25 }}
-              className="h-2 rounded-full"
-              style={{ background: step >= s ? 'var(--c-brand-accent, #C9A227)' : 'var(--c-border)' }}
-            />
-          ))}
-        </div>
-      </div>
+      <MobilePageHeader
+        title="Send money"
+        onBack={handleBack}
+        right={
+          <div className="flex items-center gap-1.5 shrink-0">
+            {[1, 2].map(s => (
+              <motion.div
+                key={s}
+                animate={{ width: step === s ? 24 : 8, opacity: step >= s ? 1 : 0.3 }}
+                transition={{ duration: 0.25 }}
+                className="h-2 rounded-full"
+                style={{ background: step >= s ? 'var(--c-brand-accent, #C9A227)' : 'var(--c-border)' }}
+              />
+            ))}
+          </div>
+        }
+      />
+      <p className="text-[10px] text-[var(--c-text-muted)] m-0 mb-3">
+        {step === 1 ? 'Recipient details' : 'Amount & remark'}
+      </p>
 
       <AnimatePresence mode="wait">
 

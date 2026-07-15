@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ChevronLeft, ChevronRight, Sparkles, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
+  ChevronRight, Phone, Check, ShieldCheck, Zap, Info, X, Loader2,
 } from 'lucide-react'
 import { purchaseAirtime, getRecentAirtimeNumbers } from '../../services/airtime'
 import { CASHBACK_RATE } from '../../hooks/useAirtime'
 import { useAlert } from '../../components/ui/Alert'
 import PinModal from '../../components/ui/PinModal'
 import BottomSheet, { SheetRow } from '../../components/internalUI/BottomSheet'
+import MobilePageHeader from '../../components/partials/MobilePageHeader'
 import mtnLogo from '../../assets/mtn.png'
 import airtelLogo from '../../assets/airtel.png'
 import gloLogo from '../../assets/glo.png'
@@ -52,7 +52,6 @@ function formatNGN(n) {
 }
 
 export default function MobileAirtime() {
-  const navigate = useNavigate()
   const { alert } = useAlert()
   const [phone, setPhone] = useState('')
   const [manualNet, setManualNet] = useState(null)
@@ -112,25 +111,10 @@ export default function MobileAirtime() {
   return (
     <>
     <div className="flex flex-col gap-5 pb-6">
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={14} /> Back
-      </button>
-
-      <div>
-        <p className="inline-flex items-center gap-1.5 text-[10.5px] uppercase tracking-[1.3px] text-brand-accent font-semibold m-0">
-          <Sparkles size={11} /> Top up
-        </p>
-        <h1 className="text-[22px] font-bold tracking-[-0.4px] text-[var(--c-text)] m-0 mt-1">
-          Buy airtime
-        </h1>
-        <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
-          Recharge any Nigerian network in seconds · cashback to wallet.
-        </p>
-      </div>
+      <MobilePageHeader title="Buy airtime" />
+      <p className="text-[12.5px] text-[var(--c-text-muted)] m-0 leading-snug">
+        Recharge any Nigerian network in seconds · cashback to wallet.
+      </p>
 
       <section>
         <p className="text-[10px] uppercase tracking-[1.3px] font-semibold text-[var(--c-text-muted)] m-0 mb-1.5 px-1">

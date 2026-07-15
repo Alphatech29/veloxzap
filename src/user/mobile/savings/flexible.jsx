@@ -8,12 +8,13 @@ import { topUpAccount } from '../../../services/savings'
 import { fmtDate, fmtDateOnly } from '../../../utils/format'
 import { DEBIT_TIME_OPTIONS, fmtDebitTime, FREQUENCY_OPTIONS } from '../../../utils/savingsSchedule'
 import {
-  ChevronLeft, ChevronDown, Wallet, Plus, Check, Loader2, ShieldCheck,
+  ChevronDown, Wallet, Plus, Check, Loader2, ShieldCheck,
   ArrowUpRight, ArrowDownLeft, Coins, X,
   Sparkles, TrendingUp,
   Repeat, Pause, Play, Pencil, Clock, Settings,
   History, Receipt, AlertTriangle,
 } from 'lucide-react'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG') }
 function fmtN(n) { return '₦' + fmt(Math.round(n || 0)) }
@@ -750,18 +751,10 @@ export default function MobileFlexibleSavings() {
   return (
     <div className="flex flex-col min-h-screen" style={{ background: 'var(--c-bg)' }}>
 
-      {/* Header */}
-      <div className="grid grid-cols-3 items-center pt-4">
-        <button
-          type="button"
-          onClick={() => navigate('/user/savings')}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition justify-self-start"
-        >
-          <ChevronLeft size={13} /> Back
-        </button>
-        <h1 className="text-[15px] font-black text-[var(--c-text)] m-0 tracking-[-0.3px] text-center">{flexProduct?.name || 'Flexible Savings'}</h1>
-        <div />
-      </div>
+      <MobilePageHeader
+        title={flexProduct?.name || 'Flexible Savings'}
+        onBack={() => navigate('/user/savings')}
+      />
 
       <div className="flex flex-col gap-4 py-4 pb-24">
 

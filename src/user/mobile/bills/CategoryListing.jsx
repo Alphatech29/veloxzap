@@ -1,28 +1,17 @@
-import { ChevronLeft, Sparkles, ShieldCheck, ChevronRight } from 'lucide-react'
+import { ShieldCheck, ChevronRight } from 'lucide-react'
 import { CATEGORIES, CATEGORY_LOGOS } from './constants'
+import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 export default function CategoryListing({ onSelect, onBack }) {
   return (
     <div className="flex flex-col gap-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--c-text-muted)] hover:text-brand-accent active:scale-95 transition self-start -mt-1"
-      >
-        <ChevronLeft size={12} /> Back
-      </button>
+      <MobilePageHeader title="Bills & utilities" onBack={onBack} />
 
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--c-accent-soft-2)] via-[var(--c-surface)] to-[var(--c-surface)] border border-[var(--c-accent-border)] p-4">
         <span aria-hidden className="pointer-events-none absolute -top-8 -right-8 w-32 h-32 rounded-full bg-brand-accent/[0.18] blur-3xl" />
         <span aria-hidden className="pointer-events-none absolute bottom-0 left-0 w-20 h-20 rounded-full bg-brand-accent/[0.06] blur-2xl" />
         <div className="relative">
-          <p className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-[1.4px] text-brand-accent font-bold m-0">
-            <Sparkles size={9} /> Pay bills
-          </p>
-          <h1 className="text-[17px] font-black tracking-[-0.5px] text-[var(--c-text)] m-0 mt-0.5 leading-tight">
-            Bills &amp; utilities
-          </h1>
-          <p className="text-[11px] text-[var(--c-text-muted)] m-0 mt-1.5 leading-snug">
+          <p className="text-[11px] text-[var(--c-text-muted)] m-0 leading-snug">
             Instant tokens · no queues · verified billers
           </p>
           <div className="flex items-center gap-1.5 mt-3">
