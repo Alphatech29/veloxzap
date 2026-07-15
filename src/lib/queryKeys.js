@@ -10,6 +10,12 @@ export const queryKeys = {
     deposits: ['crypto', 'deposits'],
   },
 
+  market: {
+    rates: ['market', 'rates'],
+    overview: (symbol) => ['market', 'overview', symbol],
+    chart: (symbol, days) => ['market', 'chart', symbol, days],
+  },
+
   transactions: {
     recent: ['transactions', 'recent'],
     byReference: (reference) => ['transactions', 'byReference', reference],

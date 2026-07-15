@@ -50,6 +50,10 @@ export const COINS = [
   },
 ]
 
+export function getCoinBySymbol(symbol) {
+  return COINS.find(c => c.symbol.toLowerCase() === String(symbol).toLowerCase()) || null
+}
+
 export function buildCoins(balances) {
   const byAsset = Object.fromEntries((balances || []).map(b => [b.asset, Number(b.balance) || 0]))
   return COINS.map(coin => {

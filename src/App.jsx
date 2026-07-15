@@ -13,6 +13,7 @@ import Wallet from './user/Wallet'
 import WalletCoin from './user/mobile/wallet/CoinInfo'
 import WalletHistory from './user/mobile/wallet/AssetHistory'
 import WalletDepositDetail from './user/mobile/wallet/DepositDetail'
+import WalletMarketDetail from './user/mobile/wallet/MarketDetail'
 import Rewards from './user/Rewards'
 import Saving from './user/Saving'
 import TargetSavings from './user/TargetSavings'
@@ -98,6 +99,7 @@ function App() {
           <Route path="convert" element={<Convert />} />
           <Route path="wallet" element={<Wallet />} />
           <Route path="wallet/coin/:symbol" element={<WalletCoin />} />
+          <Route path="wallet/market/:symbol" element={<WalletMarketDetail />} />
           <Route path="wallet/history" element={<WalletHistory />} />
           <Route path="wallet/history/:id" element={<WalletDepositDetail />} />
           <Route path="rewards" element={<Rewards />} />
