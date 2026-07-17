@@ -124,14 +124,12 @@ export default function MobileDashboard() {
             to="/user/deposit"
             className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.3)] active:scale-[0.97] transition"
           >
-            <ArrowDownLeft size={13} strokeWidth={2.6} />
             <span className="text-[12px] font-bold">Deposit</span>
           </Link>
           <Link
             to="/user/withdraw"
             className="flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.08] border border-white/[0.16] active:scale-[0.97] transition"
           >
-            <ArrowUpRight size={13} strokeWidth={2.6} />
             <span className="text-[12px] font-bold">Withdraw</span>
           </Link>
         </div>

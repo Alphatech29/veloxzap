@@ -10,7 +10,11 @@ export async function getCryptoBalances() {
       status: result.status,
     }
   }
-  return { success: true, balances: result.data ?? [], message: result.message }
+  return {
+    success: true,
+    balances: result.data ?? { btc_balance: 0, usdt_trc20_balance: 0, usdc_sol_balance: 0 },
+    message: result.message,
+  }
 }
 
 export async function getCryptoAddresses() {

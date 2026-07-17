@@ -1,6 +1,7 @@
 export const COINGECKO_IDS = {
   BTC: 'bitcoin',
   ETH: 'ethereum',
+  BNB: 'binancecoin',
   USDT: 'tether',
   USDC: 'usd-coin',
 }

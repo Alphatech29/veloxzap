@@ -36,7 +36,7 @@ export default function useCrypto({ auto = true } = {}) {
   }, [balancesQuery])
 
   return {
-    balances: balancesQuery.data ?? [],
+    balances: balancesQuery.data ?? {},
     addresses: addressesQuery.data ?? [],
     config: configQuery.data ?? null,
     loading: balancesQuery.isLoading,

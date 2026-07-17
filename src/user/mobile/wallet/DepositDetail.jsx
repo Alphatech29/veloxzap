@@ -12,8 +12,8 @@ function coinFor(asset) {
 
 const EXPLORER_URL = {
   BTC: (txId) => `https://mempool.space/tx/${txId}`,
-  ETH: (txId) => `https://etherscan.io/tx/${txId}`,
   TRON: (txId) => `https://tronscan.org/#/transaction/${txId}`,
+  SOL: (txId) => `https://solscan.io/tx/${txId}`,
 }
 
 function explorerUrlFor(chain, txId) {

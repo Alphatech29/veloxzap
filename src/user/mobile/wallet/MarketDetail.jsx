@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
 import { TrendingUp, TrendingDown, ArrowDownLeft, RotateCcw } from 'lucide-react'
 import useMarketDetail from '../../../hooks/useMarketDetail'
-import { getCoinBySymbol, formatUSD } from '../../../constants/crypto'
+import { getCoinBySymbol, getMarketCoinBySymbol, formatUSD } from '../../../constants/crypto'
 import MobilePageHeader from '../../../components/partials/MobilePageHeader'
 
 const RANGES = [
@@ -51,7 +51,8 @@ export default function MobileMarketDetail() {
   const navigate = useNavigate()
   const { symbol } = useParams()
   const upperSymbol = (symbol || '').toUpperCase()
-  const coin = getCoinBySymbol(upperSymbol)
+  const coin = getMarketCoinBySymbol(upperSymbol)
+  const depositCoin = getCoinBySymbol(upperSymbol)
   const [range, setRange] = useState(RANGES[0])
 
   const { overview, overviewLoading, chart, chartLoading } = useMarketDetail(upperSymbol, range.days)
@@ -251,6 +252,11 @@ export default function MobileMarketDetail() {
   const change = overview?.change24h
   const positive = typeof change === 'number' && change >= 0
 
+  const chartUp = chartData.length >= 2
+    ? chartData[chartData.length - 1].price >= chartData[0].price
+    : positive
+  const chartColor = chartUp ? 'var(--c-success)' : 'var(--c-danger)'
+
   return (
     <div className="flex flex-col gap-4">
       <MobilePageHeader title={coin?.name || upperSymbol} />
@@ -316,14 +322,14 @@ export default function MobileMarketDetail() {
                 <AreaChart data={chartData} margin={CHART_MARGIN}>
                   <defs>
                     <linearGradient id="marketChartFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#C9A227" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#C9A227" stopOpacity={0} />
+                      <stop offset="0%" stopColor={chartColor} stopOpacity={0.35} />
+                      <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="timestamp" type="number" domain={viewXDomain} allowDataOverflow hide />
                   <YAxis domain={viewYDomain} allowDataOverflow hide />
                   <Tooltip
-                    cursor={{ stroke: '#C9A227', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    cursor={{ stroke: chartColor, strokeWidth: 1, strokeDasharray: '4 4' }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null
                       const point = payload[0].payload
@@ -340,11 +346,11 @@ export default function MobileMarketDetail() {
                   <Area
                     type="monotone"
                     dataKey="price"
-                    stroke="#C9A227"
+                    stroke={chartColor}
                     strokeWidth={2}
                     fill="url(#marketChartFill)"
                     isAnimationActive={false}
-                    activeDot={{ r: 5, stroke: '#0A1F44', strokeWidth: 2, fill: '#C9A227' }}
+                    activeDot={{ r: 5, stroke: '#0A1F44', strokeWidth: 2, fill: chartColor }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -398,13 +404,13 @@ export default function MobileMarketDetail() {
         </div>
       </div>
 
-      {coin && (
+      {depositCoin && (
         <button
           type="button"
-          onClick={() => navigate(`/user/wallet/coin/${coin.symbol.toLowerCase()}`)}
+          onClick={() => navigate(`/user/wallet/coin/${depositCoin.symbol.toLowerCase()}`)}
           className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[13.5px] font-bold border border-[rgba(232,197,71,0.55)] shadow-[0_4px_14px_rgba(201,162,39,0.28)] active:scale-[0.98] transition"
         >
-          <ArrowDownLeft size={15} /> Deposit {coin.symbol}
+          <ArrowDownLeft size={15} /> Deposit {depositCoin.symbol}
         </button>
       )}
     </div>

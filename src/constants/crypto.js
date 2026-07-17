@@ -1,7 +1,6 @@
 const ICON_BASE = 'https://cdn.jsdelivr.net/npm/cryptocurrency-icons@0.18.1/32/color'
 
-// NOTE: priceUSD values are static placeholder rates for display purposes only —
-// there is no live price feed wired up yet. Swap for a real quote source later.
+
 export const COINS = [
   {
     asset: 'BTC',
@@ -13,24 +12,6 @@ export const COINS = [
     decimals: 8,
   },
   {
-    asset: 'ETH',
-    symbol: 'ETH',
-    name: 'Ethereum',
-    network: null,
-    icon: `${ICON_BASE}/eth.png`,
-    priceUSD: 3_450,
-    decimals: 6,
-  },
-  {
-    asset: 'USDT_ERC20',
-    symbol: 'USDT',
-    name: 'Tether(USDT)',
-    network: 'ERC20 · Ethereum',
-    icon: `${ICON_BASE}/usdt.png`,
-    priceUSD: 1,
-    decimals: 2,
-  },
-  {
     asset: 'USDT_TRC20',
     symbol: 'USDT',
     name: 'Tether(USDT)',
@@ -40,25 +21,46 @@ export const COINS = [
     decimals: 2,
   },
   {
-    asset: 'USDC',
+    asset: 'USDC_SOL',
     symbol: 'USDC',
     name: 'USDC',
-    network: 'ERC20 · Ethereum',
+    network: 'Solana',
     icon: `${ICON_BASE}/usdc.png`,
     priceUSD: 1,
     decimals: 2,
   },
 ]
 
+const BALANCE_FIELD = {
+  BTC: 'btc_balance',
+  USDT_TRC20: 'usdt_trc20_balance',
+  USDC_SOL: 'usdc_sol_balance',
+}
+
+// Market tab shows major coins for price browsing, independent of which
+// assets VeloxZap actually custodies deposits for (see COINS above).
+export const MARKET_COINS = [
+  { symbol: 'BTC', name: 'Bitcoin', icon: `${ICON_BASE}/btc.png` },
+  { symbol: 'ETH', name: 'Ethereum', icon: `${ICON_BASE}/eth.png` },
+  { symbol: 'BNB', name: 'BNB', icon: `${ICON_BASE}/bnb.png` },
+  { symbol: 'USDT', name: 'Tether(USDT)', icon: `${ICON_BASE}/usdt.png` },
+  { symbol: 'USDC', name: 'USDC', icon: `${ICON_BASE}/usdc.png` },
+]
+
 export function getCoinBySymbol(symbol) {
   return COINS.find(c => c.symbol.toLowerCase() === String(symbol).toLowerCase()) || null
 }
 
-export function buildCoins(balances) {
-  const byAsset = Object.fromEntries((balances || []).map(b => [b.asset, Number(b.balance) || 0]))
+export function getMarketCoinBySymbol(symbol) {
+  return MARKET_COINS.find(c => c.symbol.toLowerCase() === String(symbol).toLowerCase()) || null
+}
+
+export function buildCoins(balances, rates) {
   return COINS.map(coin => {
-    const amount = byAsset[coin.asset] ?? 0
-    return { ...coin, amount, valueUSD: amount * coin.priceUSD }
+    const amount = Number(balances?.[BALANCE_FIELD[coin.asset]]) || 0
+    const livePrice = rates?.[coin.symbol]?.priceUSD
+    const priceUSD = livePrice != null ? livePrice : coin.priceUSD
+    return { ...coin, amount, priceUSD, valueUSD: amount * priceUSD }
   })
 }
 

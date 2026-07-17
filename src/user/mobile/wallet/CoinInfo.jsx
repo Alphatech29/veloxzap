@@ -14,8 +14,8 @@ const CARD_BG_LIGHT = `radial-gradient(320px 160px at 15% -10%, rgba(201, 162, 3
 
 function chainForAsset(asset) {
   if (asset === 'BTC') return 'BTC'
-  if (asset === 'ETH' || asset === 'USDT_ERC20') return 'ETH'
   if (asset === 'USDT_TRC20') return 'TRON'
+  if (asset === 'USDC_SOL') return 'SOL'
   return null
 }
 
@@ -23,10 +23,13 @@ function shortNetwork(variant) {
   return variant.network ? variant.network.split(' ')[0] : variant.symbol
 }
 
-const BLOCK_TIME_SECONDS = { BTC: 600, ETH: 12, TRON: 3 }
+// SOL confirmations track Solana's commitment levels (confirmed/finalized),
+// not a fixed block-count diff, so it isn't multiplied by a block time.
+const BLOCK_TIME_SECONDS = { BTC: 600, TRON: 3 }
 
 function formatArrival(chain, confirmations) {
-  if (!chain || !confirmations) return null
+  if (chain === 'SOL') return '~30s'
+  if (!chain || !confirmations || !BLOCK_TIME_SECONDS[chain]) return null
   const seconds = confirmations * BLOCK_TIME_SECONDS[chain]
   const minutes = Math.round(seconds / 60)
   if (minutes < 1) return `~${seconds}s`

@@ -1,10 +1,23 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, ShieldCheck, Sparkles, Info, ArrowDownLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Sparkles, Info, ArrowDownLeft, ChevronRight, TrendingUp, TrendingDown, ReceiptText, Newspaper } from 'lucide-react'
 import useCrypto from '../../../hooks/useCrypto'
 import useMarketRates from '../../../hooks/useMarketRates'
-import { buildCoins, formatCoinAmount, formatUSD } from '../../../constants/crypto'
+import useBlockchainNews from '../../../hooks/useBlockchainNews'
+import { buildCoins, formatCoinAmount, formatUSD, MARKET_COINS } from '../../../constants/crypto'
 import BottomSheet from '../../../components/internalUI/BottomSheet'
+
+function timeAgo(iso) {
+  if (!iso) return ''
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (seconds < 60) return 'Just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
 
 const BALANCE_BG = `radial-gradient(540px 240px at 110% -10%, rgba(201, 162, 39, 0.32), transparent 60%), radial-gradient(360px 180px at -10% 110%, rgba(232, 197, 71, 0.16), transparent 60%), linear-gradient(135deg, rgba(20, 42, 92, 0.95), rgba(10, 31, 68, 1))`
 
@@ -12,11 +25,12 @@ export default function MobileWallet() {
   const navigate = useNavigate()
   const { balances, loading } = useCrypto()
   const { rates, loading: ratesLoading } = useMarketRates()
+  const { articles: news, loading: newsLoading } = useBlockchainNews()
   const [hidden, setHidden] = useState(() => localStorage.getItem('vzap_hide_crypto_balance') === '1')
   const [depositSheetOpen, setDepositSheetOpen] = useState(false)
   const [tab, setTab] = useState('market')
 
-  const coins = useMemo(() => buildCoins(balances), [balances])
+  const coins = useMemo(() => buildCoins(balances, rates), [balances, rates])
   const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + c.valueUSD, 0), [coins])
   const depositCoins = useMemo(() => {
     const seen = new Set()
@@ -177,7 +191,7 @@ export default function MobileWallet() {
           ) : (
             ratesLoading ? (
               <ul className="m-0 list-none">
-                {Array.from({ length: 4 }).map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <li key={i} className={`flex items-center gap-2.5 px-3 py-2.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
                     <span aria-hidden className="w-8 h-8 rounded-full bg-[var(--c-surface-soft)] animate-pulse shrink-0" />
                     <div className="flex-1 flex flex-col gap-1">
@@ -189,7 +203,7 @@ export default function MobileWallet() {
               </ul>
             ) : (
               <ul className="m-0 list-none">
-                {depositCoins.map((coin, i) => {
+                {MARKET_COINS.map((coin, i) => {
                   const rate = rates[coin.symbol]
                   const change = rate?.change24h
                   const positive = typeof change === 'number' && change >= 0
@@ -230,6 +244,63 @@ export default function MobileWallet() {
                 })}
               </ul>
             )
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="text-[12px] font-semibold m-0 text-[var(--c-text)] tracking-[-0.1px]">Blockchain news</h2>
+        </div>
+
+        <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
+          {newsLoading ? (
+            <ul className="m-0 list-none">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <li key={i} className={`flex items-center gap-2.5 px-3 py-2.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
+                  <span aria-hidden className="w-14 h-14 rounded-lg bg-[var(--c-surface-soft)] animate-pulse shrink-0" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <span aria-hidden className="h-2.5 w-full rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                    <span aria-hidden className="h-2.5 w-3/5 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                    <span aria-hidden className="h-2 w-1/4 rounded bg-[var(--c-surface-soft)] animate-pulse" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : news.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-1">
+              <p className="text-[11.5px] text-[var(--c-text-faint)] m-0">No news available right now</p>
+            </div>
+          ) : (
+            <ul className="m-0 list-none">
+              {news.map((article, i) => (
+                <li key={article.id || article.url}
+                  className={i > 0 ? 'border-t border-[var(--c-border)]' : ''}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/user/wallet/news/${article.id || i}`, { state: { article } })}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left active:bg-[var(--c-surface-soft)] transition"
+                  >
+                    {article.image ? (
+                      <img src={article.image} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <span aria-hidden className="inline-flex items-center justify-center w-14 h-14 rounded-lg bg-[var(--c-surface-soft)] text-[var(--c-text-faint)] shrink-0">
+                        <Newspaper size={16} />
+                      </span>
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                      <p className="text-[11.5px] font-semibold text-[var(--c-text)] leading-snug m-0 line-clamp-2">
+                        {article.title}
+                      </p>
+                      <span className="text-[9.5px] text-[var(--c-text-muted)]">
+                        {article.source}{article.publishedAt ? ` · ${timeAgo(article.publishedAt)}` : ''}
+                      </span>
+                    </div>
+                    <ChevronRight size={14} className="text-[var(--c-text-faint)] shrink-0" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>

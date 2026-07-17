@@ -36,6 +36,11 @@ export const queryKeys = {
     posts: ['blog', 'posts'],
   },
 
+  news: {
+    blockchain: ['news', 'blockchain'],
+    article: (url) => ['news', 'article', url],
+  },
+
   savings: {
     products: (type) => ['savings', 'products', type],
     plans: ['savings', 'plans'],
