@@ -248,6 +248,7 @@ export default function MobileWallet() {
         </div>
       </section>
 
+      {tab === 'market' && (
       <section>
         <div className="flex items-center gap-1.5 mb-2">
           <h2 className="text-[12px] font-semibold m-0 text-[var(--c-text)] tracking-[-0.1px]">Blockchain news</h2>
@@ -304,6 +305,7 @@ export default function MobileWallet() {
           )}
         </div>
       </section>
+      )}
 
       <BottomSheet
         open={depositSheetOpen}

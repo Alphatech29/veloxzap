@@ -8,14 +8,11 @@ export const TRANSACTION_STATUS = {
   reverse:    { label: 'Reversed',   cls: 'bg-[var(--c-surface-soft)] text-[var(--c-text-muted)]', bg: 'var(--c-surface-soft)', fg: 'var(--c-text-muted)' },
 }
 
-// Status vocabulary for crypto deposits (v_crypto_deposits.status)
+// Status vocabulary for crypto deposits (v_crypto_deposit_history.status)
 export const CRYPTO_DEPOSIT_STATUS = {
-  pending:           { label: 'Pending',     cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
-  confirmed:         { label: 'Confirmed',   cls: 'bg-[var(--c-accent-soft)] text-brand-accent border border-[var(--c-accent-border)]' },
-  credited:          { label: 'Credited',    cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-  swept:             { label: 'Swept',       cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
-  unsupported_asset: { label: 'Unsupported', cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
-  failed:            { label: 'Failed',      cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
+  pending:    { label: 'Pending',    cls: 'bg-[var(--c-warn-bg)] text-[var(--c-warn)]' },
+  successful: { label: 'Successful', cls: 'bg-[var(--c-success-bg)] text-[var(--c-success)]' },
+  failed:     { label: 'Failed',     cls: 'bg-[var(--c-danger-soft)] text-[var(--c-danger)]' },
 }
 
 // Status vocabulary for gift card trades

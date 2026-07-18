@@ -8,6 +8,7 @@ import { useTheme } from '../../../hooks/useTheme'
 import { COINS } from '../../../constants/crypto'
 import BottomSheet from '../../../components/internalUI/BottomSheet'
 import MobilePageHeader from '../../../components/partials/MobilePageHeader'
+import { useAlert } from '../../../components/ui/Alert'
 
 const CARD_BG_DARK = `radial-gradient(320px 160px at 15% -10%, rgba(201, 162, 39, 0.28), transparent 60%), linear-gradient(160deg, rgba(16, 36, 80, 1), rgba(6, 18, 44, 1))`
 const CARD_BG_LIGHT = `radial-gradient(320px 160px at 15% -10%, rgba(201, 162, 39, 0.16), transparent 60%), linear-gradient(160deg, #ffffff, #f2efe6)`
@@ -43,6 +44,7 @@ export default function MobileCoinInfo() {
   const navigate = useNavigate()
   const { symbol } = useParams()
   const { theme } = useTheme()
+  const { alert } = useAlert()
   const { addresses, config, addressesLoading, configLoading } = useCrypto()
   const [copied, setCopied] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -98,6 +100,8 @@ export default function MobileCoinInfo() {
       link.download = `${variant.symbol}-${chain || 'address'}-deposit.png`
       link.click()
       setSavePreviewOpen(false)
+    } catch {
+      alert({ type: 'error', title: 'Could not save image', message: 'Something went wrong while generating the picture. Please try again.' })
     } finally {
       setSaving(false)
     }

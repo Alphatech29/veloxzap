@@ -100,12 +100,6 @@ export default function MobileDepositDetail() {
                 <span className="text-[11.5px] font-bold text-[var(--c-text)]">{fmtDate(deposit.credited_at)}</span>
               </div>
             )}
-            {deposit.swept_at && (
-              <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--c-surface-soft)]">
-                <span className="text-[10.5px] text-[var(--c-text-muted)] font-medium">Swept</span>
-                <span className="text-[11.5px] font-bold text-[var(--c-text)]">{fmtDate(deposit.swept_at)}</span>
-              </div>
-            )}
           </div>
 
           <div className="rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] p-3.5">
