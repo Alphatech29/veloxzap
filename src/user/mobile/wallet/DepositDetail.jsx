@@ -1,10 +1,14 @@
-import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Copy, Check, Clock, ShieldCheck, ExternalLink } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useLocation, useParams } from 'react-router-dom'
+import { Copy, Check, ExternalLink } from 'lucide-react'
+import useCryptoDeposits from '../../../hooks/useCryptoDeposits'
 import { COINS } from '../../../constants/crypto'
 import { CRYPTO_DEPOSIT_STATUS } from '../../../constants/status'
 import { fmtDate } from '../../../utils/format'
 import MobilePageHeader from '../../../components/partials/MobilePageHeader'
+
+
+const MAX_SEARCH_RESULTS = 400
 
 function coinFor(asset) {
   return COINS.find(c => c.asset === asset) || null
@@ -13,7 +17,7 @@ function coinFor(asset) {
 const EXPLORER_URL = {
   BTC: (txId) => `https://mempool.space/tx/${txId}`,
   TRON: (txId) => `https://tronscan.org/#/transaction/${txId}`,
-  SOL: (txId) => `https://solscan.io/tx/${txId}`,
+  SOL: (txId) => `https://explorer.solana.com/tx/${txId}`,
 }
 
 function explorerUrlFor(chain, txId) {
@@ -21,11 +25,23 @@ function explorerUrlFor(chain, txId) {
 }
 
 export default function MobileDepositDetail() {
-  const navigate = useNavigate()
   const location = useLocation()
+  const { id } = useParams()
   const [copied, setCopied] = useState(false)
 
-  const deposit = location.state?.deposit
+  const stateDeposit = location.state?.deposit
+  const needsSearch = !stateDeposit && !!id
+
+  const { deposits, loading: depositsLoading, loadingMore, hasMore, loadMore } = useCryptoDeposits({ auto: needsSearch })
+  const foundDeposit = needsSearch ? deposits.find(d => String(d.id) === String(id)) : null
+  const deposit = stateDeposit || foundDeposit
+
+  useEffect(() => {
+    if (!needsSearch || foundDeposit) return
+    if (depositsLoading || loadingMore) return
+    if (!hasMore || deposits.length >= MAX_SEARCH_RESULTS) return
+    loadMore()
+  }, [needsSearch, foundDeposit, depositsLoading, loadingMore, hasMore, deposits.length, loadMore])
 
   function handleCopyTxId() {
     if (!deposit) return
@@ -43,17 +59,15 @@ export default function MobileDepositDetail() {
       <MobilePageHeader title="Deposit details" />
 
       {!deposit ? (
-        <div className="flex flex-col items-center gap-3 py-12 text-center">
-          <p className="text-[12px] text-[var(--c-text-muted)] m-0">
-            Open this deposit from your asset history to see its details.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/user/wallet/history')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-br from-brand-accent to-brand-gold-soft text-brand-primary text-[12px] font-bold border border-[rgba(232,197,71,0.55)] active:scale-[0.98] transition"
-          >
-            Go to asset history
-          </button>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col items-center gap-2 py-2">
+            <span aria-hidden className="w-12 h-12 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+            <span aria-hidden className="w-32 h-6 rounded-md bg-[var(--c-surface-soft)] animate-pulse mt-1" />
+            <span aria-hidden className="w-16 h-4 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
+          </div>
+          <div aria-hidden className="h-40 rounded-xl bg-[var(--c-surface-soft)] animate-pulse" />
+          <div aria-hidden className="h-24 rounded-xl bg-[var(--c-surface-soft)] animate-pulse" />
+          <div aria-hidden className="h-16 rounded-xl bg-[var(--c-surface-soft)] animate-pulse" />
         </div>
       ) : (
         <>
@@ -82,7 +96,7 @@ export default function MobileDepositDetail() {
             </div>
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--c-surface-soft)]">
               <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--c-text-muted)] font-medium">
-                <ShieldCheck size={10} /> Confirmations
+                Confirmations
               </span>
               <span className="text-[11.5px] font-bold tabular-nums text-[var(--c-text)]">
                 {deposit.confirmations} / {deposit.required_confirmations}
@@ -90,16 +104,10 @@ export default function MobileDepositDetail() {
             </div>
             <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--c-surface-soft)]">
               <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--c-text-muted)] font-medium">
-                <Clock size={10} /> Received
+                Time
               </span>
               <span className="text-[11.5px] font-bold text-[var(--c-text)]">{fmtDate(deposit.created_at)}</span>
             </div>
-            {deposit.credited_at && (
-              <div className="flex items-center justify-between px-3.5 py-2.5 bg-[var(--c-surface-soft)]">
-                <span className="text-[10.5px] text-[var(--c-text-muted)] font-medium">Credited</span>
-                <span className="text-[11.5px] font-bold text-[var(--c-text)]">{fmtDate(deposit.credited_at)}</span>
-              </div>
-            )}
           </div>
 
           <div className="rounded-xl bg-[var(--c-surface-soft)] border border-[var(--c-border-soft)] p-3.5">

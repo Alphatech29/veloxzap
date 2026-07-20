@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, Wallet, ShieldCheck, Sparkles, Info, ArrowDownLeft } from 'lucide-react'
 import useCrypto from '../../../hooks/useCrypto'
+import useMarketRates from '../../../hooks/useMarketRates'
 import { buildCoins, formatCoinAmount, formatUSD } from '../../../constants/crypto'
 
 const HERO_BG = `radial-gradient(700px 300px at 110% -10%, rgba(201,162,39,0.28), transparent 60%),
@@ -10,10 +11,12 @@ const HERO_BG = `radial-gradient(700px 300px at 110% -10%, rgba(201,162,39,0.28)
 
 export default function DesktopWallet() {
   const { balances, loading } = useCrypto()
+  const { rates, loading: ratesLoading } = useMarketRates()
   const [hidden, setHidden] = useState(() => localStorage.getItem('vzap_hide_crypto_balance') === '1')
 
-  const coins = useMemo(() => buildCoins(balances), [balances])
-  const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + c.valueUSD, 0), [coins])
+  const assetsLoading = loading || ratesLoading
+  const coins = useMemo(() => buildCoins(balances, rates), [balances, rates])
+  const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + (c.valueUSD ?? 0), 0), [coins])
 
   function toggleHide() {
     setHidden(h => {
@@ -53,7 +56,7 @@ export default function DesktopWallet() {
           </div>
 
           <div className="flex items-end gap-3">
-            {loading ? (
+            {assetsLoading ? (
               <span aria-hidden className="inline-block w-[220px] h-[44px] rounded-lg bg-white/[0.07] animate-pulse" />
             ) : (
               <span className="text-[42px] font-black tracking-[-1.2px] text-white leading-none tabular-nums">
@@ -94,7 +97,7 @@ export default function DesktopWallet() {
           </div>
         </header>
 
-        {loading ? (
+        {assetsLoading ? (
           <ul className="m-0 list-none p-0">
             {Array.from({ length: 4 }).map((_, i) => (
               <li key={i} className={`flex items-center gap-3 px-5 py-3.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
@@ -132,7 +135,7 @@ export default function DesktopWallet() {
                     {hidden ? '••••••' : `${formatCoinAmount(coin.amount, coin.decimals)} ${coin.symbol}`}
                   </span>
                   <span className="text-[11px] tabular-nums text-[var(--c-text-muted)] font-medium whitespace-nowrap">
-                    {hidden ? '••••' : formatUSD(coin.valueUSD)}
+                    {hidden ? '••••' : coin.valueUSD != null ? formatUSD(coin.valueUSD) : '—'}
                   </span>
                 </div>
               </li>

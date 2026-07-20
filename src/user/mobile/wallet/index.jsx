@@ -30,8 +30,9 @@ export default function MobileWallet() {
   const [depositSheetOpen, setDepositSheetOpen] = useState(false)
   const [tab, setTab] = useState('market')
 
+  const assetsLoading = loading || ratesLoading
   const coins = useMemo(() => buildCoins(balances, rates), [balances, rates])
-  const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + c.valueUSD, 0), [coins])
+  const totalUSD = useMemo(() => coins.reduce((sum, c) => sum + (c.valueUSD ?? 0), 0), [coins])
   const depositCoins = useMemo(() => {
     const seen = new Set()
     return coins.filter(coin => {
@@ -84,7 +85,7 @@ export default function MobileWallet() {
 
         <div className="relative flex items-end justify-between gap-2.5 mt-6 py-2">
           <div className="min-w-0">
-            {loading ? (
+            {assetsLoading ? (
               <div aria-hidden className="w-[140px] h-[22px] rounded-md bg-white/[0.08] border border-white/[0.10] animate-pulse" />
             ) : (
               <div className="text-[20px] font-bold tracking-[-0.5px] truncate">
@@ -143,7 +144,7 @@ export default function MobileWallet() {
 
         <div className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
           {tab === 'assets' ? (
-            loading ? (
+            assetsLoading ? (
               <ul className="m-0 list-none">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <li key={i} className={`flex items-center gap-2.5 px-3 py-2.5 ${i > 0 ? 'border-t border-[var(--c-border)]' : ''}`}>
@@ -181,7 +182,7 @@ export default function MobileWallet() {
                         {hidden ? '••••••' : `${formatCoinAmount(coin.amount, coin.decimals)} ${coin.symbol}`}
                       </span>
                       <span className="text-[10px] tabular-nums text-[var(--c-text-muted)] font-medium whitespace-nowrap">
-                        {hidden ? '••••' : formatUSD(coin.valueUSD)}
+                        {hidden ? '••••' : coin.valueUSD != null ? formatUSD(coin.valueUSD) : '—'}
                       </span>
                     </div>
                   </li>

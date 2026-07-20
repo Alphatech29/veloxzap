@@ -8,7 +8,6 @@ export const COINS = [
     name: 'Bitcoin',
     network: null,
     icon: `${ICON_BASE}/btc.png`,
-    priceUSD: 98_450,
     decimals: 8,
   },
   {
@@ -17,7 +16,6 @@ export const COINS = [
     name: 'Tether(USDT)',
     network: 'TRC20 · Tron',
     icon: `${ICON_BASE}/usdt.png`,
-    priceUSD: 1,
     decimals: 2,
   },
   {
@@ -26,7 +24,6 @@ export const COINS = [
     name: 'USDC',
     network: 'Solana',
     icon: `${ICON_BASE}/usdc.png`,
-    priceUSD: 1,
     decimals: 2,
   },
 ]
@@ -55,12 +52,15 @@ export function getMarketCoinBySymbol(symbol) {
   return MARKET_COINS.find(c => c.symbol.toLowerCase() === String(symbol).toLowerCase()) || null
 }
 
+// valueUSD is only ever computed from a live rate — no static fallback price,
+// so a coin's value is `null` (not a stale/misleading number) until the live
+// market rate has actually loaded.
 export function buildCoins(balances, rates) {
   return COINS.map(coin => {
     const amount = Number(balances?.[BALANCE_FIELD[coin.asset]]) || 0
-    const livePrice = rates?.[coin.symbol]?.priceUSD
-    const priceUSD = livePrice != null ? livePrice : coin.priceUSD
-    return { ...coin, amount, priceUSD, valueUSD: amount * priceUSD }
+    const priceUSD = rates?.[coin.symbol]?.priceUSD ?? null
+    const valueUSD = priceUSD != null ? amount * priceUSD : null
+    return { ...coin, amount, priceUSD, valueUSD }
   })
 }
 
