@@ -1,7 +1,7 @@
 import { apiFetch } from '../lib/api'
 
 export async function getCryptoBalances() {
-  const result = await apiFetch('/api/v1/users/crypto/balances', { method: 'GET' })
+  const result = await apiFetch('/api/v1/users/crypto/assets', { method: 'GET' })
   if (!result.success) {
     return {
       success: false,

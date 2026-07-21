@@ -24,8 +24,7 @@ function shortNetwork(variant) {
   return variant.network ? variant.network.split(' ')[0] : variant.symbol
 }
 
-// SOL confirmations track Solana's commitment levels (confirmed/finalized),
-// not a fixed block-count diff, so it isn't multiplied by a block time.
+
 const BLOCK_TIME_SECONDS = { BTC: 600, TRON: 3 }
 
 function formatArrival(chain, confirmations) {
