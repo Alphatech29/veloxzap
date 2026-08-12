@@ -4,7 +4,7 @@ import {
   Eye, EyeOff, ArrowUpRight, ArrowDownLeft, Smartphone,
   Receipt, ArrowLeftRight, Wifi,
   Sparkles, ShieldCheck, ChevronRight, Gift, Bitcoin,
-  Lock, X, PieChart,
+  Lock, X,
 } from 'lucide-react'
 import useUser from '../../hooks/useUser'
 import useTransactions from '../../hooks/useTransactions'
@@ -20,8 +20,6 @@ const QUICK_ACTIONS = [
   { to: '/user/convert',          label: 'Convert',       icon: ArrowLeftRight },
   { to: '/user/wallet',           label: 'Crypto',        icon: Bitcoin },
 ]
-
-const PALETTE = ['#C9A227', '#7AA7FF', '#E89B6B', '#5BD0A0', '#A78BFA', '#F472B6']
 
 const STATUS_TONE = Object.fromEntries(
   Object.entries(TRANSACTION_STATUS).map(([status, meta]) => [status, meta.cls])
@@ -70,22 +68,6 @@ export default function Dashboard() {
   const firstName = rawFirst ? rawFirst.charAt(0).toUpperCase() + rawFirst.slice(1).toLowerCase() : ''
 
   const recentTx = useMemo(() => allTx.slice(0, 7), [allTx])
-
-  const spendingCategories = useMemo(() => {
-    const map = {}
-    allTx
-      .filter(t => t.kind === 'out' && t.status === 'successful')
-      .forEach(t => { map[t.category] = (map[t.category] || 0) + t.total })
-    const total = Object.values(map).reduce((s, v) => s + v, 0)
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([label, amount], i) => ({
-        id: label, label, amount,
-        pct: total ? Math.round((amount / total) * 100) : 0,
-        color: PALETTE[i % PALETTE.length],
-      }))
-  }, [allTx])
 
   function toggleHide() {
     setHidden(h => {
@@ -262,8 +244,8 @@ export default function Dashboard() {
         </div>
       </article>
 
-      {/* ── Bottom: activity + spending ── */}
-      <section className="grid grid-cols-1 min-[960px]:grid-cols-[1.6fr_1fr] gap-3">
+      {/* ── Bottom: activity ── */}
+      <section>
 
         {/* Recent activity */}
         <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
@@ -357,79 +339,6 @@ export default function Dashboard() {
               ))}
             </ul>
           )}
-        </article>
-
-        {/* Spending breakdown */}
-        <article className="rounded-xl bg-[var(--c-surface)] border border-[var(--c-border)] overflow-hidden">
-          <header className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--c-border)]">
-            <h3 className="inline-flex items-center gap-1.5 text-[13px] font-bold m-0 text-[var(--c-text)] tracking-[-0.15px]">
-              <PieChart size={12} className="text-brand-accent" /> Spending
-            </h3>
-            <Link to="/user/transactions" className="text-[11px] font-semibold text-brand-accent hover:underline">
-              See all
-            </Link>
-          </header>
-
-          <div className="p-5">
-            {txLoading ? (
-              <div className="flex flex-col gap-3">
-                <div aria-hidden className="h-2.5 rounded-full bg-[var(--c-surface-soft)] animate-pulse" />
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span aria-hidden className="w-2.5 h-2.5 rounded-sm bg-[var(--c-surface-soft)] animate-pulse shrink-0" />
-                    <span aria-hidden className="h-2.5 flex-1 rounded bg-[var(--c-surface-soft)] animate-pulse" />
-                    <span aria-hidden className="h-2.5 w-14 rounded bg-[var(--c-surface-soft)] animate-pulse" />
-                  </div>
-                ))}
-              </div>
-            ) : spendingCategories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-2">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[var(--c-surface-soft)] text-[var(--c-text-faint)]">
-                  <PieChart size={16} />
-                </span>
-                <p className="text-[12px] text-[var(--c-text-faint)] m-0">No spending data yet</p>
-              </div>
-            ) : (
-              <>
-                {/* Segmented bar */}
-                <div className="flex h-2.5 rounded-full overflow-hidden gap-px mb-4">
-                  {spendingCategories.map(c => (
-                    <div
-                      key={c.id}
-                      title={`${c.label} · ${c.pct}%`}
-                      style={{ width: `${c.pct}%`, background: c.color }}
-                      className="transition-all first:rounded-l-full last:rounded-r-full"
-                    />
-                  ))}
-                </div>
-
-                {/* Category list */}
-                <ul className="m-0 list-none p-0 flex flex-col gap-0">
-                  {spendingCategories.map((c, i) => (
-                    <li key={c.id}
-                      className={[
-                        'flex items-center gap-2.5 py-2.5',
-                        i > 0 ? 'border-t border-[var(--c-border)]' : '',
-                      ].join(' ')}>
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-sm shrink-0"
-                        style={{ background: c.color }}
-                      />
-                      <span className="text-[12px] font-semibold text-[var(--c-text)] flex-1 truncate">
-                        {c.label}
-                      </span>
-                      <span className="text-[11px] tabular-nums text-[var(--c-text-muted)] font-medium shrink-0">
-                        {c.pct}%
-                      </span>
-                      <span className="text-[12px] font-bold tabular-nums text-[var(--c-text)] whitespace-nowrap shrink-0">
-                        ₦{Number(c.amount).toLocaleString('en-NG')}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
         </article>
       </section>
 
